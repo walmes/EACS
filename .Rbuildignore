@@ -1,0 +1,15 @@
+\#*\#
+^\.\#*
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.gitlab-ci.yml$
+^data-raw$
+^.build_package.R$
+^.gitlab-ci.yml$
+^.travis.yml$
+Rplots.pdf
+README.*
+LICENSE
+_output.yaml
+ci-c3sl.R
+_vignettes/

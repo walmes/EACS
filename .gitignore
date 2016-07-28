@@ -1,0 +1,62 @@
+## General
+README.html
+CONTRIBUTING.html
+STYLEGUIDE.html
+plano.Rmd
+playground.R
+*.Rhistory
+*.Rproj.user
+*.RData
+*.Rout
+vignettes/*.html
+!vignettes/_before_body.html
+!vignettes/_after_body.html
+!vignettes/_MathJax.html
+inst/doc
+inst/doc/*.Rmd
+
+## Rnw/Rmd output files
+**/*_cache/*
+**/*_files/*
+**/figure/*
+*.nav
+*.snm
+*.tex
+*.vrb
+
+## Core latex/pdflatex auxiliary files:
+*.aux
+*.lof
+*.log
+*.lot
+*.fls
+*.out
+*.toc
+*.fmt
+*.fot
+*.cb
+*.cb2
+
+## Intermediate documents:
+*.dvi
+*-converted-to.*
+
+## Build tool auxiliary files:
+*.fdb_latexmk
+*.synctex
+*.synctex.gz
+*.synctex.gz(busy)
+*.pdfsync
+
+## Bibliography auxiliary files (bibtex/biblatex/biber):
+*.bbl
+*.bcf
+*.blg
+*-blx.aux
+*-blx.bib
+*.brf
+
+## Emacs
+.#*
+*~
+#*
