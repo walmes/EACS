@@ -1,0 +1,86 @@
+body, td, caption {
+    font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+    background-color: white;
+    font-size: 16px;
+    text-align: none;
+}
+
+body {
+    margin: auto;
+}
+
+tt, code, pre {
+    font-family: "Inconsolata", "Andale Mono", monospace;
+}
+
+pre code {
+    font-size: 14px;
+}
+
+/* R input */
+pre, code {
+    border-radius: 0px;
+    background-color: #EDEDED;
+    color: #333;
+}
+
+/* R output */
+pre:not([class]) code {
+    background-color: #D4D4D4;
+}
+
+pre:not([class]), code {
+    background-color: #D4D4D4;
+}
+
+img {
+    max-width: 100% !important;
+    display: block;
+    margin: auto;
+}
+
+#header {
+    text-align: center;
+    margin: 20px 0px 20px 0px;
+}
+
+#TOC {
+    font-size: 15px;
+    margin: 0px 0px 20px 0px;
+}
+
+#TOC li {
+    list-style: outside none url;
+}
+
+blockquote {
+    font-size: 17.5px;
+    width: 90%;
+    border-left: none;
+    margin: auto;
+}
+
+blockquote > blockquote > p {
+    color: "red";
+    text-align: right;
+}
+
+a {
+    color: #149494;
+    text-decoration: none;
+}
+
+a:hover, a:focus {
+    color: #004E4E;
+    text-decoration: underline;
+}
+
+.list-group-item.active,
+.list-group-item.active:focus,
+.list-group-item.active:hover {
+    background-color: #149494;
+}
+
+.tocify-header {
+    text-indent: 0px;
+}

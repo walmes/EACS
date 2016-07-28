@@ -1,0 +1,167 @@
+---
+title: "Ajuste da Curva de Retenção de Água do Solo"
+author: >
+  [Walmes M. Zeviani](http://lattes.cnpq.br/4410617539281650) &
+  [Milson E. Serafim](http://lattes.cnpq.br/8676820051946774)
+vignette: >
+  %\VignetteIndexEntry{Ajuste da Curva de Retenção de Água do Solo}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+source("_setup.R")
+```
+
+## Análise Exploratória
+
+```{r, results = "hide", message = FALSE, error = FALSE, warning = FALSE}
+#-----------------------------------------------------------------------
+# Carrega os pacotes necessários.
+
+library(lattice)
+library(latticeExtra)
+library(nlme)
+# library(doBy)
+# library(multcomp)
+library(plyr)
+library(wzRfun)
+library(EACS)
+
+#-----------------------------------------------------------------------
+# Análise exploratório dos dados.
+
+# Pra facilitar o manuseio, vamos usar um nome curto.
+cra <- teca_cra
+str(cra)
+
+cra$tens[cra$tens == 0] <- 0.1
+
+xyplot(umid ~ tens | factor(loc), data = cra,
+       groups = cam, type = c("o"), as.table = TRUE,
+       strip = TRUE, layout = c(NA, 5),
+       scales = list(x = list(log = 10)),
+       xscale.components = xscale.components.log10ticks,
+       auto.key = list(title = "Camada (cm)", cex.title = 1.1),
+       ylab = expression("Umidade do solo" ~ (m^{3}~m^{-3})),
+       xlab = expression(log[10] ~ "Tensão" ~ (kPa)))
+
+#-----------------------------------------------------------------------
+# Remove observações atípicas.
+
+del <- with(cra, {
+    (loc == 4 & cam == levels(cam)[3]) |
+        (loc == 27 & cam == levels(cam)[1]) |
+        (loc == 37 & cam == levels(cam)[2]) |
+        (loc == 47 & cam == levels(cam)[2]) |
+        (loc == 47 & cam == levels(cam)[3])
+})
+
+cra <- droplevels(cra[!del, ])
+```
+
+## Ajuste da Curva de Retenção de Água do Solo
+
+```{r}
+#-----------------------------------------------------------------------
+# Ajuste da CRA.
+
+xyplot(umid ~ tens,
+       # data = subset(cra, loc == 40 & cam == "[40, 80)"),
+       data = cra,
+       scales = list(x = list(log = 10)),
+       xscale.components = xscale.components.log10ticks,
+       ylab = expression("Umidade do solo" ~ (m^{3} ~ m^{-3})),
+       xlab = expression(log[10] ~ "Tensão" ~ (kPa)))
+
+# Logaritmo na base 10 da tensão matricial.
+cra$ltens <- log10(cra$tens)
+
+# Expressão do modelo van Genuchten.
+model <- umid ~ Ur + (Us - Ur)/(1 + exp(n * (alp + ltens)))^(1 - 1/n)
+
+# Valores iniciais para os parâmetros da curva.
+start <- list(Ur = 0.3, Us = 0.6, alp = -0.5, n = 4)
+
+n00 <- nls(model, data = cra, start = start)
+coef(n00)
+
+#-----------------------------------------------------------------------
+# Ajustar para cada unidade experimental, 50 loc x 3 cam = 150 ue, se
+# não tivesse sido removido algumas curvas.
+
+cra$ue <- with(cra, interaction(loc, cam, drop = TRUE))
+nlevels(cra$ue)
+
+db <- groupedData(umid ~ ltens | ue,
+                  data = cra, order.groups = FALSE)
+
+n0 <- nlsList(model = model, data = db,
+              start = as.list(coef(n00)))
+c0 <- coef(n0)
+
+pairs(c0)
+
+# Alguma curva sem ajustar?
+sum(!complete.cases(c0))
+
+plot(augPred(n0),
+     strip = FALSE,
+     as.table = TRUE,
+     ylab = expression("Umidade do solo" ~ (m^{3} ~ m^{-3})),
+     xlab = expression(log[10] ~ "Tensão" ~ (kPa)))
+
+#-----------------------------------------------------------------------
+# Determinar os demais parâmetros da curva de água do solo.
+
+params <- as.data.frame(
+    do.call(rbind, strsplit(rownames(c0),
+                            split = "\\.")))
+
+names(params) <- c("loc", "cam")
+params <- transform(params,
+                    loc = as.integer(loc),
+                    cam = factor(cam, levels = levels(cra$cam)))
+params <- na.omit(cbind(params, c0))
+
+params <- within(params, {
+    m <- 1 - 1/n
+    d <- Us - Ur
+    S <- -d * n * (1 + 1/m)^(-m - 1)
+    I <- -alp - log(m)/n
+    Ui <- Ur + (Us - Ur)/(1 + exp(n * (alp + I)))^(1 - 1/n)
+    cad <- Ui - Ur
+    rm(d, m)
+})
+
+str(params)
+
+# addmargins(xtabs(~loc + cam, data = params))
+params <- arrange(params, loc, cam)
+
+splom(params[, -(1:2)], type = c("p", "r"))
+```
+
+## Pareando Dados de Produção e da CRA
+
+```{r}
+# Valores das variáveis de produção (se repetem nas tensões e camadas).
+plan <- unique(subset(cra, cam == levels(cam)[1] & tens == max(tens),
+                      select = c(loc, alt, dap, vol, prod)))
+str(plan)
+
+#-----------------------------------------------------------------------
+# Junta os valores de produção com parâmetros da CRA. Valores de
+# produção vão se repetir para as camadas.
+
+crap <- merge(plan, params)
+str(crap)
+```
+
+## Informações da sessão
+
+```{r, echo = FALSE, results = "hold"}
+cat(format(Sys.time(),
+           format = "Atualizado em %d de %B de %Y.\n\n"))
+sessionInfo()
+```
