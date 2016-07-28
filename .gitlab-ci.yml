@@ -1,0 +1,9 @@
+R_build_package:
+  script:
+    - ./.build_package.R
+  tags:
+    - r
+    - devtools
+    - knitr
+    - rmarkdown
+    - testthat
