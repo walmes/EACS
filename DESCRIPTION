@@ -1,9 +1,10 @@
 Package: EACS
 Title: Estatística Aplicada à Ciência do Solo
 Version: 0.0-1
+Date: 2016-07-28
 Authors@R: as.person(c(
-    "Walmes Marques Zeviani <walmes@ufpr.br> [aut]",
-    "Milson Evaldo Serafim <milson.serafim@cas.ifmt.edu.br> [ctb]"))
+    "Walmes Marques Zeviani <walmes@ufpr.br> [cre,aut]",
+    "Milson Evaldo Serafim <milson.serafim@cas.ifmt.edu.br> [aut]"))
 Description: Pacote que documenta conjuntos de dados de Projetos de
     Pesquisa na Ciência do Solo. O pacote possui as análises dos dados
     no formato de vinheta com o objetivo de disponilizar essas análises
@@ -18,13 +19,18 @@ BugReports:
 LazyData: true
 Encoding: UTF-8
 Depends:
-    R (>= 3.3.0)
+    R (>= 3.3.0),
+    wzRfun
 Suggests:
     lattice,
     latticeExtra,
     MASS,
+    nlme,
     doBy,
     multcomp,
-    reshape2
+    reshape2,
+    plyr,
+    knitr
 VignetteBuilder: knitr
 RoxygenNote: 5.0.1
+Remotes: walmes/wzRfun
