@@ -22,8 +22,6 @@ source("_setup.R")
 library(lattice)
 library(latticeExtra)
 library(nlme)
-# library(doBy)
-# library(multcomp)
 library(plyr)
 library(wzRfun)
 library(EACS)
@@ -61,6 +59,38 @@ cra <- droplevels(cra[!del, ])
 ```
 
 ## Ajuste da Curva de Retenção de Água do Solo
+
+O ajuste foi feito considerando a seguinte parametrização do modelo van
+Genuchten
+
+$$
+ U(x) = U_r + \frac{U_s - U_r}{(1 + \exp\{n(\alpha + x)\})^{1 - 1/n}}
+$$
+
+em que $U$ é umidade (m<sup>3</sup> m<sup>-3</sup>) do solo, $x$ é o log
+na base 10 da tensão matricial aplicada (kPa), $U_r$ é a umidade
+residual (assíntota inferior), $U_s$ é a umidade de satuação (assíntota
+superior), $\alpha$ e $n$ são parâmetros empíricos de forma da curva de
+retenção de água. Uma vez conhecido valores para as quatidades
+mencionadas, são obtidos
+
+$$
+\begin{align*}
+  S   &= -n\cdot \frac{U_s - U_r}{(1 + 1/m)^{m + 1}} \newline
+  I   &= -\alpha - \log(m)/n \newline
+  U_I &= U(x = I)
+\end{align*}
+$$
+
+em que $S$ é a taxa no ponto de inflexão, parâmetro que é tido como
+central para avaliação da qualidade física do solo, bem como $I$ que
+corresponde ao log da tensão no ponto de inflexão da curva de retenção
+de água do solo. A umidade correspondente a tensão no ponto de inflexão
+é representada por $U_I$.
+
+O modelo foi ajustado aos dados usando o método de mínimos quadrados com
+algoritmo de Newton-Raphson para encontrar estimativas para os
+parâmetros.
 
 ```{r}
 #-----------------------------------------------------------------------
@@ -140,22 +170,12 @@ str(params)
 params <- arrange(params, loc, cam)
 
 splom(params[, -(1:2)], type = c("p", "r"))
-```
-
-## Pareando Dados de Produção e da CRA
-
-```{r}
-# Valores das variáveis de produção (se repetem nas tensões e camadas).
-plan <- unique(subset(cra, cam == levels(cam)[1] & tens == max(tens),
-                      select = c(loc, alt, dap, vol, prod)))
-str(plan)
 
 #-----------------------------------------------------------------------
-# Junta os valores de produção com parâmetros da CRA. Valores de
-# produção vão se repetir para as camadas.
+# Salvando em um objeto no pacote.
 
-crap <- merge(plan, params)
-str(crap)
+teca_crapar <- params
+str(teca_crapar)
 ```
 
 ## Informações da sessão
