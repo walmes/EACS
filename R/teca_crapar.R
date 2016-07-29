@@ -1,0 +1,57 @@
+#' @name teca_crapar
+#' @title Estimativas dos Parâmetros da Curva de Retenção de Água do
+#'     Solo
+#' @description Estimativas dos parâmetros da curva de retenção de água
+#'     do solo para os 50 sítios cultivados com teca e 3 camadas do
+#'     solo.
+#' @format Um \code{data.frame} com 141 observações e 14 variáveis, em
+#'     que
+#'
+#' \describe{
+#'
+#' \item{\code{loc}}{Indentifica o sítio, do total de 50, de onde a
+#'     amostra foi extraída.}
+#'
+#' \item{\code{cam}}{Fator que indica a profundidade (cm) da camada da
+#'     qual foi extraída a amostra de solo. Todas as amostras de uma
+#'     mesma localização são de camadas no mesmo ponto.}
+#'
+#' \item{\code{Ur}}{Estimativa da umidade residual do solo (m\eqn{3}
+#'     m\eqn{^{-3}}).}
+#'
+#' \item{\code{Us}}{Estimativa da umidade de satuação do solo (m\eqn{3}
+#'     m\eqn{^{-3}}).}
+#'
+#' \item{\code{alp}}{Estimativa do parâmetro de forma da curva de
+#'     retenção de água do solo \eqn{\alpha}.}
+#'
+#' \item{\code{n}}{Estimativa do parâmetro de forma da curva de retenção
+#'     de água do solo \eqn{n}.}
+#'
+#' \item{\code{I}}{Logaritmo da tensão no ponto de inflexão da curva de
+#'     retenção de água do solo.}
+#'
+#' \item{\code{Ui}}{Umidade na tensão que corresponde à inflexão da
+#'     curva de retenção de água do solo (\code{I}).}
+#'
+#' \item{\code{S}}{Taxa de variação (valor da primeira derivada) da
+#'     corresponde à inflexão da curva de retenção de água do solo
+#'     (\code{I}).}
+#'
+#' \item{\code{cad}}{Conteúdo de água disponível no solo, diferença
+#'     entre a umidade na inflexão (\code{Ui}) e umidade residual
+#'     (\code{Ur}).}
+#'
+#' }
+#' @examples
+#'
+#' library(lattice)
+#'
+#' data(teca_crapar)
+#' str(teca_crapar)
+#'
+#' splom(teca_crapar[, -c(1:2)], groups = teca_crapar$cam)
+#'
+#' xtabs(~loc + cam, data = teca_crapar)
+#'
+NULL
