@@ -5,9 +5,14 @@ Walmes Zeviani
 
 ## Organização
 
+O `EACS` é um pacote para o [software R](https://cran.r-project.org/). O
+pacote contém conjuntos de dados documentados e documentos que exibem a
+análise dos dados. Veja na seção [uso](#uso) como acessar o conteúdo do
+pacote e na seção [instalação](#instalacao) como instalar.
+
 ## Instalação
 
-Para instalar o pacote EACS, é necessário ter o pacote `devtools`. Com
+Para instalar o pacote `EACS`, é necessário ter o pacote `devtools`. Com
 ele, execute o código abaixo em uma sessão R.
 
 ```r
