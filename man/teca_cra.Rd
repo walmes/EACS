@@ -23,16 +23,6 @@
 
 \item{\code{ds}}{Densidade do solo (Mg m\eqn{-3}).}
 
-\item{\code{alt}}{Altura da árvore (m).}
-
-\item{\code{dap}}{Diâmetro (cm) à altura do peito na árvore.}
-
-\item{\code{vol}}{Volume de madeira (m\eqn{3}) da árvore.}
-
-\item{\code{prod}}{Produção de madeira (m\eqn{3} ha\eqn{-1}). Essa
-    variável é só uma padronização do \code{vol} para a unidade de
-    área de um hectare.}
-
 }}
 \description{
 Valores de variáveis físico-hídricas de 3 camadas do
