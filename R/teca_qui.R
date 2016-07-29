@@ -58,12 +58,6 @@
 #' \item{\code{acc}}{Teor de areia mais cascalho mais calhas (g
 #'     kg\eqn{^{-1}}) da amostra de solo.}
 #'
-#' \item{\code{vol}}{Volume total de madeira sem a casca (m\eqn{^{3}})
-#'     de uma árvore abatida no sítio.}
-#'
-#' \item{\code{dap}}{Diâmetro à altura do peito (cm) de uma árvore
-#'     medida no sítio.}
-#'
 #' }
 #' @source Milson Evaldo Serafim.
 #' @examples
@@ -73,13 +67,5 @@
 #' xtabs(~loc + cam, data = teca_qui)
 #'
 #' splom(teca_qui[, -(1:2)])
-#'
-#' xyplot(vol ~ ph + p + k + ca + mg + al + ctc + sat +
-#'            mo + arg + are + cas,
-#'        outer = TRUE,
-#'        data = teca_qui,
-#'        scales = "free",
-#'        type = c("p", "smooth", "r"),
-#'        as.table = TRUE)
 #'
 NULL
