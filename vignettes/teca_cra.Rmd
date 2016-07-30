@@ -25,6 +25,10 @@ library(nlme)
 library(plyr)
 library(wzRfun)
 library(EACS)
+library(captioner)
+
+figs <- captioner(prefix = "Figura")
+tbls <- captioner(prefix = "Tabela")
 
 #-----------------------------------------------------------------------
 # Análise exploratório dos dados.
@@ -34,6 +38,12 @@ cra <- teca_cra
 str(cra)
 
 cra$tens[cra$tens == 0] <- 0.1
+```
+
+```{r, eval.after = "fig.cap", fig.cap = cap, echo = -(1:3)}
+cap <- figs(1, "Umidade do solo em função da tensão matricial\
+                para 50 sítios cultivados com teca em 3\
+                camadas do solo.")
 
 xyplot(umid ~ tens | factor(loc), data = cra,
        groups = cam, type = c("o"), as.table = TRUE,
@@ -45,7 +55,7 @@ xyplot(umid ~ tens | factor(loc), data = cra,
        xlab = expression(log[10] ~ "Tensão" ~ (kPa)))
 
 #-----------------------------------------------------------------------
-# Remove observações atípicas.
+# Remove curvas atípicas.
 
 del <- with(cra, {
     (loc == 4 & cam == levels(cam)[3]) |

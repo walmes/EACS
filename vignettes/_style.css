@@ -17,6 +17,13 @@ pre code {
     font-size: 14px;
 }
 
+p.caption {
+    text-align: left;
+    margin-left: 4em;
+    margin-right: 4em;
+    text-indent: -2em
+}
+
 /* R input */
 pre, code {
     border-radius: 0px;
