@@ -30,6 +30,7 @@ Suggests:
     multcomp,
     reshape2,
     plyr,
+    captioner,
     knitr
 VignetteBuilder: knitr
 RoxygenNote: 5.0.1
