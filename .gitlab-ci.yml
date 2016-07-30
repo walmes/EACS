@@ -1,6 +1,3 @@
-before_script:
-  - apt-get update && apt-get install r-cran-tkrplot bwidget -y
-
 R_build_package:
   script:
     - ./.build_package.R
