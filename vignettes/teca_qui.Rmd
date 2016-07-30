@@ -1,0 +1,199 @@
+---
+title: "Análise Multivaridada das Variáveis Químicas do Solo"
+author: >
+  [Walmes M. Zeviani](http://lattes.cnpq.br/4410617539281650) &
+  [Milson E. Serafim](http://lattes.cnpq.br/8676820051946774)
+vignette: >
+  %\VignetteIndexEntry{Análise Multivaridada das Variáveis Químicas do Solo}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+source("_setup.R")
+```
+
+## Análise Exploratória
+
+```{r, results = "hide", message = FALSE, error = FALSE, warning = FALSE}
+#-----------------------------------------------------------------------
+# Carrega os pacotes necessários.
+
+library(lattice)
+library(latticeExtra)
+library(plyr)
+library(reshape2)
+library(EACS)
+```
+
+```{r}
+#-----------------------------------------------------------------------
+# Análise exploratório dos dados.
+
+# Pra facilitar o manuseio, vamos usar um nome curto.
+qui <- teca_qui
+str(qui)
+
+#-----------------------------------------------------------------------
+
+# splom(qui[, -(1:2)])
+
+# Pares de diagramas de dispersão para as variáveis químicas.
+splom(qui[, 3:11])
+
+# Pares de diagramas de dispersão para as variáveis físicas.
+splom(qui[, 11:15])
+
+#-----------------------------------------------------------------------
+# Agregando para a média das 3 camadas em cada local.
+
+quim <- ddply(qui[, -2], .(loc), .fun = colMeans)
+str(quim)
+
+splom(quim[, 2:10])
+
+splom(quim[, 10:14])
+```
+
+## Análise de Componentes Principais
+
+### Camadas como indivíduos
+
+```{r}
+#-----------------------------------------------------------------------
+
+# Cria uma matriz só com as variáveis de solo.
+quiv <- qui[, -(1:2)]
+rownames(quiv) <- with(qui, paste(loc, as.roman(as.numeric(cam)),
+                                  sep = "-"))
+
+acp <- princomp(quiv, cor = TRUE)
+
+summary(acp)
+
+# Proporção de variância acumulada.
+plot(cbind(x = 0:length(acp$sdev),
+           y = c(0, cumsum(acp$sdev^2))/sum(acp$sdev^2)),
+     type = "o",
+     xlab = "Componente",
+     ylab = "Proporção de variância acumulada")
+abline(h = 0.75, lty = 2)
+
+#-----------------------------------------------------------------------
+# Carregamentos.
+
+# acp$loadings
+
+# A fração dos carregamentos mais importantes.
+imp <- function(x, f = 0.25) {
+    a <- abs(x)
+    k <- ceiling(f * length(x))
+    i <- sort(a, decreasing = TRUE)[k]
+    x[a <= i] <- NA
+    return(x)
+}
+
+apply(acp$loadings[, 1:4], MARGIN = 2, FUN = imp, f = 0.25)
+
+#-----------------------------------------------------------------------
+# Gráficos biplot.
+
+biplot(acp, choices = c(1, 2))
+biplot(acp, choices = c(1, 3))
+biplot(acp, choices = c(2, 3))
+
+#-----------------------------------------------------------------------
+# Indentifição das camadas.
+
+# Escores.
+sc <- acp$scores
+pair <- c(1, 2)
+
+# Aplitudes dos escores.
+rgs <- apply(sc[, pair], MARGIN = 2, FUN = range)
+
+# Carregamentos.
+ld <- acp$loadings
+
+# Amplitude dos carregamentos.
+rgl <- apply(ld[, pair], MARGIN = 2, FUN = range)
+
+# Fator de encolhimento para colocar setas em meio aos pontos.
+f <- 0.5
+xsc <- f * max(abs(rgs[, 1]))/max(abs(rgl[, 1]))
+ysc <- f * max(abs(rgs[, 2]))/max(abs(rgl[, 2]))
+
+par(pty = "s")
+plot(rgs, col = "white", asp = 1,
+     xlab = names(rgs)[1], ylab = names(rgs)[2])
+points(sc[, pair], asp = 1, col = as.numeric(qui$cam), pch = 19)
+abline(v = 0, h = 0, lty = 2)
+arrows(x0 = rep(0, 1),
+       y0 = rep(0, 1),
+       x1 = ld[, pair[1]] * xsc,
+       y1 = ld[, pair[2]] * ysc,
+       length = 0.1,
+       col = 2)
+text(x = ld[, pair[1]] * xsc * 1.1,
+     y = ld[, pair[2]] * ysc * 1.1,
+     labels = rownames(ld))
+legend("topleft", legend = levels(qui$cam),
+       pch = 19, col = 1:3, bty = "n")
+par(pty = "m")
+```
+
+## Camadas como variáveis
+
+```{r}
+#-----------------------------------------------------------------------
+
+# Empilhar as variáveis de solo.
+quie <- melt(data = qui,
+             id.vars = c("loc", "cam"))
+str(quie)
+
+quie$camvar <- with(quie, paste(as.character(variable),
+                                as.character(as.roman(as.integer(cam))),
+                                sep = ":"))
+
+# Desempilhar as variáveis.
+quie <- dcast(data = quie, formula = loc ~ camvar, value.var = "value")
+
+str(quie)
+
+#-----------------------------------------------------------------------
+
+acp <- princomp(quie, cor = TRUE)
+
+# summary(acp)
+
+# Proporção de variância acumulada.
+plot(cbind(x = 0:length(acp$sdev),
+           y = c(0, cumsum(acp$sdev^2))/sum(acp$sdev^2)),
+     type = "o",
+     xlab = "Componente",
+     ylab = "Proporção de variância acumulada")
+abline(h = 0.75, lty = 2)
+
+#-----------------------------------------------------------------------
+# Carregamentos.
+
+# acp$loadings
+
+apply(acp$loadings[, 1:4], MARGIN = 2, FUN = imp, f = 0.25)
+
+#-----------------------------------------------------------------------
+# Gráficos biplot.
+
+biplot(acp, choices = c(1, 2))
+biplot(acp, choices = c(1, 3))
+biplot(acp, choices = c(2, 3))
+```
+
+## Informações da Sessão
+
+```{r, echo = FALSE, results = "hold"}
+cat(format(Sys.time(),
+           format = "Atualizado em %d de %B de %Y.\n\n"))
+sessionInfo()
+```

@@ -1,0 +1,154 @@
+---
+title: "Análise da Produção de Teca em Função de Variáveis do Solo"
+author: >
+  [Walmes M. Zeviani](http://lattes.cnpq.br/4410617539281650) &
+  [Milson E. Serafim](http://lattes.cnpq.br/8676820051946774)
+vignette: >
+  %\VignetteIndexEntry{Análise da Produção de Teca em Função de Variáveis do Solo}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+source("_setup.R")
+```
+
+## Análise Exploratória
+
+```{r, results = "hide", message = FALSE, error = FALSE, warning = FALSE}
+#-----------------------------------------------------------------------
+# Carrega os pacotes necessários.
+
+library(lattice)
+library(latticeExtra)
+library(plyr)
+library(reshape2)
+library(car)
+library(rpart)
+library(EACS)
+```
+
+```{r}
+#-----------------------------------------------------------------------
+# Análise exploratório dos dados.
+
+str(teca_qui)
+str(teca_crapar)
+str(teca_arv)
+
+# Juntar as inforções químicas, físico-hídricas e de produção.
+db <- merge(teca_qui, teca_crapar, all = TRUE)
+str(db)
+
+# Todos os locais tem pelo menos um registro. Usar o registro que
+# estiver disponível na ordem de prioridade das camadas: II, III e I.
+xtabs(~loc, data = na.omit(db))
+
+# Número de missings por variável separado por camada.
+by(data = is.na(db[, -(1:2)]), INDICES = db$cam, FUN = colSums)
+
+#-----------------------------------------------------------------------
+# Fazendo a seleção de um valor para cada local.
+
+# Será mantido os valores na camada II de cada local. Caso a camada II
+# esteja incompleta, será usada a camada III e por fim a camada I.
+
+# Remove linhas com registros ausentes.
+dc <- na.omit(db)
+attr(dc, "na.action") <- NULL
+
+# Reordena os níveis (para usar na seleção).
+dc$cam <- factor(dc$cam, levels = levels(db$cam)[c(2, 3, 1)])
+
+# Reordena.
+dc <- arrange(dc, loc, cam)
+
+# Pega o primeiro registro de cada local.
+dd <- do.call(rbind,
+              by(dc, INDICES = dc$loc,
+                 FUN = function(x) {
+                     x[1, ]}
+                 ))
+str(dd)
+```
+
+## Redução de Dimensionalidade
+
+```{r}
+# splom(dd[, -c(1:2)])
+
+acp <- princomp(dd[, -c(1:2)], cor = TRUE)
+
+acp$loadings
+
+screeplot(acp, type = "lines", main = NULL)
+
+biplot(acp, choices = c(1, 2))
+biplot(acp, choices = c(1, 3))
+biplot(acp, choices = c(2, 3))
+```
+
+## Ajuste de Modelo de Regressão Múltipla
+
+```{r}
+#-----------------------------------------------------------------------
+
+de <- merge(dd, teca_arv[, c("loc", "prod")])
+
+# Número de observações.
+nrow(de)
+
+m0 <- lm(sqrt(prod) ~ . - loc - cam, data = de)
+anova(m0)
+
+# residualPlots(m0)
+
+# AIC.
+m1 <- step(m0)
+
+# # BIC.
+# step(m0, k = log(nrow(de)))
+
+summary(m1)
+
+residualPlots(m1)
+anova(m1, m0)
+
+#-----------------------------------------------------------------------
+
+par(mfrow = c(2, 2))
+plot(m0)
+
+# MASS::boxcox(m1)
+```
+
+## Árvore de Regressão
+
+```{r}
+#-----------------------------------------------------------------------
+# Árvore de regressão.
+
+layout(1)
+
+ar <- rpart(prod ~ . - loc - cam, data = de, method = "anova")
+
+summary(ar)
+rsq.rpart(ar)
+
+plot(ar, uniform = TRUE, main = "Árvore de regressão para produção")
+text(ar, use.n = TRUE, all = TRUE, cex = 0.8)
+
+pred <- factor(predict(ar))
+plot(sat ~ mo, data = de, col = as.integer(pred), pch = NA)
+with(de, text(y=sat, x=mo,
+              labels=rownames(de), col=as.integer(pred)))
+
+```
+
+## Informações da Sessão
+
+```{r, echo = FALSE, results = "hold"}
+cat(format(Sys.time(),
+           format = "Atualizado em %d de %B de %Y.\n\n"))
+sessionInfo()
+```
