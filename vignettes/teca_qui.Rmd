@@ -142,7 +142,7 @@ legend("topleft", legend = levels(qui$cam),
 par(pty = "m")
 ```
 
-## Camadas como variáveis
+### Camadas como variáveis
 
 ```{r}
 #-----------------------------------------------------------------------

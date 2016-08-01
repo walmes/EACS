@@ -26,6 +26,8 @@ Suggests:
     latticeExtra,
     MASS,
     nlme,
+    car,
+    rpart,
     doBy,
     multcomp,
     reshape2,
