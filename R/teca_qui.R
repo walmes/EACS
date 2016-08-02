@@ -1,6 +1,6 @@
 #' @name teca_qui
-#' @title Variáveis Químicas do Solo para o Estudo com Teca
-#'     (\emph{Tectona grandis})
+#' @title Vari\enc{á}{a}veis Qu\enc{í}{i}micas do Solo para o Estudo
+#'     com Teca (\emph{Tectona grandis})
 #' @description Valores de variáveis químicas de 3 camadas do solo em 50
 #'     sítios cultivados com teca (\emph{Tectona grandis}) e dados de
 #'     produção de madeira.

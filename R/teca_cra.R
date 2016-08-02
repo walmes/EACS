@@ -1,5 +1,6 @@
 #' @name teca_cra
-#' @title Variáveis Físico-Hídricas do Solo em Sítio Cultivados com Teca
+#' @title Vari\enc{á}{a}veis F\enc{í}{i}sico-H\enc{í}{i}dricas do Solo
+#'     em S\enc{í}{i}tio Cultivados com Teca
 #' @description Valores de variáveis físico-hídricas de 3 camadas do
 #'     solo em 50 sítios cultivados com teca (\emph{Tectona grandis}) e
 #'     dados de produção de madeira.

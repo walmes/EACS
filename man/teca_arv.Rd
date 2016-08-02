@@ -2,7 +2,8 @@
 % Please edit documentation in R/teca_arv.R
 \name{teca_arv}
 \alias{teca_arv}
-\title{Variáveis de Dendrométricas em Árvores de Teca}
+\title{Vari\enc{á}{a}veis de Dendrom\enc{é}{e}tricas em
+    \enc{Á}{A}rvores de Teca}
 \format{Um \code{data.frame} com 50 observações e 5 variáveis, em que
 
 \describe{

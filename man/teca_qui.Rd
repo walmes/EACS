@@ -2,8 +2,8 @@
 % Please edit documentation in R/teca_qui.R
 \name{teca_qui}
 \alias{teca_qui}
-\title{Variáveis Químicas do Solo para o Estudo com Teca
-    (\emph{Tectona grandis})}
+\title{Vari\enc{á}{a}veis Qu\enc{í}{i}micas do Solo para o Estudo
+    com Teca (\emph{Tectona grandis})}
 \format{Um \code{data.frame} com 150 observações e 17 variáveis, em
     que
 

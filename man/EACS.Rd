@@ -4,7 +4,8 @@
 \name{EACS}
 \alias{EACS}
 \alias{EACS-package}
-\title{Estatística Aplicada à Ciência do Solo}
+\title{Estat\enc{í}{i}stica Aplicada \enc{à}{a} Ci\enc{ê}{e}ncia do
+    Solo}
 \description{
 Pacote que documenta conjuntos de dados de Projetos de
     Pesquisa na Ciência do Solo. O pacote possui as análises dos

@@ -1,5 +1,6 @@
 #' @name EACS
-#' @title Estatística Aplicada à Ciência do Solo
+#' @title Estat\enc{í}{i}stica Aplicada \enc{à}{a} Ci\enc{ê}{e}ncia do
+#'     Solo
 #' @docType package
 #' @description Pacote que documenta conjuntos de dados de Projetos de
 #'     Pesquisa na Ciência do Solo. O pacote possui as análises dos

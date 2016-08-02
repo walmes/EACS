@@ -2,8 +2,8 @@
 % Please edit documentation in R/teca_crapar.R
 \name{teca_crapar}
 \alias{teca_crapar}
-\title{Estimativas dos Parâmetros da Curva de Retenção de Água do
-    Solo}
+\title{Estimativas dos Par\enc{â}{a}metros da Curva de
+    Reten\enc{çã}{ca}o de \enc{Á}{A}gua do Solo}
 \format{Um \code{data.frame} com 141 observações e 14 variáveis, em
     que
 

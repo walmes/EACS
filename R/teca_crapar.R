@@ -1,6 +1,6 @@
 #' @name teca_crapar
-#' @title Estimativas dos Parâmetros da Curva de Retenção de Água do
-#'     Solo
+#' @title Estimativas dos Par\enc{â}{a}metros da Curva de
+#'     Reten\enc{çã}{ca}o de \enc{Á}{A}gua do Solo
 #' @description Estimativas dos parâmetros da curva de retenção de água
 #'     do solo para os 50 sítios cultivados com teca e 3 camadas do
 #'     solo.

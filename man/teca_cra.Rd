@@ -2,7 +2,8 @@
 % Please edit documentation in R/teca_cra.R
 \name{teca_cra}
 \alias{teca_cra}
-\title{Variáveis Físico-Hídricas do Solo em Sítio Cultivados com Teca}
+\title{Vari\enc{á}{a}veis F\enc{í}{i}sico-H\enc{í}{i}dricas do Solo
+    em S\enc{í}{i}tio Cultivados com Teca}
 \format{Um \code{data.frame} com 1650 observações e 9 variáveis, em
     que
 
