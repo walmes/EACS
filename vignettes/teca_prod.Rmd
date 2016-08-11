@@ -24,6 +24,7 @@ library(latticeExtra)
 library(plyr)
 library(reshape2)
 library(car)
+library(nFactors)
 library(rpart)
 library(EACS)
 ```
@@ -70,56 +71,240 @@ dd <- do.call(rbind,
                      x[1, ]}
                  ))
 str(dd)
+
+# Deixar o S positivo para facilitar a interpretação.
+dd$S <- -1 * dd$S
 ```
 
-## Redução de Dimensionalidade
+## Análise Fatorial
 
-```{r}
-# splom(dd[, -c(1:2)])
-
-acp <- princomp(dd[, -c(1:2)], cor = TRUE)
-
-acp$loadings
-
-screeplot(acp, type = "lines", main = NULL)
-
-biplot(acp, choices = c(1, 2))
-biplot(acp, choices = c(1, 3))
-biplot(acp, choices = c(2, 3))
-```
-
-## Ajuste de Modelo de Regressão Múltipla
+Na análise fatorial, a variável `acc` (areia + cascalho + calhau) não
+foi usada por ter alta correlação, por construção, com areia e
+cascalho. A variável da curva de água do solo `Ur` foi deixada de fora
+para ser usado o `cad = Ui - Ur`.
 
 ```{r}
 #-----------------------------------------------------------------------
 
-de <- merge(dd, teca_arv[, c("loc", "prod")])
+# Em cada linha o grupo de variáveis químicas, físicas e hídricas.
+j <- c("ph", "p", "k", "ca", "mg", "al", "ctc", "sat", "mo",
+       "arg", "are", "cas",
+       "alp", "n", "I", "Us", "Ui", "S", "cad")
+X <- dd[, j]
+fit0 <- factanal(X,
+                 factors = 4,
+                 # covmat = cov2cor(var(X)),
+                 # covmat = var(X),
+                 rotation = "varimax")
+
+print(fit0, digits = 2, cutoff = 0.5, sort = TRUE)
+```
+
+Com 4 fatores chegou-se a uma explicação superior à 70% da variância
+total. Baseado nos carregamentos de valor superior absoluto maior que
+0.5, foi possível interpretar cada um dos fatores em termos de índices:
+
+  1. Índice de cátions do solo. Contraste entre cátions desejáveis ou
+     variáveis que favorecem/resultam de cátions vs. o alumínio (al) do
+     solo.
+  2. Índice de disponibilidade de água. Contraste entre parâmetros que
+     aumentam a disponibilidade de água (alp, Us, Ui, cad) vs. que
+     diminuem (I).
+  3. Índice de porosidade do solo. Contraste entre conteúdo de argila
+     vs. areia. O aumento da argila aumenta a microporosidade que é
+     responsável por maior armazenamento de água.
+  4. Índice de inclinação da curva de retenção de água. Função linear do
+     parâmetro S (slope) e n (parâmetro de forma) que são ambos
+     relacionados à inclinação da curva de retenção e da CRA.
+
+Algumas variáveis não apresentaram carregamento alto e por isso alta
+singularidade (*uniquenesses*), sendo por isso variáveis pouco
+explicadas pelos fatores. Essas variáveis serão removidas e o ajuste
+será refeito.
+
+```{r}
+#-----------------------------------------------------------------------
+# Removendo variáveis de pouca importância ou sem explicação (com
+# alta singularidade/unicidade).
+
+# str(fit0)
+
+# Variáveis abandonadas.
+j[fit0$uniquenesses > 0.7]
+
+# Reajuste.
+X <- dd[, j[fit0$uniquenesses <= 0.7]]
+fit1 <- factanal(X,
+                 factors = 4,
+                 rotation = "varimax",
+                 scores = "regression")
+
+colnames(fit1$loadings) <- c("cation", "agua", "poros", "inclin")
+print(fit1, digits = 2, cutoff = 0.5, sort = TRUE)
+
+# Singularidade das variáveis.
+sort(fit1$uniquenesses)
+
+# Carregamentos do fator 1 contra 2.
+load <- fit1$loadings[, 1:2]
+plot(load, type = "n",
+     xlab = "Cátions", ylab = "Água")
+abline(v = 0, h = 0, lty = 2)
+text(load, labels = names(X), cex = 0.8)
+
+# Pares de gráficos dos escores.
+sc <- fit1$scores
+pairs(sc)
+```
+
+Os resultados com o abandono das variáveis de alta singularidade não
+sofreu modificações substanciais. A interpretação dos fatores foi
+mantida. Com estes 4 fatores foi obtido uma explicação de 80% da
+variância total.
+
+Apenas por precaução, foi confirmado por simulação que o número de
+fatores é de fato 4.
+
+```{r, message = FALSE}
+#-----------------------------------------------------------------------
+# Determinação por simulação do número de fatores.
+
+ev <- eigen(cor(X))
+ap <- parallel(subject = nrow(X),
+               var = ncol(X),
+               rep = 100,
+               cent = 0.05)
+
+nS <- nScree(x = ev$values, aparallel = ap$eigen$qevpea)
+plotnScree(nS)
+```
+
+```{r, eval = FALSE, include = FALSE}
+library(psych)
+
+# Em cada linha o grupo de variáveis químicas, físicas e hídricas.
+j <- c("ph", "p", "k", "ca", "mg", "al", "ctc", "sat", "mo",
+       "arg", "are", "cas",
+       "alp", "n", "I", "Us", "Ui", "S", "cad")
+X <- dd[, j]
+
+fit0 <- fa(X, nfactors = 4, scores = TRUE, rotate = "varimax")
+
+print(fit0)
+
+dev.off()
+biplot(fit0, labels = rownames(X), main = "")
+
+```
+
+## Ajuste de Modelo de Regressão com os Escores
+
+Os escores ou índices definidos pela análise fatorial serão usados como
+variáveis explicativas da produção de madeira.
+
+```{r}
+#-----------------------------------------------------------------------
+# Justar os escores com a variável de produção de madeira.
+
+de <- merge(cbind(loc = dd[, "loc"], as.data.frame(sc)),
+            teca_arv[, c("loc", "prod")])
+names(de)[2:5] <- colnames(fit1$loadings)
+str(de)
+
+dev.off()
+# splom(de, type = c("p", "r"))
+
+xyplot(sqrt(prod) ~ cation + agua + poros + inclin,
+       data = de,
+       outer = TRUE,
+       type = c("p", "r"),
+       as.table = TRUE,
+       scales = list(x = list(relation = "free")),
+       xlab = "Escores da análise fatorial",
+       ylab = "Produção de madeira")
+
+#-----------------------------------------------------------------------
+# Ajuste do modelo de regressão.
+
+# ATTENTION: Existe um maior atendimento dos pressupostos usando sqrt do
+# que a variável original.
+
+# m0 <- lm(prod ~ . - loc, data = de)
+m0 <- lm(sqrt(prod) ~ . - loc, data = de)
+summary(m0)
+
+par(mfrow = c(2, 2))
+plot(m0)
+layout(1)
+
+# MASS::boxcox(m0)
+# abline(v = c(0.5, 1), col = 2)
+
+residualPlots(m0)
+
+im <- influence.measures(m0)
+summary(im)
+
+# Remover observação com maior alavancagem.
+which(im$is.inf[, "hat"])
+r <- which.max(im$infmat[, "hat"])
+
+m0 <- lm(prod ~ . - loc, data = de[-r, ])
+# m0 <- lm(sqrt(prod) ~ . - loc, data = de[, 35])
+summary(m0)
+
+par(mfrow = c(2, 2))
+plot(m0)
+layout(1)
+
+residualPlots(m0)
+
+m1 <- update(m0, . ~ cation)
+summary(m1)
+
+anova(m0, m1)
+
+# Carregamento das variáveis no fator 1.
+cbind(fit1$loadings[, "cation"])
+```
+
+## Ajuste de Modelo de Regressão Múltipla com a Variáveis de Solo
+
+```{r}
+#-----------------------------------------------------------------------
+
+de <- merge(subset(dd, select = -cam),
+            teca_arv[, c("loc", "prod")])
+de <- subset(de, select = -loc)
+str(de)
 
 # Número de observações.
 nrow(de)
 
-m0 <- lm(sqrt(prod) ~ . - loc - cam, data = de)
+# m0 <- lm(prod ~ ., data = de)
+m0 <- lm(sqrt(prod) ~ ., data = de)
 anova(m0)
+
+# im <- influence.measures(m0)
+# summary(im)
 
 # residualPlots(m0)
 
 # AIC.
 m1 <- step(m0)
 
-# # BIC.
-# step(m0, k = log(nrow(de)))
-
+# Resumo do modelo selecionado.
 summary(m1)
 
-residualPlots(m1)
+# residualPlots(m1)
 anova(m1, m0)
 
-#-----------------------------------------------------------------------
+im <- influence.measures(m1)
+summary(im)
 
 par(mfrow = c(2, 2))
-plot(m0)
-
-# MASS::boxcox(m1)
+plot(m1)
+layout(1)
 ```
 
 ## Árvore de Regressão
@@ -130,7 +315,7 @@ plot(m0)
 
 layout(1)
 
-ar <- rpart(prod ~ . - loc - cam, data = de, method = "anova")
+ar <- rpart(prod ~ ., data = de, method = "anova")
 
 summary(ar)
 rsq.rpart(ar)
@@ -139,10 +324,14 @@ plot(ar, uniform = TRUE, main = "Árvore de regressão para produção")
 text(ar, use.n = TRUE, all = TRUE, cex = 0.8)
 
 pred <- factor(predict(ar))
-plot(sat ~ mo, data = de, col = as.integer(pred), pch = NA)
-with(de, text(y=sat, x=mo,
-              labels=rownames(de), col=as.integer(pred)))
-
+plot(sat ~ mo,
+     data = de,
+     col = as.integer(pred),
+     pch = NA)
+with(de, text(y = sat,
+              x = mo,
+              labels = rownames(de),
+              col = as.integer(pred)))
 ```
 
 ## Informações da Sessão
