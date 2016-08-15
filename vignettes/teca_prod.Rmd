@@ -189,12 +189,9 @@ j <- c("ph", "p", "k", "ca", "mg", "al", "ctc", "sat", "mo",
 X <- dd[, j]
 
 fit0 <- fa(X, nfactors = 4, scores = TRUE, rotate = "varimax")
-
 print(fit0)
 
-dev.off()
 biplot(fit0, labels = rownames(X), main = "")
-
 ```
 
 ## Ajuste de Modelo de Regressão com os Escores
@@ -210,9 +207,6 @@ de <- merge(cbind(loc = dd[, "loc"], as.data.frame(sc)),
             teca_arv[, c("loc", "prod")])
 names(de)[2:5] <- colnames(fit1$loadings)
 str(de)
-
-dev.off()
-# splom(de, type = c("p", "r"))
 
 xyplot(sqrt(prod) ~ cation + agua + poros + inclin,
        data = de,
