@@ -6,10 +6,10 @@ html_document:
   toc_float:
     collapsed: false
     smooth_scroll: false
-  css: _style.css
+  css: config/_style.css
   fig_caption: yes
   highlight: default
   includes:
-    in_header: _MathJax.html
-    before_body: _before_body.html
-    after_body: _after_body.html
+    in_header: config/_MathJax.html
+    before_body: config/_before_body.html
+    after_body: config/_after_body.html
