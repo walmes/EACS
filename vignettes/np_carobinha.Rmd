@@ -1,0 +1,386 @@
+---
+title: "Efeito da Época de Colheita e Adubação NP sobre a Produção e Teor de Nutrientes na Carobinha"
+author: >
+  [Walmes M. Zeviani](http://lattes.cnpq.br/4410617539281650) &
+  [Willian Vieira Gonçalves](lattes.cnpq.br/0379532364290270)
+vignette: >
+  %\VignetteIndexEntry{Efeito da Época de Colheita e Adubação NP sobre a Produção e Teor de Nutrientes na Carobinha}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+source("config/setup.R")
+```
+
+## Análise Exploratória
+
+```{r, results = "hide", message = FALSE, error = FALSE, warning = FALSE}
+#-----------------------------------------------------------------------
+# Carrega os pacotes necessários.
+
+rm(list = ls())
+library(lattice)
+library(latticeExtra)
+library(nlme)
+library(EACS)
+
+#-----------------------------------------------------------------------
+# Visualização do desenho experimental.
+
+data(np_carobinha)
+str(np_carobinha)
+
+# Nome curto é mais fácil de trabalhar.
+np <- np_carobinha
+
+# Níveis de N e P.
+unique(sort(np$N))
+unique(sort(np$P))
+
+# Combinações presentes no experimento.
+cbn <- unique(np[, c("N", "P")])
+cbn
+
+# Desenho simétrico.
+xyplot(N ~ P, data = cbn, aspect = 1)
+
+xtabs(~epoc + bloc, data = np)
+xtabs(~P + N, data = np)
+
+xyplot(msf ~ N | P, data = np, groups = epoc)
+xyplot(msf ~ P | N, data = np, groups = epoc)
+
+# Codificar os níveis de N e P para mesma escala centrada.
+cod <- function(x) {
+    u <- unique(x)
+    stopifnot(length(u) == 5)
+    u <- sort(u)
+    m <- u[3]
+    d <- diff(u[c(2, 4)])/2
+    z <- (x - m)/d
+    return(z)
+}
+
+# Criando versões codificadas de N e P.
+np <- transform(np,
+                nn = round(cod(N), 2),
+                pp = round(cod(P), 2),
+                epoc = factor(epoc))
+cbn <- unique(np[, c("nn", "pp")])
+
+# Criando um tratamento categórico de 9 níveis combinando N e P.
+np$trat <- with(np,
+                interaction(round(nn), round(pp),
+                            drop = TRUE))
+
+# Criando o indentificador de unidade experimental.
+np$ue <- with(np,
+              interaction(bloc, trat,
+                          drop = TRUE))
+str(np)
+
+# Classifica se é ponto no quadrado ou não (nível codificado +/- 1).
+np$quad <- as.integer(with(np, {
+    abs(nn) == 1 & abs(pp) == 1
+}))
+```
+
+## Análise da Massa Seca das Folhas
+
+```{r}
+#-----------------------------------------------------------------------
+# Visualização dos dados.
+
+# Em função dos tratamentos.
+xyplot(msf ~ trat | bloc, groups = epoc, data = np)
+
+# Em função dos níveis de N e P.
+c(xyplot(msf ~ N,
+         data = np,
+         groups = epoc,
+         layout = c(NA, 1)),
+  xyplot(msf ~ P,
+         data = np,
+         groups = epoc,
+         layout = c(NA, 1)))
+
+#-----------------------------------------------------------------------
+# Ajuste do modelo misto com efeito de bloco e ue aleatórios.
+
+# m0 <- lm(sqrt(msf) ~ bloc + trat * epoc, data = np)
+# par(mfrow = c(2, 2))
+# plot(m0)
+# layout(1)
+
+# Modelo saturado com um tratamento categórico de 9 níveis.
+m0 <- lme(sqrt(msf) ~ trat * epoc,
+          random = ~ 1 | bloc/ue,
+          data = np,
+          na.action = na.omit,
+          method = "ML")
+m1 <- update(m0, random = ~ 1 | bloc)
+anova(m0, m1)
+
+# # Diagnóstico.
+# r <- residuals(m0)
+# f <- fitted(m0)
+# c(qqmath(r),
+#   xyplot(r ~ f),
+#   xyplot(sqrt(abs(r)) ~ f))
+
+#-----------------------------------------------------------------------
+# Ajuste dos modelos de efeito fixo dado o não efeito de ue.
+
+m0 <- lm(sqrt(msf) ~ bloc + trat * epoc, data = np)
+
+# Diagnóstico.
+par(mfrow = c(2, 2))
+plot(m0)
+layout(1)
+
+# Quadro de ANOVA.
+anova(m0)
+
+# Modelo com N e P contínuos.
+m1 <- update(m0, . ~ bloc + (nn + I(nn^2)) * (pp + I(pp^2) * epoc))
+anova(m1, m0)
+anova(m1)
+
+m2 <- update(m0, . ~ bloc + nn + pp + epoc)
+anova(m2, m0)
+
+# Quadro de ANOVA.
+anova(m2)
+
+# Estimativas dos parâmetros.
+summary(m2)
+
+#-----------------------------------------------------------------------
+# Predição.
+
+# source(paste0("https://raw.githubusercontent.com/walmes/",
+#               "wzRfun/master/R/panel.3d.contour.R"))
+
+pred <- expand.grid(nn = seq(-2.2, 2.2, by = 0.2),
+                    pp = seq(-2.2, 2.2, by = 0.2),
+                    epoc = levels(np$epoc),
+                    bloc = levels(np$bloc)[1])
+pred$y <- predict(m2, newdata = pred, level = 0)
+
+levelplot(y ~ nn + pp | epoc,
+          data = pred,
+          aspect = "iso",
+          cuts = 50,
+          contour = TRUE)
+
+# display.brewer.all()
+colr <- brewer.pal(11, "Spectral")
+colr <- colorRampPalette(colr, space = "rgb")
+
+wireframe(y ~ nn + pp | epoc,
+          data = pred,
+          scales = list(arrows = FALSE),
+          xlab = "Nitrogênio (codificado)",
+          ylab = "Fósforo (codificado)",
+          zlab = list("Raíz da Massa Seca de Folhas (g)", rot = 90),
+          col = "gray50",
+          col.contour = 1,
+          panel.3d.wireframe = panel.3d.contour,
+          type = "on",
+          col.regions = colr(100),
+          drape = TRUE,
+          alpha.regions = 0.5,)
+```
+
+## Teor de Potássio nas Raízes
+
+```{r}
+#-----------------------------------------------------------------------
+# Visualização dos dados.
+
+# Em função dos tratamentos.
+xyplot(Kraiz ~ trat | bloc, groups = epoc, data = np)
+
+# Em função dos níveis de N e P.
+c(xyplot(Kraiz ~ N,
+         data = np,
+         groups = epoc,
+         layout = c(NA, 1)),
+  xyplot(Kraiz ~ P,
+         data = np,
+         groups = epoc,
+         layout = c(NA, 1)))
+
+#-----------------------------------------------------------------------
+# Ajuste do modelo misto com efeito de bloco e ue aleatórios.
+
+# m0 <- lm(sqrt(msf) ~ bloc + trat * epoc, data = np)
+# par(mfrow = c(2, 2))
+# plot(m0)
+# layout(1)
+
+# Modelo saturado com um tratamento categórico de 9 níveis.
+m0 <- lme(Kraiz ~ trat * epoc,
+          random = ~ 1 | bloc/ue,
+          data = np,
+          na.action = na.omit,
+          method = "ML")
+m1 <- update(m0, random = ~ 1 | bloc)
+anova(m0, m1)
+
+# # Diagnóstico.
+# r <- residuals(m0)
+# f <- fitted(m0)
+# c(qqmath(r),
+#   xyplot(r ~ f),
+#   xyplot(sqrt(abs(r)) ~ f))
+
+#-----------------------------------------------------------------------
+# Ajuste dos modelos de efeito fixo dado o não efeito de ue.
+
+m0 <- lm(Kraiz ~ bloc + trat * epoc, data = np)
+
+# Diagnóstico.
+par(mfrow = c(2, 2))
+plot(m0)
+layout(1)
+
+# Quadro de ANOVA.
+anova(m0)
+
+# Modelo com N e P contínuos.
+m1 <- update(m0, . ~ bloc + (nn + I(nn^2)) * (pp + I(pp^2) * epoc))
+anova(m1, m0)
+anova(m1)
+
+m2 <- update(m0, . ~ bloc + nn + pp + epoc)
+anova(m2, m0)
+
+# Quadro de ANOVA e estimativas dos parâmetros.
+anova(m2)
+summary(m2)
+
+#-----------------------------------------------------------------------
+# Predição.
+
+# source(paste0("https://raw.githubusercontent.com/walmes/",
+#               "wzRfun/master/R/panel.3d.contour.R"))
+
+pred <- expand.grid(nn = seq(-2.2, 2.2, by = 0.2),
+                    pp = seq(-2.2, 2.2, by = 0.2),
+                    epoc = levels(np$epoc),
+                    bloc = levels(np$bloc)[1])
+pred$y <- predict(m2, newdata = pred, level = 0)
+
+levelplot(y ~ nn + pp | epoc,
+          data = pred,
+          aspect = "iso",
+          cuts = 50,
+          contour = TRUE)
+
+# display.brewer.all()
+colr <- brewer.pal(11, "Spectral")
+colr <- colorRampPalette(colr, space = "rgb")
+
+wireframe(y ~ nn + pp | epoc,
+          data = pred,
+          scales = list(arrows = FALSE),
+          xlab = "Nitrogênio (codificado)",
+          ylab = "Fósforo (codificado)",
+          zlab = list("Teor de Potássio na Raíz", rot = 90),
+          col = "gray50",
+          col.contour = 1,
+          panel.3d.wireframe = panel.3d.contour,
+          type = "on",
+          col.regions = colr(100),
+          drape = TRUE,
+          alpha.regions = 0.5,)
+```
+
+## Teor de Potássio nas Folhas
+
+```{r}
+#-----------------------------------------------------------------------
+# Visualização dos dados.
+
+xtabs(!is.na(Kfolh) ~ bloc + epoc, data = np)
+
+# Em função dos níveis de N e P.
+c(xyplot(Kraiz ~ N,
+         data = np,
+         groups = epoc,
+         layout = c(NA, 1)),
+  xyplot(Kraiz ~ P,
+         data = np,
+         groups = epoc,
+         layout = c(NA, 1)))
+
+
+#-----------------------------------------------------------------------
+# Ajuste do modelo para uma época apenas.
+
+m0 <- lm(Kraiz ~ bloc + trat, data = subset(np, epoc == "259"))
+
+# Diagnóstico.
+par(mfrow = c(2, 2))
+plot(m0)
+layout(1)
+
+# Quadro de ANOVA.
+anova(m0)
+
+# Modelo com N e P contínuos.
+m1 <- update(m0, . ~ bloc + (nn + I(nn^2)) * (pp + I(pp^2)))
+anova(m1, m0)
+anova(m1)
+
+m2 <- update(m0, . ~ bloc + nn + pp)
+anova(m2, m0)
+anova(m2)
+summary(m2)
+
+#-----------------------------------------------------------------------
+# Predição.
+
+# source(paste0("https://raw.githubusercontent.com/walmes/",
+#               "wzRfun/master/R/panel.3d.contour.R"))
+
+pred <- expand.grid(nn = seq(-2.2, 2.2, by = 0.2),
+                    pp = seq(-2.2, 2.2, by = 0.2),
+                    bloc = levels(np$bloc)[1])
+pred$y <- predict(m2, newdata = pred)
+
+levelplot(y ~ nn + pp,
+          data = pred,
+          aspect = "iso",
+          cuts = 50,
+          contour = TRUE)
+
+# display.brewer.all()
+colr <- brewer.pal(11, "Spectral")
+colr <- colorRampPalette(colr, space = "rgb")
+
+wireframe(y ~ nn + pp,
+          data = pred,
+          scales = list(arrows = FALSE),
+          xlab = "Nitrogênio (codificado)",
+          ylab = "Fósforo (codificado)",
+          zlab = list("Teor de Potássio na Raíz", rot = 90),
+          col = "gray50",
+          col.contour = 1,
+          panel.3d.wireframe = panel.3d.contour,
+          type = "on",
+          col.regions = colr(100),
+          drape = TRUE,
+          alpha.regions = 0.5,
+          screen = list(x = -105, z = -10, y = -145))
+```
+
+## Informações da Sessão
+
+```{r, echo = FALSE, results = "hold"}
+cat(format(Sys.time(),
+           format = "Atualizado em %d de %B de %Y.\n\n"))
+sessionInfo()
+```
