@@ -26,9 +26,20 @@ p.caption {
 
 /* R input */
 pre, code {
-    border-radius: 0px;
+    /* border-radius: 3px; */
     background-color: #EDEDED;
     color: #333;
+}
+
+pre {
+    border: none;
+    border-radius: 3px;
+}
+
+/* Comments in gray italic */
+code > span.co {
+    color: #848484;
+    font-style: italic;
 }
 
 /* R output */
