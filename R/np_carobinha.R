@@ -1,6 +1,6 @@
 #' @name np_carobinha
-#' @title Efeito da Época de Colheita e Adubação Nitro-Fosfatada na
-#'     Carobinha
+#' @title Efeito da \enc{É}{E}poca de Colheita e Aduba\enc{çã}{ca}o
+#'     Nitro-Fosfatada na Carobinha
 #' @description Resultados de um experimento realizado para estudar o
 #'     efeito da época de colheita e níveis de adubação nitro-fosfatada
 #'     sobre a produção e teores de nutrientes na carobinha

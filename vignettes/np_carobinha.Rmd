@@ -96,22 +96,16 @@ np$quad <- as.integer(with(np, {
 xyplot(msf ~ trat | bloc, groups = epoc, data = np)
 
 # Em função dos níveis de N e P.
-c(xyplot(msf ~ N,
-         data = np,
-         groups = epoc,
-         layout = c(NA, 1)),
-  xyplot(msf ~ P,
-         data = np,
-         groups = epoc,
-         layout = c(NA, 1)))
+xyplot.list(list(N = msf ~ N,
+                 P = msf ~ P),
+            data = np,
+            groups = epoc,
+            x.same = FALSE,
+            xlab = "Nutriente",
+            ylab = "Massa seca das folhas")
 
 #-----------------------------------------------------------------------
 # Ajuste do modelo misto com efeito de bloco e ue aleatórios.
-
-# m0 <- lm(sqrt(msf) ~ bloc + trat * epoc, data = np)
-# par(mfrow = c(2, 2))
-# plot(m0)
-# layout(1)
 
 # Modelo saturado com um tratamento categórico de 9 níveis.
 m0 <- lme(sqrt(msf) ~ trat * epoc,
@@ -147,6 +141,7 @@ m1 <- update(m0, . ~ bloc + (nn + I(nn^2)) * (pp + I(pp^2) * epoc))
 anova(m1, m0)
 anova(m1)
 
+# Reduz o modelo.
 m2 <- update(m0, . ~ bloc + nn + pp + epoc)
 anova(m2, m0)
 
@@ -155,7 +150,12 @@ anova(m2)
 
 # Estimativas dos parâmetros.
 summary(m2)
+```
 
+Não houve efeito de N e P ($p > 5%$) na massa seca de folhas. Apenas o
+efeito de época foi significativo.
+
+```{r}
 #-----------------------------------------------------------------------
 # Predição.
 
@@ -203,22 +203,16 @@ wireframe(y ~ nn + pp | epoc,
 xyplot(Kraiz ~ trat | bloc, groups = epoc, data = np)
 
 # Em função dos níveis de N e P.
-c(xyplot(Kraiz ~ N,
-         data = np,
-         groups = epoc,
-         layout = c(NA, 1)),
-  xyplot(Kraiz ~ P,
-         data = np,
-         groups = epoc,
-         layout = c(NA, 1)))
+xyplot.list(list(N = Kraiz ~ N,
+                 P = Kraiz ~ P),
+            data = np,
+            groups = epoc,
+            x.same = FALSE,
+            xlab = "Nutriente",
+            ylab = "Teor de potássio nas raízes")
 
 #-----------------------------------------------------------------------
 # Ajuste do modelo misto com efeito de bloco e ue aleatórios.
-
-# m0 <- lm(sqrt(msf) ~ bloc + trat * epoc, data = np)
-# par(mfrow = c(2, 2))
-# plot(m0)
-# layout(1)
 
 # Modelo saturado com um tratamento categórico de 9 níveis.
 m0 <- lme(Kraiz ~ trat * epoc,
@@ -260,7 +254,12 @@ anova(m2, m0)
 # Quadro de ANOVA e estimativas dos parâmetros.
 anova(m2)
 summary(m2)
+```
 
+Não houve efeito de N e P ($p > 5%$) no teor de potássio das
+raízes. Apenas o efeito de época foi significativo.
+
+```{r}
 #-----------------------------------------------------------------------
 # Predição.
 
@@ -307,15 +306,13 @@ wireframe(y ~ nn + pp | epoc,
 xtabs(!is.na(Kfolh) ~ bloc + epoc, data = np)
 
 # Em função dos níveis de N e P.
-c(xyplot(Kraiz ~ N,
-         data = np,
-         groups = epoc,
-         layout = c(NA, 1)),
-  xyplot(Kraiz ~ P,
-         data = np,
-         groups = epoc,
-         layout = c(NA, 1)))
-
+xyplot.list(list(N = Kfolh ~ N,
+                 P = Kfolh ~ P),
+            data = np,
+            groups = epoc,
+            x.same = FALSE,
+            xlab = "Nutriente",
+            ylab = "Teor de potássio nas folhas")
 
 #-----------------------------------------------------------------------
 # Ajuste do modelo para uma época apenas.
@@ -339,7 +336,12 @@ m2 <- update(m0, . ~ bloc + nn + pp)
 anova(m2, m0)
 anova(m2)
 summary(m2)
+```
 
+Não houve efeito de N e P ($p > 5%$) no teor de potássio das
+folhas.
+
+```{r}
 #-----------------------------------------------------------------------
 # Predição.
 
