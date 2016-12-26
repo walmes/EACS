@@ -1,24 +1,22 @@
 Estatística Aplicada à Ciência do Solo
 ======================================
 
-Walmes Zeviani
+Prof. Walmes Zeviani (`walmes@ufpr.br`) e Colaboradores
 
 ## Organização
 
 O `EACS` é um pacote para o [software R](https://cran.r-project.org/). O
 pacote contém conjuntos de dados documentados e documentos que exibem a
-análise dos dados. Veja na seção [uso](#uso) como acessar o conteúdo do
-pacote e na seção [instalação](#instalacao) como instalar.
+análise dos dados. Veja na seção [Uso do Pacote](#uso-do-pacote) como
+acessar o conteúdo do pacote e na seção [Instalação](#instalacao) como
+instalar.
 
 ## Instalação
-
-Para instalar o pacote `EACS`, é necessário ter o pacote `devtools`. Com
-ele, execute o código abaixo em uma sessão R.
 
 O pacote pode ser instalado diretamente dos repositório em que está
 hospedado no GitHub (<https://github.com/walmes/EACS>) ou no GitLab
 (<https://gitlab.c3sl.ufpr.br/walmes/EACS>). Para isso é necessário ter
-o pacote `devtools`. Execute o código abaixo para instalar o pacote.
+o pacote `devtools`. Com ele, execute o código abaixo em uma sessão R.
 
 ```r
 # Carrega o devtools.
@@ -50,9 +48,10 @@ install.packages(pkgs = "EACS_x.y.z.zip",
 Lembre-se que esse procedimento não instala as dependências do
 pacote. Portanto, na hora de usar pode ser dado falta de algo. Para
 evitar isso, antes de instalar, procure instalar todos os pacotes que
-dependências para o EACS. Eles são listadoss no arquivo [DESCRIPTION].
+são dependências para o EACS. Eles são listados no arquivo
+[DESCRIPTION](DESCRIPTION).
 
-## Uso
+## Uso do Pacote
 
 O código abaixo permite que fazer um *tour* pelo pacote EACS.
 
@@ -75,5 +74,17 @@ vignette(topic = "vignette_name_here", package = "EACS")
 # Cita o pacote.
 citation("EACS")
 ```
+
+## Uso dos Dados
+
+As análises no pacote `EACS` foram feitas para serem de livre acesso das
+pessoas. Os conjuntos de dados estão disponíveis para ensino e
+aprendizado. No entanto, todo e qualquer uso dos dados, científico ou
+não, que gere publicações tais como, mas não se limitando, artigos,
+trabalhos em congressos, materias de blog e material didático devem ter
+o consentimento dos seus proprietários. Os dados no pacote `EACS` se
+tornam públicos antes das publicações que irão utilizá-los, já que as
+análises feita neste pacote são justamente para gerar os resultados que
+serão apresentados nestas publicações.
 
 <!------------------------------------------- -->
