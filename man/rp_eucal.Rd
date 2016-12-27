@@ -14,7 +14,7 @@
     com cultivo de \strong{braquiária} nas entrelinhas e adubação
     total (100\%) no \strong{sulco} de plantio; \strong{BL} - manejo
     conservacionista do solo, com cultivo de \strong{braquiária} nas
-    entrelinhas e adubação total (100\%) a \strong{lanço}; #' BSL -
+    entrelinhas e adubação total (100\%) a \strong{lanço}; BSL -
     manejo conservacionista do solo, com cultivo de
     \strong{braquiária} nas entrelinhas e adubação metade (50\%) no
     \strong{sulco} de plantio e metade (50\%) a \strong{lanço}; S -
@@ -23,10 +23,10 @@
     plantio.}
 
 \item{\code{cam}}{Fator numérico que representa o ponto inferior da
-    camada do solo com 9 de espessura 5 cm. As amostras de solo foram
-    extraídas de forma continua no mesmo ponto geográfico ao longo do
-    perfil do solo. Os níveis são: 0-0,05; 0,05-0,10; 0,10-0,15;
-    0,15-0,20; 0,20-0,25; 0,25-0,30; 0,30-0,35; 0,35-0,40;
+    camada do solo com 9 camadas de espessura 5 cm. As amostras de
+    solo foram extraídas de forma continua no mesmo ponto geográfico
+    ao longo do perfil do solo. Os níveis são: 0-0,05; 0,05-0,10;
+    0,10-0,15; 0,15-0,20; 0,20-0,25; 0,25-0,30; 0,30-0,35; 0,35-0,40;
     0,40-0,45m.}
 
 \item{\code{bloc}}{Fator categórico que representa os blocos do
@@ -34,25 +34,25 @@
     dimensões para caber 136 plantas no expaçamento 3 \eqn{\times} 2
     m.}
 
-\item{\code{umid0}}{Umidade volumétrica, com amostra indeformada, do
-    solo na tensão de 0 kPa (solo hidratado por capilaridade até a
-    saturação), cm cm\eqn{^{-3}}.}
+\item{\code{umid0}}{Umidade volumétrica (cm cm\eqn{^{-3}}), com
+    amostra indeformada, do solo na tensão de 0 kPa (solo hidratado
+    por capilaridade até a saturação).}
 
-\item{\code{umid6}}{Umidade volumétrica, com amostra indeformada,
-    para solo submetido à tensão de 6 kPa (considerado umidade na
-    capacidade de campo), cm cm\eqn{^{-3}}.}
+\item{\code{umid6}}{Umidade volumétrica (cm cm\eqn{^{-3}}), com
+    amostra indeformada, para solo submetido à tensão de 6 kPa
+    (considerado umidade na capacidade de campo), .}
 
-\item{\code{rp}}{Resistência do solo à penetração, em MPa.}
+\item{\code{rp}}{Resistência do solo à penetração (MPa).}
 
-\item{\code{dens}}{Densidade do solo, em Mg m\eqn{^{-3}}.}
+\item{\code{dens}}{Densidade do solo (Mg m\eqn{^{-3}}).}
 
 }
 
-A amostra indeformada proveniente do campo é primeiramente submetida
-    à hidratação para determinação das umidades (em 0 e 6 kPa) e
-    depois é feita determinação da resistência à penetração que
-    deforma a amostra. Por fim, é feita a determinação da densidade
-    do solo (que não querer amostra indeformada).}
+    A amostra indeformada proveniente do campo foi primeiramente
+    submetida à hidratação para determinação das umidades (em 0 e 6
+    kPa) e depois foi feita determinação da resistência à penetração
+    que deforma a amostra. Por fim, foi feita a determinação da
+    densidade do solo que não querer amostra indeformada.}
 \source{
 Elyson Thiago de Souza Florentim (bolsista FAPEMAT), Helen
     Caroline R. Correa (voluntária), Milson Evaldo Serafim
@@ -62,16 +62,14 @@ Elyson Thiago de Souza Florentim (bolsista FAPEMAT), Helen
 O experimento base foi instalado no campo no mês de
     setembro de 2013, com o clone VM 01, (\emph{Eucalyptus urophylla}
     \eqn{\times} \emph{Eucalyptus camaldulensis}), em espaçamento de
-    3 \eqn{\times} 2 m. O delineamento experimental é de blocos
-    casualizados (DBC). Cada unidade experimental foi constituida de
-    136 plantas, contendo 50 plantas úteis por parcela.
-
-O presente estudo, realizado na área experimental acima descrita,
-    teve levantamento de dados feito em abril/maio de 2016, na
-    lavoura com 2 anos de idade. O experimento possui dois (02)
-    fatores de estudo, que são manejo do solo e profundidade do
-    solo. Para o fator manejo são quatro (04) níveis de estudo e para
-    o fator profundidade do solo foram nove (09) níveis.
+    3 \eqn{\times} 2 m. Cada unidade experimental foi constituida de
+    136 plantas, contendo 50 plantas úteis por parcela. O
+    delineamento experimental é de blocos casualizados (DBC) com 6
+    repetições. O experimento possui dois (02) fatores de estudo, que
+    são manejo do solo e profundidade do solo. Para o fator manejo
+    são quatro (04) níveis de estudo e para o fator profundidade do
+    solo foram nove (09) níveis. O levantamento destes dados foi
+    feito em abril/maio de 2016, na lavoura com 2 anos de idade.
 }
 \examples{
 

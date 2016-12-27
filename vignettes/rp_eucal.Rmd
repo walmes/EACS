@@ -1,0 +1,754 @@
+---
+title: "Propriedades Físicas do Solo para Manejos da Cultura do Eucalipto"
+author: >
+  [Walmes M. Zeviani](http://lattes.cnpq.br/4410617539281650) &
+  [Milson E. Serafim](http://lattes.cnpq.br/8676820051946774)
+date: '`r format(Sys.Date(), format = "%d de %B de %Y")`'
+output:
+  html_document:
+    code_folding: hide
+vignette: >
+  %\VignetteIndexEntry{Propriedades Físicas do Solo para Manejos da Cultura do Eucalipto}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+<style type="text/css">
+/* 
+  Lista de símbolos: 
+  http://www.w3schools.com/charsets/ref_utf_geometric.asp
+  ATTENTION: Quando coloca no style.css não funciona como deveria, 
+  ao invés do simbolo fica exibido o texto
+*/
+div:not(.tocify) > ul li {
+  list-style-type: '&#9656;  ';
+}
+div:not(.tocify) > ul li ul li, ol li ul li {
+  list-style-type: '&#9657;  ';
+}
+</style>
+
+```{r setup, include=FALSE}
+source("config/setup.R")
+```
+
+## Descrição e Análise Exploratória
+
+```{r, include = FALSE, results = "hide", message = FALSE, error = FALSE, warning = FALSE}
+#-----------------------------------------------------------------------
+# Carrega os pacotes necessários.
+
+rm(list = ls())
+library(lattice)
+library(latticeExtra)
+library(captioner)
+library(reshape2)
+library(plyr)
+library(nlme)
+library(splines)
+library(multcomp)
+library(wzRfun)
+library(EACS)
+
+#-----------------------------------------------------------------------
+# Funções.
+
+tb_nums <- captioner(prefix = "Tabela")
+fg_nums <- captioner(prefix = "Figura")
+tb_lab <- function(label) tb_nums(label, display = "cite")
+fg_lab <- function(label) fg_nums(label, display = "cite")
+
+eseq <- function(x, length.out = 25, f = 0.05) {
+    er <- extendrange(x, f = f)
+    seq(er[1], er[2], length.out = length.out)
+}
+
+# Obtém intervalo de confiança de predição para modelo de classe lme.
+icpred <- function(model, data) {
+    qn <- qnorm(0.975)
+    X <- model.matrix(formula(model)[-2],
+                      data = data)
+    V <- model$varFix
+    se <- sqrt(diag(X %*% V %*% t(X)))
+    fit <- X %*% fixef(model)
+    ic <- cbind(fit,
+                fit - qn * se,
+                fit + qn * se)
+    colnames(ic) <- c("fit", "lwr", "upr")
+    return(ic)
+}
+
+# Sem correlação entre estimativas de efeito fixo na nlme.
+# http://stackoverflow.com/questions/16518438/how-to-suppress-correlation-table-in-lme
+assignInNamespace("print.correlation",
+                  function(x, title) return(),
+                  ns = "nlme")
+```
+
+Os dados no *data frame* `rp_eucal` são resultados de um experimento em
+delineamento de blocos casualizados onde estudou-se o efeito de 4 tipos
+de manejo sobre as propriedades físicas do solo sob o cultivo de
+eucalipto: densidade do solo, resistência à penetração, umidade em 0 e 6
+kPa. Em cada parcela, amostras de solo indeformadas foram extraídas de 9
+camadas de 5 cm de espessura a partir da superfície no mesmo ponto
+(medidas repetidas), sendo assim, explorados 45 cm de profundidade.
+
+```{r}
+# Nomes curtos são mais fáceis de manuzear.
+rp <- rp_eucal
+rp$dumid <- rp$umid0 - rp$umid6
+str(rp)
+
+# Visualização do desenho experimental.
+xtabs(~manejo + cam, data = rp)
+```
+
+```{r, echo = FALSE, results = "asis"}
+des <- data.frame(
+    Nomenclatura = c("BS", "BL", "BSL", "S"),
+    Descrição = c(
+        "Manejo conservacionista do solo com cultivo de braquiária nas entrelinhas e adubação total (100%) no sulco de plantio.",
+        "Manejo conservacionista do solo com cultivo de braquiária nas entrelinhas e adubação total (100%) a lanço.",
+        "Manejo conservacionista do solo com cultivo de braquiária nas entrelinhas e adubação metade (50%) no sulco de plantio e metade (50%) a lanço (BSL = BS + BL).",
+        "Manejo convencional do solo sem o cultivo de braquiária na entrelinhas e adubação total (100%) no sulco de plantio (testemunha)."
+    ),
+    Sist = c("Conserv.", "Convenc.")[c(1, 1, 1, 2)],
+    Braq = c("Sim", "Não")[c(1, 1, 1, 2)],
+    Sulc = c(100, 0, 50, 100),
+    Lanç = c(0, 100, 50, 0)
+)
+
+cap <-
+ "Nomenclatura usada para os níveis de manejo de solo,
+ descrição, sistema (Sist), uso de braquiária nas entrelinhas (Braq),
+ porcentagem de adubação no sulco (Sulc) e a lanço (Lanç)."
+cap <- tb_nums("descr", cap)
+kable(des, caption = cap, row.names = FALSE)
+```
+
+TODO modelo: considerar erros correlacionados entre camadas de uma
+parcela. Blocos podem ser de efeito aleatório.
+
+```{r, echo = FALSE, fig.cap = cap}
+txt <-
+"Diagrama de dispersão da umidade (g g$^{-1}$) em 0 e 6 kPa em
+ função da profundidade no perfil do solo (cm) para cada
+ manejo do solo. A linhas suaves foram adicionadas para marcar a
+ tendência sobre a média dos dados."
+cap <- fg_nums(name = "umids",
+               cap = txt)
+
+# Como as umidades estão na mesma escala, pode-se usar o mesmo eixo para
+# as duas.
+xyplot(umid0 + umid6 ~ cam | manejo,
+       data = rp,
+       xlab = "Profundidade (cm)",
+       ylab = expression("Umidade do solo" ~ (g ~ g^{-1})),
+       type = c("p", "smooth"),
+       auto.key = TRUE)
+```
+
+Pela `r fg_lab("umids")`, a umidade do solo em 0 kPa parece não depender
+da profundidade do solo e ser a mesma entre os manejos. Visualmente, o
+valor médio seria de 0.37 g g$^{-1}$. A umidade em 6 kPa tem o mesmo
+comportamento que a em 0 kPa. A diferença de umidade mantém-se
+praticamente constante em um valor de 0.15 ao longo da profundidade do
+solo e é a mesma entre os manejos.
+
+Para o manejo BSL, na profundidade 45 cm, tem-se uma observação de
+umidade em 0 kPa e uma em 6 kPa atípicas, com valores acima de 0.45 de
+umidade. Essa observação pertence ao bloco II.
+
+```{r}
+# Cela dos possíveis outliers.
+subset(rp, manejo == "BSL" & cam == 45)
+```
+
+```{r, echo = FALSE, fig.cap = cap}
+txt <-
+"Diagrama de dispersão de cada uma das respostas em
+ função da profundidade no perfil do solo (cm) para cada
+ manejo do solo. A linhas suaves foram adicionadas para marcar a
+ tendência sobre a média dos dados. Pontos com as mesmas cores
+ pertencem ao mesmo bloco."
+cap <- fg_nums(name = "todas",
+               cap = txt)
+
+# A linha preta grossa é a linha média e as coloridas são as dentro de
+# cada bloco (individuais).
+xy <- xyplot(umid0 + umid6 + dumid + dens + rp ~ cam | manejo,
+             outer = TRUE,
+             groups = bloc,
+             data = rp,
+             xlab = "Profundidade (cm)",
+             ylab = NULL,
+             scales = list(y = list(relation = "free")),
+             type = c("p", "smooth")) +
+    layer(panel.smoother(..., se = FALSE, lwd = 2, span = 1.5))
+combineLimits(useOuterStrips(xy))
+```
+
+A `r fg_lab("todas")` exibe cada uma das respostas, incluindo a
+diferença de umidade entre 0 e 6 kPa (`dumid`), em função da
+profundidade para cada manejo. Visualmente, o maior efeito da
+profundudade e diferença entre manejos está na densidade do solo e na
+resistência à penetração, sendo o manejo BSL o mais distinto dos demais.
+
+## Método de Análise dos Dados
+
+Conforme o delineamento considerado para realização do experimento e
+aquisição dos dados, o modelo proposto é
+
+$$
+  \mu_{ijk} = \mu +
+  \text{BLC}_i +
+  \text{MAN}_j \times s(\text{CAM}_k) +
+  u_{ij} +
+  e_{ijk}
+$$
+
+em que
+
+  * $\mu_{ijk}$ é o valor esperado para a resposta em uma parcela no
+    bloco $i$ com o manejo $j$ tomada na camada $k$;
+  * $\mu$ é uma constante pertencente à todas as observações que, se e
+    somente se na ausência de efeito dos demais termos do modelo,
+    corresponde ao valor esparado da resposta;
+  * $\text{BLC}_i$ representa o efeito do bloco $i$;
+  * $\text{MAN}_j \times s(\text{CAM}_k)$ representa o efeito do manejo
+    $j$, o efeito da camada do solo $k$ a interação entre estes
+    termos. Por camada ser um fator métrico, para representar seu efeito
+    é usado uma função contínua $s()$ que pode ser um polinômio ou um
+    *base splines*;
+  * $u_{ij}$ é o erro experimental em nível de parcela que se supõe ser
+    independente e ter distribuição de média 0 e variância constante.
+  * $e_{ijk}$ é o erro experimental em nível de amostra de solo que se
+    supõe ser independente e ter distribuição de média 0 e variância
+    constante. A suposição de independencia pode não ser verificada haja
+    visto que amostras de solo próximas tenham correlação.
+
+O efeito de bloco ($BLC$) foi considerado como aleatório. Para o efeito
+de camada considerou-se *base splines* cúbico de 3 graus de liberdade.
+
+<!-- Um *base splines* cúbico de 3 GL é um polinômio de grau 3? -->
+
+Para o erro em nível de amostra, considerou-se inicialmente uma
+estrutura de correlação exponencial
+$$
+  \rho(d) = \exp\left\{\frac{-d}{\lambda}\right\}
+$$
+em que $d$ é a distância entre duas camadas e $\lambda$ é o parâmetro
+relacionado ao alcance. Na prática, o alcançe é a distância na qual a
+correlação é 5% que corresponde à $d = 3\rho \approx 0.05$.
+
+Para acomodar o efeito de parcela, foi criada a variável `ue` concatenando
+os rótulos de bloco e manejo. Para fazer análise de modelos mistos com a
+função `lme()` é recomendado criar um *data frame* de classe
+`groupedData`.
+
+Para cada resposta, três variações do modelo acima descrito foram
+ajustados:
+
+  * `m0`: modelo em que $e_{ijk}$ é considerado independente dentro da
+     parcela $ij$;
+  * `m1`: modelo em que $e_{ijk}$ é considerado autocorrelacionado
+     dentro da parcela $ij$ descrito pela função exponencial. O modelo
+     `m0` está encaixado no modelo `m1`;
+  * `m2`: modelo igual ao `m1` porém com efeito de camada descrito pelo
+     polinômio de grau 1 (reta). O modelo `m2` está encaixado no modelo
+     `m2`.
+
+O modelo foi ajustado aos dados pelo método da máxima verossimilhança
+(ML). Testes entre modelos encaixados foram feitos pelo teste da razão de
+verossimilhanças considerando um nível de significância de 5%. O
+resultado de ajuste é apresentado pelo gráfico com as curvas ajustadas
+acompanhadas das bandas de confiança.
+
+```{r}
+# Ordena e cria UE para representar parcelas (unidades experimentais).
+rp <- rp[with(rp, order(bloc, manejo, cam)), ]
+rp$ue <- with(rp, interaction(bloc, manejo, drop = TRUE))
+rownames(rp) <- NULL
+# nlevels(rp$ue)
+
+# Talvez um outlier na umidade. Obs 63.
+# subset(rp, umid0 > 0.5 & umid6 > 0.4)
+
+# Cria o `groupedData` para ter `augPred` do ajuste.
+rpg <- groupedData(rp ~ cam | ue,
+                   data = rp,
+                   order.groups = FALSE)
+```
+
+### Umidade em 0 kPa
+
+```{r}
+# Modelo que assume independência entre camadas.
+m0 <- lme(umid0 ~ manejo * ns(cam),
+          data = rpg[-63, ],
+          random = ~1 | bloc/ue,
+          method = "ML")
+
+# Modelo que expecifica correlação exponencial.
+m1 <- update(m0,
+             correlation = corExp(value = 5, form = ~cam))
+anova(m0, m1)
+
+# Comparação visual dos ajustes.
+# plot(comparePred(m0, m1), layout = c(4, NA))
+
+# Modelo reduzido em termos fixos.
+m2 <- update(m1, fixed = . ~ manejo * cam)
+anova(m1, m2)
+```
+
+Para a resposta `umid0`, foi verificado que o modelo que assume
+correlação nula entre camadas (`m0`) foi rejeitado em favor do modelo
+que especifica uma correlação do tipo exponencial (`m1`). O modelo com
+efeito linear para a camada (`m2`) mostrou-se tão adequado quanto o
+modelo com *base splines* (`m1`). Neste modelo final (`m2`) não foi
+verificado, pela tabela de testes de Wald[^2], efeito de manejos e
+camada do solo.
+
+```{r}
+# Resultados pelo modelo final.
+anova(m2)
+summary(m2)
+
+# Estimativa de alcance.
+r <- coef(m2$modelStruct$corStruct, unconstrained = FALSE)
+
+# Um alcance de 95% (correlação 5%) está na distância de 3 * r.
+3 * r
+```
+```{r, echo = FALSE, fig.cap = cap}
+txt <-
+"Correlação entre camadas em função da distância (cm) entre elas no
+ perfil do solo."
+cap <- fg_nums(name = "corr-umid0",
+               cap = txt)
+
+curve(exp(-x/r),
+      from = 0,
+      to = max(rp$cam),
+      ylab = "Correlação entre observações",
+      xlab = "Distância entre camadas do solo (cm)")
+abline(v = 3 * r, h = exp(-3), lty = 2)
+```
+
+A estimativa de alcance[^1] foi de `r 3*r` cm
+(`r fg_lab("corr-umid0")`). O gráfico mostra o decaimento da correlação
+entre camadas em função da distância entre elas segundo a função
+exponencial considerada no ajuste.
+
+```{r, echo = FALSE, fig.cap = cap}
+txt <-
+"Valores observados de umidade do solo (g g$^{-1}$) em 0 kPa em
+ função da profundidade do solo (cm) para cada manejo com a curva
+ ajustada acompanhada das bandas de confiança (95%)."
+cap <- fg_nums(name = "pred-umid0",
+               cap = txt)
+
+pred <- with(rp, expand.grid(manejo = levels(manejo),
+                             cam = eseq(cam, f = 0)))
+pred <- cbind(pred, icpred(model = m2, data = pred))
+
+xyplot(umid0 ~ cam | manejo,
+       data = rp[-63, ],
+       ylab = expression("Umidade em 0 kPa" ~ (g ~ g^{-1})),
+       xlab = "Profundidade (cm)") +
+    as.layer(xyplot(fit ~ cam | manejo,
+                    data = pred,
+                    type = "l",
+                    ly = pred$lwr,
+                    uy = pred$upr,
+                    cty = "bands",
+                    prepanel = prepanel.cbH,
+                    panel = panel.cbH))
+```
+
+Na `r fg_lab("pred-umid0")` estão os valores observados e ajustados pelo
+modelo. As bandas de confiança podem conter uma linha horizontal o que
+uma confirmalção visual de que o modelo nulo (reta horizontal ou apenas
+intercepto) não é um modelo rejeitado para descrever o comportamento do
+a umidade do solo em relação à profundidade.
+
+### Umidade em 6 kPa
+
+```{r}
+# Modelo que assume independência entre camadas.
+m0 <- lme(umid6 ~ manejo * bs(cam),
+          data = rpg[-63, ],
+          random = ~1 | bloc/ue,
+          method = "ML")
+
+# Modelo que expecifica correlação exponencial.
+m1 <- update(m0,
+             correlation = corExp(value = 2, form = ~cam))
+anova(m0, m1)
+
+# Comparação visual dos ajustes.
+# plot(comparePred(m0, m1), layout = c(4, NA))
+
+# Modelo reduzido em termos fixos.
+m2 <- update(m1, fixed = . ~ manejo * cam)
+anova(m1, m2)
+```
+
+Para a resposta `umid6`, assim como ocorre para `umid0`, foi verificado
+que o modelo que assume correlação nula entre camadas (`m0`) foi
+rejeitado em favor do modelo que especifica uma correlação do tipo
+exponencial (`m1`). O modelo com efeito linear para a camada (`m2`)
+mostrou-se tão adequado quanto o modelo com *base splines* (`m1`). Neste
+modelo final (`m2`) não foi verificado à 5% (mas foi à 10%), pela
+tabela de testes de Wald, efeito de manejos e camada do solo.
+
+```{r}
+# Resultados pelo modelo final.
+anova(m2)
+summary(m2)
+
+# Estimativa de alcance.
+r <- coef(m2$modelStruct$corStruct, unconstrained = FALSE)
+
+# Um alcance de 95% (correlação 5%) está na distância de 3 * r.
+3 * r
+```
+```{r, echo = FALSE, fig.cap = cap}
+txt <-
+"Correlação entre camadas em função da distância (cm) entre elas no
+ perfil do solo."
+cap <- fg_nums(name = "corr-umid6",
+               cap = txt)
+
+curve(exp(-x/r),
+      from = 0,
+      to = max(rp$cam),
+      ylab = "Correlação entre observações",
+      xlab = "Distância entre camadas do solo (cm)")
+abline(v = 3 * r, h = exp(-3), lty = 2)
+```
+
+A estimativa de alcance foi de `r 3*r` cm
+(`r fg_lab("corr-umid6")`). O gráfico mostra o decaimento da correlação
+entre camadas em função da distância entre elas segundo a função
+exponencial considerada no ajuste.
+
+```{r, echo = FALSE, fig.cap = cap}
+txt <-
+"Valores observados de umidade do solo (g g$^{-1}$) em 6 kPa em
+ função da profundidade do solo (cm) para cada manejo com a curva
+ ajustada acompanhada das bandas de confiança (95%)."
+cap <- fg_nums(name = "pred-umid6",
+               cap = txt)
+
+pred <- with(rp, expand.grid(manejo = levels(manejo),
+                             cam = eseq(cam, f = 0)))
+pred <- cbind(pred, icpred(model = m2, data = pred))
+
+xyplot(umid6 ~ cam | manejo,
+       data = rp[-63, ],
+       ylab = expression("Umidade em 6 kPa" ~ (g ~ g^{-1})),
+       xlab = "Profundidade (cm)") +
+    as.layer(xyplot(fit ~ cam | manejo,
+                    data = pred,
+                    type = "l",
+                    ly = pred$lwr,
+                    uy = pred$upr,
+                    cty = "bands",
+                    prepanel = prepanel.cbH,
+                    panel = panel.cbH))
+```
+
+Na `r fg_lab("pred-umid6")` estão os valores observados e ajustados pelo
+modelo. Exceto para o manejo BSL, as bandas de confiança podem conter
+uma linha horizontal. Para o BSL verifica-se um efeito significativo de
+camada.
+
+### Diferença de Umidade entre 0 e 6 kPa
+
+```{r}
+# Modelo que assume independência entre camadas.
+m0 <- lme(dumid ~ manejo * bs(cam),
+          data = rpg,
+          random = ~1 | bloc/ue,
+          method = "ML")
+
+# Modelo que expecifica correlação exponencial.
+m1 <- update(m0,
+             correlation = corExp(value = 5, form = ~cam))
+anova(m0, m1)
+
+# Comparação visual dos ajustes.
+# plot(comparePred(m0, m1), layout = c(4, NA))
+
+# Modelo reduzido em termos fixos.
+m2 <- update(m0, fixed = . ~ manejo * cam)
+anova(m1, m2)
+```
+
+Para a resposta `dumid`, ao contrário de `umid0` e `umid6`, foi
+verificado que o modelo que assume correlação nula entre camadas (`m0`)
+não foi rejeitado em favor do modelo que especifica uma correlação do
+tipo exponencial (`m1`). O modelo com efeito linear para a camada (`m2`)
+não se mostrou superior ao modelo com *base splines* (`m1`). Neste
+modelo final (`m0`), foi detectado interação entre manejo e camada do
+solo.
+
+```{r, fig.cap = cap}
+# Resultados pelo modelo final.
+anova(m0)
+summary(m0)
+
+L <- rbind(c(0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+           c(0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0),
+           c(0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0),
+           c(0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1))
+rownames(L) <- levels(rp$manejo)
+
+# Teste para o efeito de profundidade dentro de cada camada.
+summary(glht(m0, linfct = L))
+```
+
+```{r, echo = FALSE, fig.cap = cap}
+txt <-
+"Valores observados para a diferença entre umidade do solo em 0 e 6
+ kPa (g g$^{-1}$) em função da profundidade do solo (cm)
+ para cada manejo com a curva ajustada acompanhada das bandas de
+ confiança (95%)."
+cap <- fg_nums(name = "pred-dumid",
+               cap = txt)
+
+pred <- with(rp, expand.grid(manejo = levels(manejo),
+                             cam = eseq(cam, f = 0)))
+pred <- cbind(pred, icpred(model = m0, data = pred))
+
+xyplot(dumid ~ cam | manejo,
+       data = rp,
+       ylab = expression(
+           "Diferença de umidade em 0 e 6 kPa" ~ (g ~ g^{-1})),
+       xlab = "Profundidade (cm)") +
+    as.layer(xyplot(fit ~ cam | manejo,
+                    data = pred,
+                    type = "l",
+                    ly = pred$lwr,
+                    uy = pred$upr,
+                    cty = "bands",
+                    prepanel = prepanel.cbH,
+                    panel = panel.cbH))
+```
+
+Na `r fg_lab("pred-dumid")` estão os valores observados e ajustados pelo
+modelo. Exceto para o manejo BSL, as bandas de confiança podem conter
+uma linha horizontal. Para o BSL verifica-se um efeito significativo de
+camada descrito pelo *base splines*.
+
+### Densidade do Solo
+
+```{r}
+# Modelo que assume independência entre camadas.
+m0 <- lme(dens ~ manejo * bs(cam),
+          data = rpg,
+          random = ~1 | bloc/ue,
+          method = "ML")
+
+# Modelo que expecifica correlação exponencial.
+m1 <- update(m0,
+             correlation = corExp(value = 5, form = ~cam))
+anova(m0, m1)
+
+# Comparação visual dos ajustes.
+# plot(comparePred(m0, m1), layout = c(4, NA))
+
+# Modelo reduzido em termos fixos.
+m2 <- update(m0, fixed = . ~ manejo * cam)
+anova(m1, m2)
+```
+
+Para a resposta `dens`, assim como ocorre com `dumid`, foi verificado
+que o modelo que assume correlação nula entre camadas (`m0`) não foi
+rejeitado em favor do modelo que especifica uma correlação do tipo
+exponencial (`m1`). O modelo com efeito linear para a camada (`m2`) não
+se mostrou superior ao modelo com *base splines* (`m1`). Neste modelo
+final (`m0`), foi detectado interação entre manejo e camada do solo.
+
+```{r, fig.cap = cap}
+# Resultados pelo modelo final.
+anova(m0)
+summary(m0)
+
+L <- rbind(c(0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+           c(0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0),
+           c(0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0),
+           c(0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1))
+rownames(L) <- levels(rp$manejo)
+
+# Teste para o efeito de profundidade dentro de cada camada.
+summary(glht(m0, linfct = L))
+```
+
+```{r, echo = FALSE, fig.cap = cap}
+txt <-
+"Valores observados para a densidade do solo (Mg m$^{-3}$) em
+ função da profundidade do solo (cm) para cada manejo com a curva
+ ajustada acompanhada das bandas de confiança (95%)."
+cap <- fg_nums(name = "pred-dens",
+               cap = txt)
+
+pred <- with(rp, expand.grid(manejo = levels(manejo),
+                             cam = eseq(cam, f = 0)))
+pred <- cbind(pred, icpred(model = m0, data = pred))
+
+xyplot(dens ~ cam | manejo,
+       data = rp,
+       ylab = expression("Densidade do solo" ~ (Mg ~ m^{-3})),
+       xlab = "Profundidade (cm)") +
+    as.layer(xyplot(fit ~ cam | manejo,
+                    data = pred,
+                    type = "l",
+                    ly = pred$lwr,
+                    uy = pred$upr,
+                    cty = "bands",
+                    prepanel = prepanel.cbH,
+                    panel = panel.cbH))
+```
+
+Na `r fg_lab("pred-dens")` estão os valores observados e ajustados pelo
+modelo. Exceto para o manejo BSL, as bandas de confiança podem conter
+uma linha horizontal. Para o BSL verifica-se um efeito significativo de
+camada descrito pelo *base splines*.
+
+### Resistência à Penetração
+
+```{r}
+# Modelo que assume independência entre camadas.
+m0 <- lme(rp ~ manejo * bs(cam),
+          data = rpg,
+          random = ~1 | bloc/ue,
+          method = "ML")
+
+# Modelo que expecifica correlação exponencial.
+m1 <- update(m0,
+             correlation = corExp(value = 5, form = ~cam))
+anova(m0, m1)
+
+# Comparação visual dos ajustes.
+# plot(comparePred(m0, m1), layout = c(4, NA))
+
+# Modelo reduzido em termos fixos.
+m2 <- update(m0, fixed = . ~ manejo * cam)
+anova(m1, m2)
+```
+
+Para a resposta `rp`, foi verificado que o modelo que assume correlação
+nula entre camadas (`m0`) foi rejeitado em favor do modelo que
+especifica uma correlação do tipo exponencial (`m1`). O modelo com
+efeito linear para a camada (`m2`) não se mostrou superior ao modelo com
+*base splines* (`m1`). Neste modelo final (`m0`), foi detectado
+interação entre manejo e camada do solo.
+
+```{r, fig.cap = cap}
+# Resultados pelo modelo final.
+anova(m0)
+summary(m0)
+
+L <- rbind(c(0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+           c(0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0),
+           c(0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0),
+           c(0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1))
+rownames(L) <- levels(rp$manejo)
+
+# Teste para o efeito de profundidade dentro de cada camada.
+summary(glht(m0, linfct = L))
+```
+
+```{r, echo = FALSE, fig.cap = cap}
+txt <-
+"Valores observados para a resistência a penetração do solo (MPa) em
+ função da profundidade do solo (cm) para cada manejo com a curva
+ ajustada acompanhada das bandas de confiança (95%)."
+cap <- fg_nums(name = "pred-rp",
+               cap = txt)
+
+pred <- with(rp, expand.grid(manejo = levels(manejo),
+                             cam = eseq(cam, f = 0)))
+pred <- cbind(pred, icpred(model = m0, data = pred))
+
+xyplot(rp ~ cam | manejo,
+       data = rp,
+       ylab = expression("Resistência à penetração" ~ (MPa)),
+       xlab = "Profundidade (cm)") +
+    as.layer(xyplot(fit ~ cam | manejo,
+                    data = pred,
+                    type = "l",
+                    ly = pred$lwr,
+                    uy = pred$upr,
+                    cty = "bands",
+                    prepanel = prepanel.cbH,
+                    panel = panel.cbH))
+```
+
+Na `r fg_lab("pred-rp")` estão os valores observados e ajustados pelo
+modelo. Apenas para o manejo BSL, as bandas de confiança pode conter uma
+linha horizontal. Para os demais manejos verifica-se um efeito
+significativo de camada descrito pelo *base splines*.
+
+<!------------------------------------------- -->
+
+```{r, include = FALSE, eval = FALSE}
+# Resíduos dentro de cada UE.
+r <- cbind(res = unlist(residuals(m0)),
+           rpg[, c("ue", "cam")])
+r <- dcast(data = r, formula = ue ~ cam, value.var = "res")
+
+# splom(r[, -1], type = c("p", "r"))
+
+r <- cor(r[, -1])
+colnames(r) <- rownames(r) <- unique(sort(rp$cam))
+levelplot(r,
+          at = seq(-1, 1, by = 0.1),
+          main = list("Correlação entre camadas", font = 1),
+          xlab = "Camada (cm)",
+          ylab = "Camada (cm)")
+
+# Predomínio e correlação positiva entre camadas adjacentes. A
+# correlação tende a se tornar negativa com o aumento da separação entre
+# camadas.
+
+# Autocorrelação.
+plot(ACF(m0))
+
+# Extraindo as estimativas e erros padrões.
+L <- list(m0 = m0, m1 = m1)
+L <- lapply(L,
+            FUN = function(m) {
+                est <- cbind(data.frame(coef = names(coef(m))),
+                             summary(m)$tTable[, 1:2])
+                return(est)
+            })
+L <- ldply(L, .id = "model")
+
+# Gráfico.
+xyplot(m0 ~ m1,
+       aspect = "iso",
+       data = dcast(L, coef ~ model, value.var = "Std.Error")) +
+    layer(panel.abline(a = 0, b = 1))
+
+# O modelo com correlação nos erros apresenta erros padrões
+# maiores. Isso está ligado ao fato de que por haver correlação entre as
+# camadas existe informação redundante e isso não diminui a incerteza.
+```
+
+## Informações da Sessão
+
+```{r, echo = FALSE, results = "hold"}
+cat(format(Sys.time(),
+           format = "Atualizado em %d de %B de %Y.\n\n"))
+sessionInfo()
+```
+
+[^1]: Alcance é definida como sendo a distância para uma correlação de
+    5%.
+[^2]: Em modelos mistos, o teste para os efeitos fixos é o teste F de Wald
+    e não o teste F de um quadro de ANOVA. A interpretação permanece a mesma.
