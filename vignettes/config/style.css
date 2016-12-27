@@ -17,11 +17,18 @@ pre code {
     font-size: 14px;
 }
 
-p.caption {
+code {
+    padding: 0px 0px;
+    font-size: 80%;
+    background-color: none;
+}
+
+caption, p.caption {
     text-align: left;
     margin-left: 4em;
-    margin-right: 4em;
-    text-indent: -2em
+    margin-right: 0em;
+    text-indent: -4em;
+    color: inherit;
 }
 
 /* R input */
@@ -84,7 +91,7 @@ blockquote > blockquote > p {
 }
 
 a {
-    color: #149494;
+    color: #7F4C2D;
     text-decoration: none;
 }
 
@@ -96,9 +103,31 @@ a:hover, a:focus {
 .list-group-item.active,
 .list-group-item.active:focus,
 .list-group-item.active:hover {
-    background-color: #149494;
+    background-color: #7F4C2D;
 }
 
 .tocify-header {
     text-indent: 0px;
+}
+
+.tocify-subheader {
+    text-indent: 0px !important;
+}
+
+.tocify-subheader .tocify-item {
+    font-size: 90% !important;
+    padding-left: 15px !important;
+}
+
+.h1, .h2, .h3, h1, h2, h3 {
+    margin-top: 30px;
+    margin-bottom: 20px;
+}
+
+tbody {
+    border-bottom: 2px solid #DDD;
+}
+
+tr.header {
+    border-top: 2px solid #DDD;
 }
