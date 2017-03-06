@@ -6,14 +6,14 @@
 #'     setembro do ano de 2015, no delineamento de blocos casualizados
 #'     completos, utilizando como unidade experimental vasos de
 #'     polietileno com 5 dm\eqn{^3} de solo com uma planta de
-#'     Eucalipto. A umidade do solo nos vasos foi mantida ente 65-55\%
+#'     eucalipto. A umidade do solo nos vasos foi mantida ente 65-55\%
 #'     da capacidade de campo. O experimento teve duração de 90 dias,
 #'     portanto, as variáveis agronômicas das mudas de eucalipto
 #'     (dimensões e pesos) e as variáveis de solo (físicas, químicas e
-#'     hídricas) foram determinadas aos 90 dias após a instalação dos
+#'     hídricas) foram determinadas aos 90 dias após a instalação do
 #'     experimento.
 #'
-#'     No experimento foram estudadas dois fatores (fatorial 3
+#'     No experimento foram estudados dois fatores (fatorial 3
 #'     \eqn{\times} 10): 3 formas de fornecimento de P (fósforo)
 #'     combinadas com 10 doses de P para o desenvolvimento mudas de
 #'     eucalipto.
@@ -26,7 +26,7 @@
 #'
 #'     As doses não nulas de P (fator métrico) são elementos de uma
 #'     progressão geométrica: \eqn{dose(i) = 1,5 \times 2^{i}, i = 0, 1,
-#'     \ldots, 8}, totalizando com a dose nula (P = 0), 10 níveis.
+#'     \ldots, 8}, totalizando, com a dose nula (P = 0), 10 níveis.
 #'
 #'     Amostras de solo indeformadas foram extraídas dos vasos para
 #'     determinação da curva de retenção de água (CRA) do solo. Depois
@@ -82,17 +82,17 @@
 #'
 #' \item{\code{pcz}}{Ponto de carga zero.}
 #'
-#' \item{\code{p}}{Teor de fósforo do solo, mg dm\eqn{^{-3}}.}
+#' \item{\code{p}}{Conteúdo de fósforo do solo, mg dm\eqn{^{-3}}.}
 #'
-#' \item{\code{k}}{Teor de potássio do solo, mg dm\eqn{^{-3}}.}
+#' \item{\code{k}}{Conteúdo de potássio do solo, mg dm\eqn{^{-3}}.}
 #'
-#' \item{\code{ca}}{Teor de cálcio do solo, cmol\eqn{_{c}}
+#' \item{\code{ca}}{Conteúdo de cálcio do solo, cmol\eqn{_{c}}
 #'     dm\eqn{^{-3}}.}
 #'
-#' \item{\code{mg}}{Teor de magnésio do solo, cmol\eqn{_{c}}
+#' \item{\code{mg}}{Conteúdo de magnésio do solo, cmol\eqn{_{c}}
 #'     dm\eqn{^{-3}}.}
 #'
-#' \item{\code{hal}}{Teor de alumínio trocável (Al\eqn{^{3+}}),
+#' \item{\code{hal}}{Conteúdo de alumínio trocável (Al\eqn{^{3+}}),
 #'     cmol\eqn{_{c}} dm\eqn{^{-3}}.}
 #'
 #' \item{\code{are}}{Teor de areia do solo, g kg\eqn{^{-1}}.}
@@ -109,12 +109,13 @@
 #' \describe{
 #'
 #' \item{\code{biocar}}{São os níveis de biocarvão, conforme já descrito
-#'     acima. No entanto, as curva de retenção de água do solo só foi
-#'     determinada para os níveis \code{SP} e \code{SP_B}.}
+#'     acima. No entanto, as curva de retenção de água do solo só foram
+#'     determinadas para os níveis \code{SP} e \code{SP_B}.}
 #'
 #' \item{\code{dosep}}{Doses de fósforo, conforme já descrito acima.}
 #'
-#' \item{\code{bloc}}{Níveis do fator bloco, conforme já descrito acima.}
+#' \item{\code{bloc}}{Níveis do fator bloco, conforme já descrito
+#'     acima.}
 #'
 #' \item{\code{tens}}{Tensão aplicada ao solo, kPa, para obtenção da
 #'     correspondente umidade de equilíbrio.}
@@ -123,6 +124,8 @@
 #'     equilíbrio com a tensão matricial aplicada.}
 #'
 #' }
+#' @references PAULA, J. L. DE; DUARTE, M. N. Manual de métodos de
+#'     análise de solo. 2nd ed. Rio de Janeiro: EMBRAPA-CNPS, 1997.
 #' @source Milson Evaldo Serafim (orientador,
 #'     \email{milson.serafim@@cas.ifmt.edu.br}), Janaina Carvalho de
 #'     Souza (Trabalho de Conclusão de Curso em Engenharia Florestal,
