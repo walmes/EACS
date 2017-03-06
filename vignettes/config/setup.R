@@ -25,14 +25,21 @@ ps <- list(box.rectangle = list(col = 1, fill = c("gray70")),
            plot.line = list(col = 1),
            plot.polygon = list(col = "gray95"),
            superpose.line = list(col = mycol, lty = 1),
-           superpose.symbol = list(col = mycol, pch = 1),
+           superpose.symbol = list(col = mycol, pch = 1, fill = mycol),
            superpose.region = list(col = mycol, pch = 1),
            superpose.polygon = list(col = mycol),
            strip.background = list(col = c("gray80", "gray50")),
            axis.text = list(cex = 0.8))
 trellis.par.set(ps)
 lattice.options(default.args = list(as.table = TRUE))
-# show.settings()
+# show.settings()''
+
+library(captioner)
+
+tbn_ <- captioner(prefix = "Tabela")
+fgn_ <- captioner(prefix = "Figura")
+tbl_ <- function(label) tbn_(label, display = "cite")
+fgl_ <- function(label) fgn_(label, display = "cite")
 
 # Carrega o pacote.
 devtools::load_all()
