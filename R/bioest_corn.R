@@ -1,0 +1,91 @@
+#' @name bioest_corn
+#' @title Desempenho agron\enc{ô}{o}mico de plantas de milho tratadas
+#'     com bioestimulantes
+#' @description O experimento foi realizado na Fazenda Experimental de
+#'     Ciências Agrárias (UFGD, Dourados-MS), com o objetivo de avaliar
+#'     o desemepenho agronômico de plantas de milho tratadas com
+#'     bioestimulantes. O estudo foi sobre milho safrinha. Os
+#'     tratamentos foram estudados sob o delineamento de blocos
+#'     casualizados, com 10 níveis e quatro repetições. As parcelas
+#'     tinham dimensões de 15 metros de largura por 15 metros de
+#'     comprimento. As variáveis avaliadas ao final do ciclo da cultura
+#'     foram: produtividade (\code{prod}), índice de colheita
+#'     (\code{icol}) e massa de mil grãos (m1k).
+#'
+#'     Os tratamentos P energetic e Bokashi são bioestimulantes. O
+#'     primeiro e mineral e segundo é orgânico. A aplicação de NPK foi
+#'     de 250 kg ha\eqn{^{-1}} da formulação 28-20-20 e o NK foi 100 kg
+#'     \eqn{^{-1}} de KCl (fonte de potássio) mais 50 kg \eqn{^{-1}} de
+#'     uréia (fonte de nitrogênio).
+#' @format Um \code{data.frame} com 40 observações e 8 variáveis, em que
+#'
+#' \describe{
+#'
+#' \item{\code{bloc}}{Fator categórico que representam os blocos do
+#'     experimento utilizados para controle local da fertilidade do
+#'     solo, manejo e mão de obra durante a condução do experimento.}
+#'
+#' \item{\code{adub}}{Fator de níveis categóricos com 10 níveis que
+#'     representam as combinações de adubação de base (nenhuma - 0, com
+#'     NPK e com NK), adição de fósforo energético (Pe) e adição de
+#'     Bokashi (Bk).}
+#'
+#' \item{\code{base}}{Fator categórico que representa a componente de
+#'     \code{adub} que é a adubação de base.}
+#'
+#' \item{\code{pe}}{Variável binária que representa adição (1) ou não
+#'     (0) de fósforo energético (Pe) na adubação.}
+#'
+#' \item{\code{bk}}{Variável binária que representa adição (1) ou não
+#'     (0) de Bokashi (Bk) na adubação.}
+#'
+#' \item{\code{prod}}{Variável resposta métrica que é a produtividade da
+#'     parcela expressa em kg ha\eqn{^{-1}}.}
+#'
+#' \item{\code{icol}}{Variável resposta métrica unitária que representa
+#'     o índice de colheita expresso em decimal. O índice de colheita é
+#'     obtido através do peso dos grãos de uma planta de milho dividido
+#'     pelo peso total da planta (incluindo os grãos), resultando na
+#'     porcentagem de quanto da biomassa da planta é grão.}
+#'
+#' \item{\code{m1k}}{Variável resposta métrica que é o peso de 1000
+#'     grãos, expresso em gramas.}
+#'
+#' }
+#' @source Tárik Cazeiro El Kadri (\email{tarik-kadri@@hotmail.com},
+#'     aluno de mestrado, Programa de Pós Graduação em Produção Vegetal,
+#'     UFGD) e Marlene Estevão Marchetti
+#'     (\email{MarleneMarchetti@@ufgd.edu.br}, orientadora).
+#' @examples
+#'
+#' library(lattice)
+#' library(latticeExtra)
+#'
+#' # Número de níveis por cela experimental.
+#' xtabs(~adub, data = bioest_corn)
+#'
+#' # Estrutura de fatorial incompleto.
+#' ftable(xtabs(~bk + pe + base, data = bioest_corn))
+#'
+#' xyplot(prod ~ adub,
+#'        data = bioest_corn,
+#'        groups = bloc,
+#'        type = c("a", "p"))
+#'
+#' xyplot(prod ~ reorder(adub, prod),
+#'        data = bioest_corn,
+#'        groups = bloc,
+#'        type = c("a", "p"))
+#'
+#' resizePanels(
+#'     xyplot(prod ~ adub | base,
+#'            data = bioest_corn,
+#'            xlab = "Formas de adubação",
+#'            ylab = "Produção de grãos (kg/ha)",
+#'            layout = c(NA, 1),
+#'            scales = list(x = list(relation = "free",
+#'                                   rot = 90)),
+#'            type = c("a", "p")),
+#'     w = c(4, 2, 4))
+#'
+NULL

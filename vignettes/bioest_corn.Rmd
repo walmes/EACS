@@ -1,0 +1,483 @@
+---
+title: "Desempenho agronômico de milho tratado com bioestimulantes"
+author: >
+  [Tárik Cazeiro El Kadri](http://lattes.cnpq.br/7234514163407919) &
+  [Walmes M. Zeviani](http://lattes.cnpq.br/4410617539281650)
+date: '`r format(Sys.Date(), format = "%d de %B de %Y")`'
+output:
+  html_document:
+    code_folding: show
+vignette: >
+  %\VignetteIndexEntry{Desempenho agronomico de milho tratado com bioestimulantes}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style type="text/css">
+/*
+  Lista de símbolos:
+  http://www.w3schools.com/charsets/ref_utf_geometric.asp
+  ATTENTION: Quando coloca no style.css não funciona como deveria,
+  ao invés do simbolo fica exibido o texto
+*/
+div:not(.tocify) > ul li {
+  list-style-type: '&#9656;  ';
+}
+div:not(.tocify) > ul li ul li, ol li ul li {
+  list-style-type: '&#9657;  ';
+}
+</style>
+
+```{r setup, include=FALSE}
+source("config/setup.R")
+```
+
+# Descrição e Análise Exploratória
+
+```{r, results = "hide", message = FALSE, error = FALSE, warning = FALSE}
+#-----------------------------------------------------------------------
+# Carrega os pacotes necessários.
+
+rm(list = ls())
+library(lattice)
+library(latticeExtra)
+library(doBy)
+library(multcomp)
+library(wzRfun)
+library(EACS)
+
+#-----------------------------------------------------------------------
+# Funções.
+
+# Função para obter a matriz de contrastes pelos índices (li).
+contr <- function(li, L) {
+    #' @param li Lista com dois elementos onde cada um é um conjunto de
+    #'     índices da matriz \code{L}.
+    #' @param L Matriz proveniente da função \code{LSmeans()$K} ou
+    #'      \code{LSmatrix}.
+    #' @return Retorna uma matriz de contrastes de uma linha.
+    stopifnot(length(li) == 2L)
+    li <- lapply(li,
+                 function(i) {
+                     if (length(i) == 1) i <- c(i, i) else i
+                 })
+    l <- lapply(li, function(i) colMeans(L[i, ]))
+    k <- rbind(Reduce("-", l))
+    if (!is.null(names(li))) {
+        rownames(k) <- paste(names(li), collapse = " x ")
+    }
+    return(k)
+}
+
+# Função para obter o intervalo de confiança a partir de um modelo e uma
+# matriz de funções lineares.
+ic <- function(L, model) {
+    conf <- confint(glht(model, linfct = L),
+                    calpha = univariate_calpha())$confint
+    conf <- as.data.frame(conf)
+    if (!is.null(rownames(L))) {
+        r <- rownames(L)
+        g <- factor(r, levels = r[order(conf[, 1])])
+        conf <- cbind(data.frame(contr = g, conf))
+    }
+    return(conf)
+}
+```
+
+O experimento foi realizado para estudar o efeito de bioestimulantes na
+produção de milho safrinha. Foram estudados 3 fatores descritos a
+seguir.
+
+  1. `base`: Adubação NPK de base com 3 níveis: `0` -- representa sem
+     adubação de base; `NK` -- representa adubação feita com mistura de
+     uréia e cloreto de potássio, fornecendo portanto apenas N e K; `NPK`
+     -- representa a adubação feita com formulação de fertilizante que
+     contém N, P e K.
+  2. `Pe`: Uso ou não de P energetic (bioestimulante mineral) como
+     complemento à adubação de base.
+  3. `Bk`: Uso ou não de Bokashi (bioestimulante orgânico) como
+     complmento à adubação de base.
+
+Dos 3 fatores acima descritos, foram estudadas 10 das 12 possíveis
+combinações entre os seus níveis, portanto, configurando um experimento
+em arranjo fatorial triplo incompleto $3 \times 2 \times 2 - 2 = 10$.
+
+A análise dos resultados, após obtenção da análise de variância e
+verificação dos pressupostos, será por contrastes planejados. Dois
+conjuntos de contrastes foram elaborados para serem aplicados ao caso em
+que houver interação entre os fatores (Tabela 1) e o caso em que apenas
+for verificado efeitos aditivos (Tabela 2).
+
+```{r, echo = FALSE}
+tab <- data.frame(
+    Combinação =  levels(bioest_corn$adub),
+    I1 = c(1/4, 1/4, 1/4, 1/4, 0, 0, -1/4, -1/4, -1/4, -1/4),
+    I2 = c(0, 0, 0, 0, 1/2, 1/2, -1/4, -1/4, -1/4, -1/4),
+    I3 = c(0, 0, 0, 0, 0, 0, -1, 1/3,  1/3, 1/3),
+    I4 = c(0, 0, 0, 0, 0, 0, 0, -1/2, -1/2, 1),
+    I5 = c(0, 0, 0, 0, 0, 0, 0, -1/2,  1/2, 0),
+    I6 = c(0, 0, 0, 0, -1, 1, 0, 0, 0, 0),
+    I7 = c(-1, 1/3,  1/3, 1/3, 0, 0, 0, 0, 0, 0),
+    I8 = c(0, -1/2, -1/2, 1, 0, 0, 0, 0, 0, 0),
+    I9 = c(0, -1/2,  1/2, 0, 0, 0, 0, 0, 0, 0),
+    stringsAsFactors = FALSE)
+tab <- sapply(tab,
+              FUN = function(x) {
+                  if (is.numeric(x)) {
+                      x <- as.character(MASS::fractions(x))
+                      x[x == "0"] <- ""
+                  }
+                  return(x)
+              })
+tab <- as.data.frame(tab, stringsAsFactors = FALSE)
+
+cap <- "**Tabela 1**. Contrastes entre médias aplicados quando houver interação entre os fatores."
+
+kable(tab, caption = cap, align = rep(c("l", "r"), c(1, ncol(tab) - 1)))
+```
+
+```{r, echo = FALSE}
+tab <- data.frame(
+    Combinação =  levels(bioest_corn$adub),
+    II1 = c(1/4, 1/4, 1/4, 1/4, 0, 0, -1/4, -1/4, -1/4, -1/4),
+    II2 = c(0, 0, 0, 0, 1/2, 1/2, -1/2, -1/2, 0, 0),
+    II3 = c(-1/2, 1/6, 1/6, 1/6, 0, 0, -1/2, 1/6, 1/6, 1/6),
+    II4 = c(0, 1/2, -1/2, 0, 0, 0, 0, 1/2, -1/2, 0),
+    stringsAsFactors = FALSE)
+tab <- sapply(tab,
+              FUN = function(x) {
+                  if (is.numeric(x)) {
+                      x <- as.character(MASS::fractions(x))
+                      x[x == "0"] <- ""
+                  }
+                  return(x)
+              })
+tab <- as.data.frame(tab, stringsAsFactors = FALSE)
+
+cap <- "**Tabela 2**. Contrastes entre médias aplicados quando não houver interação entre os fatores."
+
+kable(tab, caption = cap, align = rep(c("l", "r"), c(1, ncol(tab) - 1)))
+```
+
+```{r}
+str(bioest_corn)
+
+# Nomes curtos são mais fáceis de manipular.
+bio <- bioest_corn
+
+# Número de níveis por cela experimental.
+cbind(xtabs(~adub, data = bio))
+
+# Estrutura de fatorial incompleto.
+ftable(xtabs(~bk + pe + base, data = bio))
+
+xyplot(prod + icol + m1k ~ adub,
+       data = bio,
+       outer = TRUE,
+       layout = c(NA, 1),
+       groups = bloc,
+       type = c("a", "p"),
+       xlab = "Forma de adubação",
+       ylab = "Valor da variável resposta",
+       scales = list(y = list(relation = "free"),
+                     x = list(rot = 90),
+                     alternating = 1)) +
+    as.layer(xyplot(prod + icol + m1k ~ adub,
+                    data = bio,
+                    type = "a",
+                    col = 1,
+                    lwd = 2))
+
+useOuterStrips(
+    combineLimits(
+        resizePanels(
+            xyplot(prod + icol + m1k ~ adub | base,
+                   data = bio,
+                   outer = TRUE,
+                   xlab = "Formas de adubação",
+                   ylab = "Produção de grãos (kg/ha)",
+                   scales = list(y = list(relation = "free"),
+                                 x = list(relation = "free",
+                                          rot = 90)),
+                   type = c("a", "p")),
+            w = c(4, 2, 4))
+    )
+)
+```
+
+# Análise da produção de grãos
+
+```{r}
+#-----------------------------------------------------------------------
+# Ajuste do modelo.
+
+# Modelo com um fator de 10 níveis.
+m0 <- lm(prod ~ bloc + adub, data = bio)
+
+# Verificação dos pressupostos.
+par(mfrow = c(2, 2))
+plot(m0)
+layout(1)
+
+# Quadro de anova.
+anova(m0)
+
+#-----------------------------------------------------------------------
+# Obtendo as médias para fazer contrastes.
+
+# Médias ajustadas.
+lsm <- LSmeans(m0, effect = "adub")
+lsm
+
+# Matriz de coeficientes para obter as ls-means.
+L <- lsm$K
+
+# Tabela com o nome dos tratamentos na ordem das médias.
+grid <- equallevels(lsm$grid, bio)
+rownames(L) <- grid$adub
+```
+
+```{r}
+#-----------------------------------------------------------------------
+# Contrastes da tabela 1.
+
+# I1.
+li <- list("NPK" = 1:4, "0" = 7:10)
+K <- contr(li, L)
+summary(glht(m0, linfct = K))
+
+# I2.
+li <- list("NK" = 5:6, "0" = 7:8)
+K <- contr(li, L)
+summary(glht(m0, linfct = K))
+
+#--------------------------------------------
+# Dentro de sem aduação 0.
+
+# I3.
+li <- list("0 | Com+" = 8:10,  "Com-" = 7)
+K <- contr(li, L)
+summary(glht(m0, linfct = K))
+
+# I4.
+li <- list("0 | Pe + Bk" = 8:9, "Pe&Bk" = 10)
+K <- contr(li, L)
+summary(glht(m0, linfct = K))
+
+# I5. Pe vs Bk.
+li <- list("0 | Bk" = 9, "Pe" = 8)
+K <- contr(li, L)
+summary(glht(m0, linfct = K))
+
+#--------------------------------------------
+# Dentro de abubação NK.
+
+# I6.
+li <- list("NK | Pe+" = 6, "Pe-" = 5)
+K <- contr(li, L)
+summary(glht(m0, linfct = K))
+
+#--------------------------------------------
+# Dentro de adubação NPK.
+
+# I7.
+li <- list("NPK | Com+" = 2:4, "Com-" = 1)
+K <- contr(li, L)
+summary(glht(m0, linfct = K))
+
+# I8.
+li <- list("NPK | Pe&Bk" = 4, "Pe + Bk" = 2:3)
+K <- contr(li, L)
+summary(glht(m0, linfct = K))
+
+# I9.
+li <- list("NPK | Bk" = 3, "Pe" = 2)
+K <- contr(li, L)
+summary(glht(m0, linfct = K))
+```
+
+```{r}
+#-----------------------------------------------------------------------
+# Contrastes da tabela 2.
+
+# Note que II1 = I1 e II2 =  I2. Então já foram feitos.
+
+#--------------------------------------------
+# Contrastes sobre a aplicação de Pe e Bk, considerando NPK e 0.
+
+# II3.
+li <- list("Com+" = c(2:4, 8:10), "Com-" = c(1, 7))
+K <- contr(li, L)
+summary(glht(m0, linfct = K))
+
+# II4.
+li <- list("Pe" = c(2, 8), "Bk" = c(3, 9))
+K <- contr(li, L)
+summary(glht(m0, linfct = K))
+
+#-----------------------------------------------------------------------
+# Matrizes dos contrastes para o caso de efeitos aditivos e interação.
+
+# Matriz de contrastes quando der interação (9 GL).
+li <- list(
+    list("NPK" = 1:4, "0" = 7:10),
+    list("NK" = 5:6, "0" = 7:8),
+    list("0 | Com+" = 8:10,  "Com-" = 7),
+    list("0 | Pe + Bk" = 8:9, "Pe&Bk" = 10),
+    list("0 | Bk" = 9, "Pe" = 8),
+    list("NK | Pe+" = 6, "Pe-" = 5),
+    list("NPK | Com+" = 2:4, "Com-" = 1),
+    list("NPK | Pe&Bk" = 4, "Pe + Bk" = 2:3),
+    list("NPK | Bk" = 3, "Pe" = 2))
+K <- lapply(li, FUN = contr, L = L)
+Ki <- do.call(rbind, K)
+
+summary(glht(m0, linfct = Ki),
+        test = adjusted(type = "none"))
+
+# Matriz de contrastes quando não der interação (4 GL).
+li <- list(
+    list("NPK" = 1:4, "0" = 7:10),
+    list("NK" = 5:6, "0" = 7:8),
+    list("Com+" = c(2:4, 8:10), "Com-" = c(1, 7)),
+    list("Pe" = c(2, 8), "Bk" = c(3, 9)))
+K <- lapply(li, FUN = contr, L = L)
+Ka <- do.call(rbind, K)
+
+summary(glht(m0, linfct = Ka),
+        test = adjusted(type = "none"))
+
+#-----------------------------------------------------------------------
+# Ajustando os modelos e aplicando os contrastes.
+
+m0 <- lm(prod ~ bloc + adub, data = bio)
+
+# Verificação dos pressupostos.
+par(mfrow = c(2, 2))
+plot(m0)
+layout(1)
+
+# Ajuste do modelo fatorial triplo.
+m1 <- update(m0, . ~ bloc + base * pe * bk)
+
+# Modelo reduzido contendo apenas os efeitos principais.
+m2 <- update(m0, . ~ bloc + base + pe + bk)
+
+# Teste para hipótese de que os termos abandonados (interações) são
+# nulos.
+anova(m2, m1)
+
+anova(m0)
+anova(m2)
+
+# Contrastes para o caso em que não houve interação.
+summary(glht(m0, linfct = Ka),
+        test = adjusted(type = "none"))
+
+```
+```{r, fig.height = 4}
+icc <- ic(Ka, m0)
+segplot(contr ~ lwr + upr,
+        centers = Estimate,
+        data = icc,
+        draw = FALSE,
+        xlab = "Estimativa do contraste com IC de 95%",
+        ylab = "Contraste") +
+    layer(panel.abline(v = 0, lty = 2)) +
+    layer(panel.text(x = centers,
+                     y = z,
+                     label = sprintf("%0.3f", centers),
+                     pos = 3))
+```
+
+# Peso de 1000 grãos
+
+```{r}
+m0 <- lm(m1k ~ bloc + adub, data = bio)
+
+# Verificação dos pressupostos.
+par(mfrow = c(2, 2))
+plot(m0)
+layout(1)
+
+# Ajuste do modelo fatorial triplo.
+m1 <- update(m0, . ~ bloc + base * pe * bk)
+
+# Modelo reduzido contendo apenas os efeitos principais.
+m2 <- update(m0, . ~ bloc + base + pe + bk)
+
+# Teste para hipótese de que os termos abandonados (interações) são
+# nulos.
+anova(m2, m1)
+
+anova(m0)
+anova(m2)
+
+# Contrastes para o caso em que não houve interação.
+summary(glht(m0, linfct = Ka),
+        test = adjusted(type = "none"))
+```
+```{r, fig.height = 4}
+icc <- ic(Ka, m0)
+segplot(contr ~ lwr + upr,
+        centers = Estimate,
+        data = icc,
+        draw = FALSE,
+        xlab = "Estimativa do contraste com IC de 95%",
+        ylab = "Contraste") +
+    layer(panel.abline(v = 0, lty = 2)) +
+    layer(panel.text(x = centers,
+                     y = z,
+                     label = sprintf("%0.2f", centers),
+                     pos = 3))
+```
+
+# Índice de colheita
+
+```{r}
+m0 <- lm(icol ~ bloc + adub, data = bio)
+
+# Verificação dos pressupostos.
+par(mfrow = c(2, 2))
+plot(m0)
+layout(1)
+
+# Ajuste do modelo fatorial triplo.
+m1 <- update(m0, . ~ bloc + base * pe * bk)
+
+# Modelo reduzido contendo apenas os efeitos principais.
+m2 <- update(m0, . ~ bloc + base + pe + bk)
+
+# Teste para hipótese de que os termos abandonados (interações) são
+# nulos.
+anova(m2, m1)
+
+anova(m0)
+anova(m2)
+
+# Contrastes para o caso em que não houve interação.
+summary(glht(m0, linfct = Ka),
+        test = adjusted(type = "none"))
+```
+```{r, fig.height = 4}
+icc <- ic(Ka, m0)
+segplot(contr ~ lwr + upr,
+        centers = Estimate,
+        data = icc,
+        draw = FALSE,
+        xlab = "Estimativa do contraste com IC de 95%",
+        ylab = "Contraste") +
+    layer(panel.abline(v = 0, lty = 2)) +
+    layer(panel.text(x = centers,
+                     y = z,
+                     label = sprintf("%0.3f", centers),
+                     pos = 3))
+```
+
+# Informações da Sessão
+
+```{r, echo = FALSE, results = "hold"}
+cat(format(Sys.time(),
+           format = "Atualizado em %d de %B de %Y.\n\n"))
+sessionInfo()
+```
