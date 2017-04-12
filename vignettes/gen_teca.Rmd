@@ -1,0 +1,501 @@
+---
+title: "Desenvolvimento de mudas de teca em resposta a doses de Cálcio"
+author: >
+  [Milson E. Serafim](http://lattes.cnpq.br/8676820051946774) &
+  [Walmes M. Zeviani](http://lattes.cnpq.br/4410617539281650)
+date: '`r format(Sys.Date(), format = "%d de %B de %Y")`'
+output:
+  html_document:
+    code_folding: show
+vignette: >
+  %\VignetteIndexEntry{Desempenho agronomico de milho tratado com bioestimulantes}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style type="text/css">
+/*
+  Lista de símbolos:
+  http://www.w3schools.com/charsets/ref_utf_geometric.asp
+  ATTENTION: Quando coloca no style.css não funciona como deveria,
+  ao invés do simbolo fica exibido o texto
+*/
+div:not(.tocify) > ul li {
+  list-style-type: '&#9656;  ';
+}
+div:not(.tocify) > ul li ul li, ol li ul li {
+  list-style-type: '&#9657;  ';
+}
+</style>
+
+```{r setup, include=FALSE}
+source("config/setup.R")
+```
+
+# Descrição e Análise Exploratória
+
+```{r, results = "hide", message = FALSE, error = FALSE, warning = FALSE}
+#-----------------------------------------------------------------------
+# Carrega os pacotes necessários.
+
+rm(list = ls())
+library(lattice)
+library(latticeExtra)
+library(gridExtra)
+library(plyr)
+library(doBy)
+library(multcomp)
+library(wzRfun)
+library(EACS)
+
+eseq <- function(x, length.out = 25, f = 0.05) {
+    er <- extendrange(x, f = f)
+    seq(er[1], er[2], length.out = length.out)
+}
+
+aac <- function(t, y) {
+    i <- !is.na(y)
+    t <- t[i]
+    y <- y[i]
+    alt <- diff(t)
+    bas <- y[-length(y)] + diff(y)/2
+    a <- sum(alt * bas)
+    return(a)
+}
+```
+
+```{r}
+#-----------------------------------------------------------------------
+# Análise gráfica exploratória para altura e diâmetro.
+
+str(gen_teca)
+
+# Nomes curtos são mais fáceis de manipular.
+da <- gen_teca
+
+# Supondo que a primeira medida foi no dia 2.
+da$dias <- as.numeric(da$data - min(da$data) + 2)
+
+xyplot(alt ~ dias | gen,
+       data = da,
+       groups = dose,
+       type = "l",
+       xlab = "Tempo após a primeira avaliação (dias)",
+       ylab = "Altura das mudas de teca (mm)",
+       as.table = TRUE,
+       scales = list(y = list(log = FALSE)))
+
+xyplot(dac ~ dias | gen,
+       data = da,
+       groups = dose,
+       type = "l",
+       xlab = "Tempo após a primeira avaliação (dias)",
+       ylab = "Diâmetro à altura do colo da mudas de teca (mm)",
+       as.table = TRUE)
+
+#-----------------------------------------------------------------------
+# Trabalhando com a dose.
+
+# Criando dose categórico.
+x <- unique(sort(da$dose))
+da$dos <- factor(da$dose, levels = x, labels = seq_along(x) - 1)
+
+# Variância das distância entre níveis em escala unitária.
+esp <- function(p) {
+    u <- x^p
+    u <- (u - min(u))
+    u <- u/max(u)
+    var(diff(u))
+}
+
+# Otimiza para obter o valor de potência para maior uniformidade.
+op <- optimize(f = esp, interval = c(0, 1))
+op$minimum
+
+p <- seq(0, 1, by = 0.01)
+v <- sapply(p, esp)
+plot(log(v) ~ p, type = "o")
+abline(v = op$minimum)
+
+da$dosep <- da$dose^0.3
+
+#-----------------------------------------------------------------------
+# Determinar o intervalo em que a muda morreu.
+
+# Cria a variável unidade experimental.
+da$ue <- with(da, interaction(gen, dos, drop = TRUE))
+
+# Número de níveis dos fatores.
+with(da, c(gen = nlevels(gen),
+           dos = nlevels(dos),
+           ue = nlevels(ue)))
+
+deathint <- function(data, timevar, respvar) {
+    o <- order(data[, timevar])
+    x <- data[o, timevar]
+    y <- data[o, respvar]
+    nna <- !is.na(y)
+    if (sum(nna)) {
+        i <- which(nna)
+        imax <- max(i)
+        st <- 3 # Censura intervalar.
+        int <- x[imax + 0:1]
+    } else {
+        st <- 2 # Censura a esquerda.
+        int <- rep(min(x), 2)
+    }
+    if (is.na(int[2])) {
+        int[2] <- int[1]
+        st <- 0 # Censura a direita.
+    }
+    r <- c(int, st)
+    names(r) <- c("left", "right", "status")
+    return(r)
+}
+
+# Obtém os intervalos em que as mudas morrem.
+db <- ddply(da,
+            ~gen + dose + dos + dosep + ue,
+            deathint,
+            timevar = "dias",
+            respvar = "alt")
+
+# Áreas abaixo da curva.
+dc <- ddply(da,
+            ~gen + dose + dos + dosep + ue,
+            summarise,
+            aacalt = aac(dias, alt),
+            aacdac = aac(dias, dac))
+
+# Junta os dois.
+db <- merge(db, dc)
+str(db)
+
+# Gráfico de segmentos que indica o intervalo em que a muda morreu.
+segplot(dos ~ left + right | gen,
+        data = db,
+        as.table = TRUE,
+        xlab = "Tempo após a primeira avaliação",
+        ylab = "Dose (codificada)")
+
+# Frequencia de cada tipo de censura.
+xtabs(~status, data = db)
+
+# Áreas abaixo da curva da altura e do diâmetro.
+xyplot(aacalt + aacdac ~ dos | reorder(gen, aacdac, sum),
+       data = db,
+       auto.key = TRUE,
+       type = c("p", "a"))
+
+# subset(db, status == 2)
+# subset(da, gen == "8" & dos == "1")
+```
+
+# Análise da sobrevivência da muda
+
+```{r}
+# Baseada em
+# ~/Dropbox/Ensino/af722-2014-01/scripts/af722-2014-01-29sobrev.html.
+
+library(survival)
+
+s0 <- survreg(Surv(time = left,
+                   time2 = right,
+                   event = status,
+                   type = "interval") ~ gen * dosep,
+              data = db,
+              dist = "weibull")
+anova(s0)
+
+s1 <- update(s0, . ~ gen + dosep)
+anova(s1, s0)
+anova(s1)
+
+summary(s1)
+
+# Tracar a curva de sobrevivência das mudas para cada cultivar.
+L <- LSmatrix(lm(status ~ gen + dosep, data = db),
+              effect = "gen")
+dim(L)
+
+rownames(L) <- levels(da$gen)
+
+lsm <- apmc(L,
+            model = s1,
+            focus = "gen",
+            test = "fdr",
+            cld2 = TRUE,
+            level = 0.2)
+arrange(lsm, -fit)
+
+grid <- equallevels(attr(L, "grid"), db)
+ic <- confint(glht(s1, linfct = L),
+              calpha = univariate_calpha())$confint
+grid <- cbind(grid, as.data.frame(ic))
+
+grid$wscale <- exp(grid$Estimate)
+grid$wshape <- 1/s1$scale
+
+# As curvas de sobrevivência.
+time <- seq(0, max(da$dias), length.out = 30)
+cur <- ddply(grid,
+             ~gen,
+             summarise,
+             time = time,
+             prob = pweibull(time,
+                             shape = wshape,
+                             scale = wscale))
+str(cur)
+
+# Revisar essa análise que está estranha.
+xyplot(prob ~ time,
+       groups = gen,
+       data = cur,
+       type = "l",
+       ylim = c(0, 1),
+       # auto.key = list(columns = 3,
+       #                 lines = TRUE,
+       #                 points = FALSE),
+       xlab = "Tempo após o plantio (dias)",
+       ylab = "Probabilidade de morte")
+```
+
+# Massa seca de parte áerea
+
+```{r}
+dc <- subset(da, data == max(data))
+dc <- dc[complete.cases(dc), ]
+
+addmargins(xtabs(~gen + dos, data = dc))
+
+# Manter apenas genótipos com 3 ou mais registros.
+k <- which(xtabs(~gen, data = dc) >= 3)
+
+dc <- droplevels(subset(dc, gen %in% names(k)))
+
+xy1 <- xyplot(mspa + msr ~ dosep | gen,
+              outer = FALSE,
+              data = dc,
+              auto.key = TRUE,
+              type = "o")
+xy2 <- xyplot(mspa + msr ~ dosep | gen,
+              outer = FALSE,
+              data = dc,
+              auto.key = TRUE,
+              type = c("p", "r"))
+grid.arrange(xy1, xy2, nrow = 1)
+```
+
+```{r}
+#-----------------------------------------------------------------------
+
+# Modelo de efeitos quadráticos por genótipo.
+m0 <- lm(mspa ~ gen * (dosep + I(dosep^2)), data = dc)
+
+par(mfrow = c(2, 2))
+plot(m0); layout(1)
+
+anova(m0)
+
+m0 <- update(m0, . ~ gen * dosep)
+
+par(mfrow = c(2, 2))
+plot(m0); layout(1)
+
+anova(m0)
+
+m0 <- update(m0, . ~ gen + dosep)
+anova(m0)
+
+summary(m0)
+
+pred <- with(dc,
+             expand.grid(gen = levels(gen),
+                         dosep = eseq(dosep)))
+ic <- predict(m0, newdata = pred, interval = "confidence")
+pred <- cbind(pred, as.data.frame(ic))
+
+xyplot(mspa ~ dosep | gen,
+       data = dc,
+       xlab = "Dose de cálcio (transformada)",
+       ylab = "Massa seca de parte áerea (g)") +
+    as.layer(xyplot(fit ~ dosep | gen,
+                    data = pred,
+                    type = "l",
+                    ly = pred$lwr,
+                    uy = pred$upr,
+                    cty = "bands",
+                    prepanel = prepanel.cbH,
+                    panel = panel.cbH))
+
+#-----------------------------------------------------------------------
+# Compara os genótipos sobre a mesma dose de Ca.
+
+lsm <- LSmeans(m0,  effect = "gen")
+lsm
+
+# Dose usada (é a média dos dados observados).
+lsm$grid$dosep[1]^(-0.3)
+
+L <- lsm$K
+rownames(L) <- levels(dc$gen)
+
+grid <- apmc(X = L,
+             model = m0,
+             focus = "gen",
+             test = "fdr",
+             cld2 = TRUE)
+
+segplot(reorder(gen, fit) ~ lwr + upr,
+        centers = fit,
+        data = grid,
+        draw = FALSE,
+        xlab = "Massa seca de parte áerea (g)",
+        ylab = "Genótipos",
+        cld = grid$cld) +
+    layer(panel.text(x = centers,
+                     y = z,
+                     labels = sprintf("%0.1f %s", centers, cld),
+                     pos = 3))
+```
+
+# Massa seca de raízes
+
+```{r}
+#-----------------------------------------------------------------------
+
+# Modelo de efeitos quadráticos por genótipo.
+m0 <- lm(msr ~ gen * (dosep + I(dosep^2)), data = dc)
+
+par(mfrow = c(2, 2))
+plot(m0); layout(1)
+
+anova(m0)
+
+m0 <- update(m0, . ~ gen * dosep)
+
+par(mfrow = c(2, 2))
+plot(m0); layout(1)
+
+anova(m0)
+
+m0 <- update(m0, . ~ gen + dosep)
+anova(m0)
+
+summary(m0)
+
+pred <- with(dc,
+             expand.grid(gen = levels(gen),
+                         dosep = eseq(dosep)))
+ic <- predict(m0, newdata = pred, interval = "confidence")
+pred <- cbind(pred, as.data.frame(ic))
+
+xyplot(msr ~ dosep | gen,
+       data = dc,
+       xlab = "Dose de cálcio (transformada)",
+       ylab = "Massa seca de raízes (g)") +
+    as.layer(xyplot(fit ~ dosep | gen,
+                    data = pred,
+                    type = "l",
+                    ly = pred$lwr,
+                    uy = pred$upr,
+                    cty = "bands",
+                    prepanel = prepanel.cbH,
+                    panel = panel.cbH))
+
+#-----------------------------------------------------------------------
+# Compara os genótipos sobre a mesma dose de Ca.
+
+lsm <- LSmeans(m0,  effect = "gen")
+lsm
+
+# Dose usada (é a média dos dados observados).
+lsm$grid$dosep[1]^(-0.3)
+
+L <- lsm$K
+rownames(L) <- levels(dc$gen)
+
+grid <- apmc(X = L,
+             model = m0,
+             focus = "gen",
+             test = "fdr",
+             cld2 = TRUE)
+
+segplot(reorder(gen, fit) ~ lwr + upr,
+        centers = fit,
+        data = grid,
+        draw = FALSE,
+        xlab = "Massa seca de raízes (g)",
+        ylab = "Genótipos",
+        cld = grid$cld) +
+    layer(panel.text(x = centers,
+                     y = z,
+                     labels = sprintf("%0.1f %s", centers, cld),
+                     pos = 3))
+```
+
+# Proporção de massa em raízes
+
+```{r}
+#-----------------------------------------------------------------------
+
+dc$r <- with(dc, msr/(msr + mspa))
+
+# Modelo de efeitos quadráticos por genótipo.
+m0 <- lm(r ~ gen * (dosep + I(dosep^2)), data = dc)
+
+par(mfrow = c(2, 2))
+plot(m0); layout(1)
+
+anova(m0)
+
+m0 <- update(m0, . ~ gen * dosep)
+
+par(mfrow = c(2, 2))
+plot(m0); layout(1)
+
+anova(m0)
+
+m0 <- update(m0, . ~ gen + dosep)
+anova(m0)
+
+m0 <- update(m0, . ~ gen)
+anova(m0)
+
+summary(m0)
+
+#-----------------------------------------------------------------------
+# Compara os genótipos sobre a mesma dose de Ca.
+
+lsm <- LSmeans(m0,  effect = "gen")
+lsm
+
+L <- lsm$K
+rownames(L) <- levels(dc$gen)
+
+grid <- apmc(X = L,
+             model = m0,
+             focus = "gen",
+             test = "fdr",
+             cld2 = TRUE)
+
+segplot(reorder(gen, fit) ~ lwr + upr,
+        centers = fit,
+        data = grid,
+        draw = FALSE,
+        xlab = "Proporção da massa total em raízes",
+        ylab = "Genótipos",
+        cld = grid$cld) +
+    layer(panel.text(x = centers,
+                     y = z,
+                     labels = sprintf("%0.2f %s", centers, cld),
+                     pos = 3))
+```
+
+# Informações da Sessão
+
+```{r, echo = FALSE, results = "hold"}
+cat(format(Sys.time(),
+           format = "Atualizado em %d de %B de %Y.\n\n"))
+sessionInfo()
+```
