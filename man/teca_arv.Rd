@@ -38,4 +38,3 @@ splom(teca_arv[, -1])
 xtabs(~loc, data = teca_arv)
 
 }
-

@@ -60,4 +60,3 @@ splom(teca_crapar[, -c(1:2)], groups = teca_crapar$cam)
 xtabs(~loc + cam, data = teca_crapar)
 
 }
-

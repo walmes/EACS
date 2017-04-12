@@ -76,4 +76,3 @@ xtabs(~loc + cam, data = teca_qui)
 splom(teca_qui[, -(1:2)])
 
 }
-

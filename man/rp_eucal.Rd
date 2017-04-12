@@ -94,4 +94,3 @@ splom(rp_eucal[, c("cam", "umid0", "umid6", "rp", "dens")],
       type = c("p", "r"))
 
 }
-

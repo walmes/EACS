@@ -92,4 +92,3 @@ cbn <- unique(np_carobinha[, c("nn", "pp")])
 round(cbn, 3)
 
 }
-

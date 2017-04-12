@@ -51,4 +51,3 @@ xyplot(umid ~ tens | factor(loc),
        xlab = expression(log[10] ~ "Tensão" ~ (kPa)))
 
 }
-

@@ -77,4 +77,3 @@ str(teca_solo)
 splom(teca_solo[, grep("\\\\.[xy]$", names(teca_solo))])
 
 }
-
