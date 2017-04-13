@@ -41,6 +41,7 @@ source("config/setup.R")
 rm(list = ls())
 library(lattice)
 library(latticeExtra)
+library(grid)
 library(gridExtra)
 library(plyr)
 library(doBy)
@@ -48,11 +49,13 @@ library(multcomp)
 library(wzRfun)
 library(EACS)
 
+# Cria uma sequencia regular estendida de valores.
 eseq <- function(x, length.out = 25, f = 0.05) {
     er <- extendrange(x, f = f)
     seq(er[1], er[2], length.out = length.out)
 }
 
+# Obtém área abaixo da curva pela regra do trapézio.
 aac <- function(t, y) {
     i <- !is.na(y)
     t <- t[i]
@@ -64,10 +67,16 @@ aac <- function(t, y) {
 }
 ```
 
+Os gráficos abaixo exibem a curva de crescimento das mudas em altura e
+diâmetro à altura do colo para cada um dos genótipos (paineis) e cada
+dose de cálcio (cores das linhas). Verifica-se que existem mudas com
+interrupção das medidas o que é resultado da morte das mudas.
+
 ```{r}
 #-----------------------------------------------------------------------
 # Análise gráfica exploratória para altura e diâmetro.
 
+# Estrutura dos dados.
 str(gen_teca)
 
 # Nomes curtos são mais fáceis de manipular.
@@ -92,7 +101,17 @@ xyplot(dac ~ dias | gen,
        xlab = "Tempo após a primeira avaliação (dias)",
        ylab = "Diâmetro à altura do colo da mudas de teca (mm)",
        as.table = TRUE)
+```
 
+Para utilizar o fator métrico dose de cálcio nas análises (`dose`), é
+recomendável que se utilize uma transformação das doses de forma a obter
+um espaçamento mais equidistante entre níveis. Em vista disso,
+definiu-se como critério minimizar a variância entre as diferenças de
+doses consecutivas, na escala unitária (a menor é 0 e a maior é 1), por
+meio de uma função potência das doses. O valor obtido para transformar a
+dose foi de 0.3.
+
+```{r}
 #-----------------------------------------------------------------------
 # Trabalhando com a dose.
 
@@ -118,7 +137,12 @@ plot(log(v) ~ p, type = "o")
 abline(v = op$minimum)
 
 da$dosep <- da$dose^0.3
+```
 
+O gráfico de segmentos a seguir exibe os intervalos de tempo em que
+mudam morreram no experimento.
+
+```{r}
 #-----------------------------------------------------------------------
 # Determinar o intervalo em que a muda morreu.
 
@@ -130,6 +154,7 @@ with(da, c(gen = nlevels(gen),
            dos = nlevels(dos),
            ue = nlevels(ue)))
 
+# Obtém o intervalo em que a muda morreu.
 deathint <- function(data, timevar, respvar) {
     o <- order(data[, timevar])
     x <- data[o, timevar]
@@ -169,7 +194,7 @@ dc <- ddply(da,
 
 # Junta os dois.
 db <- merge(db, dc)
-str(db)
+# str(db)
 
 # Gráfico de segmentos que indica o intervalo em que a muda morreu.
 segplot(dos ~ left + right | gen,
@@ -177,7 +202,9 @@ segplot(dos ~ left + right | gen,
         as.table = TRUE,
         xlab = "Tempo após a primeira avaliação",
         ylab = "Dose (codificada)")
+```
 
+```{r, include = FALSE, eval = FALSE}
 # Frequencia de cada tipo de censura.
 xtabs(~status, data = db)
 
@@ -191,76 +218,11 @@ xyplot(aacalt + aacdac ~ dos | reorder(gen, aacdac, sum),
 # subset(da, gen == "8" & dos == "1")
 ```
 
-# Análise da sobrevivência da muda
-
-```{r}
-# Baseada em
-# ~/Dropbox/Ensino/af722-2014-01/scripts/af722-2014-01-29sobrev.html.
-
-library(survival)
-
-s0 <- survreg(Surv(time = left,
-                   time2 = right,
-                   event = status,
-                   type = "interval") ~ gen * dosep,
-              data = db,
-              dist = "weibull")
-anova(s0)
-
-s1 <- update(s0, . ~ gen + dosep)
-anova(s1, s0)
-anova(s1)
-
-summary(s1)
-
-# Tracar a curva de sobrevivência das mudas para cada cultivar.
-L <- LSmatrix(lm(status ~ gen + dosep, data = db),
-              effect = "gen")
-dim(L)
-
-rownames(L) <- levels(da$gen)
-
-lsm <- apmc(L,
-            model = s1,
-            focus = "gen",
-            test = "fdr",
-            cld2 = TRUE,
-            level = 0.2)
-arrange(lsm, -fit)
-
-grid <- equallevels(attr(L, "grid"), db)
-ic <- confint(glht(s1, linfct = L),
-              calpha = univariate_calpha())$confint
-grid <- cbind(grid, as.data.frame(ic))
-
-grid$wscale <- exp(grid$Estimate)
-grid$wshape <- 1/s1$scale
-
-# As curvas de sobrevivência.
-time <- seq(0, max(da$dias), length.out = 30)
-cur <- ddply(grid,
-             ~gen,
-             summarise,
-             time = time,
-             prob = pweibull(time,
-                             shape = wshape,
-                             scale = wscale))
-str(cur)
-
-# Revisar essa análise que está estranha.
-xyplot(prob ~ time,
-       groups = gen,
-       data = cur,
-       type = "l",
-       ylim = c(0, 1),
-       # auto.key = list(columns = 3,
-       #                 lines = TRUE,
-       #                 points = FALSE),
-       xlab = "Tempo após o plantio (dias)",
-       ylab = "Probabilidade de morte")
-```
-
 # Massa seca de parte áerea
+
+A análise dos dados de massa seca de parte aérea foi feita apenas
+considerando genótipos com 3 ou mais registros que correspondem ao
+número de doses de cálcio que restaram ao final do experimento.
 
 ```{r}
 dc <- subset(da, data == max(data))
@@ -286,6 +248,13 @@ xy2 <- xyplot(mspa + msr ~ dosep | gen,
 grid.arrange(xy1, xy2, nrow = 1)
 ```
 
+Foi considerado um modelo fatorial duplo contendo os efeitos do fator
+genótipo (níveis categóricos), do fator dose de cálcio (níveis métricos,
+expresso na escala transformada) e a interação entre estes fatores. Para
+representar o efeito de cálcio, foram utilizados polinômio de segundo
+grau, sendo o grau do polinômio aumentado ou diminuido conforme
+necessidade.
+
 ```{r}
 #-----------------------------------------------------------------------
 
@@ -308,18 +277,25 @@ m0 <- update(m0, . ~ gen + dosep)
 anova(m0)
 
 summary(m0)
+```
 
+Não houve interação entre genótipo e dose de cálcio. Em função disso, o
+modelo obtido para a predição contém apenas os efeitos aditivos dos
+fatores. Foi necessário apenas o polinômio de grau um para representar o
+efeito de cálcio.
+
+```{r}
 pred <- with(dc,
              expand.grid(gen = levels(gen),
-                         dosep = eseq(dosep)))
+                         dosep = eseq(dose)^0.3))
 ic <- predict(m0, newdata = pred, interval = "confidence")
 pred <- cbind(pred, as.data.frame(ic))
 
-xyplot(mspa ~ dosep | gen,
+xyplot(mspa ~ dose | gen,
        data = dc,
-       xlab = "Dose de cálcio (transformada)",
+       xlab = "Dose de cálcio",
        ylab = "Massa seca de parte áerea (g)") +
-    as.layer(xyplot(fit ~ dosep | gen,
+    as.layer(xyplot(fit ~ dosep^(1/0.3) | gen,
                     data = pred,
                     type = "l",
                     ly = pred$lwr,
@@ -327,7 +303,9 @@ xyplot(mspa ~ dosep | gen,
                     cty = "bands",
                     prepanel = prepanel.cbH,
                     panel = panel.cbH))
+```
 
+```{r}
 #-----------------------------------------------------------------------
 # Compara os genótipos sobre a mesma dose de Ca.
 
@@ -335,7 +313,7 @@ lsm <- LSmeans(m0,  effect = "gen")
 lsm
 
 # Dose usada (é a média dos dados observados).
-lsm$grid$dosep[1]^(-0.3)
+lsm$grid$dosep[1]^(1/0.3)
 
 L <- lsm$K
 rownames(L) <- levels(dc$gen)
@@ -352,11 +330,23 @@ segplot(reorder(gen, fit) ~ lwr + upr,
         draw = FALSE,
         xlab = "Massa seca de parte áerea (g)",
         ylab = "Genótipos",
-        cld = grid$cld) +
+        txt = sprintf("%0.1f %s", grid$fit, grid$cld)) +
+    layer(grid.rect(x = unit(centers - 1, "native"),
+                    y = unit(z, "native"),
+                    width = Reduce(unit.c,
+                                   lapply(txt,
+                                          FUN = unit,
+                                          x = 1.05,
+                                          units = "strwidth")),
+                    height = unit(1, "native"),
+                    just = c("right"),
+                    gp = gpar(fill = "white",
+                              col = NA,
+                              fontsize = 12))) +
     layer(panel.text(x = centers,
                      y = z,
-                     labels = sprintf("%0.1f %s", centers, cld),
-                     pos = 3))
+                     labels = txt,
+                     pos = 2))
 ```
 
 # Massa seca de raízes
@@ -383,7 +373,8 @@ m0 <- update(m0, . ~ gen + dosep)
 anova(m0)
 
 summary(m0)
-
+```
+```{r}
 pred <- with(dc,
              expand.grid(gen = levels(gen),
                          dosep = eseq(dosep)))
@@ -410,7 +401,7 @@ lsm <- LSmeans(m0,  effect = "gen")
 lsm
 
 # Dose usada (é a média dos dados observados).
-lsm$grid$dosep[1]^(-0.3)
+lsm$grid$dosep[1]^(1/0.3)
 
 L <- lsm$K
 rownames(L) <- levels(dc$gen)
@@ -427,11 +418,23 @@ segplot(reorder(gen, fit) ~ lwr + upr,
         draw = FALSE,
         xlab = "Massa seca de raízes (g)",
         ylab = "Genótipos",
-        cld = grid$cld) +
+        txt = sprintf("%0.1f %s", grid$fit, grid$cld)) +
+    layer(grid.rect(x = unit(centers - 1, "native"),
+                    y = unit(z, "native"),
+                    width = Reduce(unit.c,
+                                   lapply(txt,
+                                          FUN = unit,
+                                          x = 1.05,
+                                          units = "strwidth")),
+                    height = unit(1, "native"),
+                    just = c("right"),
+                    gp = gpar(fill = "white",
+                              col = NA,
+                              fontsize = 12))) +
     layer(panel.text(x = centers,
                      y = z,
-                     labels = sprintf("%0.1f %s", centers, cld),
-                     pos = 3))
+                     labels = txt,
+                     pos = 2))
 ```
 
 # Proporção de massa em raízes
@@ -485,11 +488,23 @@ segplot(reorder(gen, fit) ~ lwr + upr,
         draw = FALSE,
         xlab = "Proporção da massa total em raízes",
         ylab = "Genótipos",
-        cld = grid$cld) +
+        txt = sprintf("%0.1f %s", grid$fit, grid$cld)) +
+    layer(grid.rect(x = unit(centers - 0.008, "native"),
+                    y = unit(z, "native"),
+                    width = Reduce(unit.c,
+                                   lapply(txt,
+                                          FUN = unit,
+                                          x = 1.05,
+                                          units = "strwidth")),
+                    height = unit(1, "native"),
+                    just = c("right"),
+                    gp = gpar(fill = "white",
+                              col = NA,
+                              fontsize = 12))) +
     layer(panel.text(x = centers,
                      y = z,
-                     labels = sprintf("%0.2f %s", centers, cld),
-                     pos = 3))
+                     labels = txt,
+                     pos = 2))
 ```
 
 # Informações da Sessão
