@@ -1,5 +1,5 @@
 ---
-title: "Desenvolvimento de mudas de teca em resposta a doses de Cálcio"
+title: "Desenvolvimento de mudas de teca em resposta à doses de Cálcio"
 author: >
   [Milson E. Serafim](http://lattes.cnpq.br/8676820051946774) &
   [Walmes M. Zeviani](http://lattes.cnpq.br/4410617539281650)
@@ -28,7 +28,7 @@ div:not(.tocify) > ul li ul li, ol li ul li {
 }
 </style>
 
-```{r setup, include=FALSE}
+```{r setup, include = FALSE}
 source("config/setup.R")
 ```
 
@@ -49,21 +49,28 @@ library(multcomp)
 library(wzRfun)
 library(EACS)
 
-# Cria uma sequencia regular estendida de valores.
-eseq <- function(x, length.out = 25, f = 0.05) {
-    er <- extendrange(x, f = f)
-    seq(er[1], er[2], length.out = length.out)
-}
-
-# Obtém área abaixo da curva pela regra do trapézio.
-aac <- function(t, y) {
-    i <- !is.na(y)
-    t <- t[i]
-    y <- y[i]
-    alt <- diff(t)
-    bas <- y[-length(y)] + diff(y)/2
-    a <- sum(alt * bas)
-    return(a)
+# Obtém o intervalo em que a muda morreu.
+deathint <- function(data, timevar, respvar) {
+    o <- order(data[, timevar])
+    x <- data[o, timevar]
+    y <- data[o, respvar]
+    nna <- !is.na(y)
+    if (sum(nna)) {
+        i <- which(nna)
+        imax <- max(i)
+        st <- 3 # Censura intervalar.
+        int <- x[imax + 0:1]
+    } else {
+        st <- 2 # Censura a esquerda.
+        int <- rep(min(x), 2)
+    }
+    if (is.na(int[2])) {
+        int[2] <- int[1]
+        st <- 0 # Censura a direita.
+    }
+    r <- c(int, st)
+    names(r) <- c("left", "right", "status")
+    return(r)
 }
 ```
 
@@ -99,17 +106,18 @@ xyplot(dac ~ dias | gen,
        groups = dose,
        type = "l",
        xlab = "Tempo após a primeira avaliação (dias)",
-       ylab = "Diâmetro à altura do colo da mudas de teca (mm)",
+       ylab = "Diâmetro à altura do colo das mudas de teca (mm)",
        as.table = TRUE)
 ```
 
 Para utilizar o fator métrico dose de cálcio nas análises (`dose`), é
-recomendável que se utilize uma transformação das doses de forma a obter
-um espaçamento mais equidistante entre níveis. Em vista disso,
-definiu-se como critério minimizar a variância entre as diferenças de
-doses consecutivas, na escala unitária (a menor é 0 e a maior é 1), por
-meio de uma função potência das doses. O valor obtido para transformar a
-dose foi de 0.3.
+recomendável que se utilize uma transformação na escala das doses de
+forma a obter um espaçamento mais equidistante entre níveis, o que evita
+problemas de alancagem para ajustes de modelos de regressão. Em vista
+disso, definiu-se como critério minimizar a variância entre as
+diferenças de doses consecutivas na escala unitária por meio de uma
+função potência das doses transformadas. Na escala unitária, a menor é 0
+e a maior é 1. O valor obtido para transformar a dose foi de 0.3.
 
 ```{r}
 #-----------------------------------------------------------------------
@@ -117,9 +125,11 @@ dose foi de 0.3.
 
 # Criando dose categórico.
 x <- unique(sort(da$dose))
-da$dos <- factor(da$dose, levels = x, labels = seq_along(x) - 1)
+da$dos <- factor(da$dose,
+                 levels = x,
+                 labels = seq_along(x) - 1)
 
-# Variância das distância entre níveis em escala unitária.
+# Variância das distâncias entre níveis em escala unitária.
 esp <- function(p) {
     u <- x^p
     u <- (u - min(u))
@@ -139,8 +149,13 @@ abline(v = op$minimum)
 da$dosep <- da$dose^0.3
 ```
 
-O gráfico de segmentos a seguir exibe os intervalos de tempo em que
-mudam morreram no experimento.
+O gráfico de segmentos a seguir exibe os intervalos de tempo em que as
+mudas morreram no experimento. A morte das mudas, até onde se sabe, pode
+não ter relação com os fatores estudados pois depende muito de fatores
+agronômicos que representam o estado inicial da muda. No entanto, embora
+o emperimento não tenha sido realizado para estudar fatores relacionados
+ao "pegamento" das mudas, pode-se verificar se existe influência dos
+fatores estudados na sobreviênvia das mudas.
 
 ```{r}
 #-----------------------------------------------------------------------
@@ -154,29 +169,7 @@ with(da, c(gen = nlevels(gen),
            dos = nlevels(dos),
            ue = nlevels(ue)))
 
-# Obtém o intervalo em que a muda morreu.
-deathint <- function(data, timevar, respvar) {
-    o <- order(data[, timevar])
-    x <- data[o, timevar]
-    y <- data[o, respvar]
-    nna <- !is.na(y)
-    if (sum(nna)) {
-        i <- which(nna)
-        imax <- max(i)
-        st <- 3 # Censura intervalar.
-        int <- x[imax + 0:1]
-    } else {
-        st <- 2 # Censura a esquerda.
-        int <- rep(min(x), 2)
-    }
-    if (is.na(int[2])) {
-        int[2] <- int[1]
-        st <- 0 # Censura a direita.
-    }
-    r <- c(int, st)
-    names(r) <- c("left", "right", "status")
-    return(r)
-}
+summary(da)
 
 # Obtém os intervalos em que as mudas morrem.
 db <- ddply(da,
@@ -185,12 +178,12 @@ db <- ddply(da,
             timevar = "dias",
             respvar = "alt")
 
-# Áreas abaixo da curva.
+# Áreas abaixo da curva (usando semanas e cm como unidades).
 dc <- ddply(da,
             ~gen + dose + dos + dosep + ue,
             summarise,
-            aacalt = aac(dias, alt),
-            aacdac = aac(dias, dac))
+            aacalt = auc(dias/7, alt/10),
+            aacdac = auc(dias/7, dac/10))
 
 # Junta os dois.
 db <- merge(db, dc)
@@ -201,7 +194,12 @@ segplot(dos ~ left + right | gen,
         data = db,
         as.table = TRUE,
         xlab = "Tempo após a primeira avaliação",
-        ylab = "Dose (codificada)")
+        ylab = "Dose (codificada)") # +
+    # layer(panel.text(x = x[subscripts],
+    #                  y = z[subscripts],
+    #                  labels = db$status[subscripts],
+    #                  pos = 2,
+    #                  cex = 0.6))
 ```
 
 ```{r, include = FALSE, eval = FALSE}
@@ -211,6 +209,8 @@ xtabs(~status, data = db)
 # Áreas abaixo da curva da altura e do diâmetro.
 xyplot(aacalt + aacdac ~ dos | reorder(gen, aacdac, sum),
        data = db,
+       xlab = "Dose de cálcio (codificada)",
+       ylab = "Área abaixo da curva",
        auto.key = TRUE,
        type = c("p", "a"))
 
@@ -221,31 +221,38 @@ xyplot(aacalt + aacdac ~ dos | reorder(gen, aacdac, sum),
 # Massa seca de parte áerea
 
 A análise dos dados de massa seca de parte aérea foi feita apenas
-considerando genótipos com 3 ou mais registros que correspondem ao
+considerando genótipos com 3 ou mais registros, que correspondem ao
 número de doses de cálcio que restaram ao final do experimento.
 
 ```{r}
 dc <- subset(da, data == max(data))
 dc <- dc[complete.cases(dc), ]
 
+# Tabela de frequência do número de observações por cela experimental.
 addmargins(xtabs(~gen + dos, data = dc))
 
 # Manter apenas genótipos com 3 ou mais registros.
 k <- which(xtabs(~gen, data = dc) >= 3)
 
+# Filtra para os genótipos com 3 ou mais registros.
 dc <- droplevels(subset(dc, gen %in% names(k)))
 
 xy1 <- xyplot(mspa + msr ~ dosep | gen,
               outer = FALSE,
               data = dc,
+              ylab = "Massa seca (g)",
+              xlab = "Dose de Ca (escala quase equidistante)",
               auto.key = TRUE,
               type = "o")
 xy2 <- xyplot(mspa + msr ~ dosep | gen,
               outer = FALSE,
               data = dc,
+              ylab = "Massa seca (g)",
+              xlab = "Dose de Ca (escala quase equidistante)",
               auto.key = TRUE,
               type = c("p", "r"))
-grid.arrange(xy1, xy2, nrow = 1)
+# grid.arrange(xy1, xy2, nrow = 1)
+xy2
 ```
 
 Foi considerado um modelo fatorial duplo contendo os efeitos do fator
@@ -253,49 +260,59 @@ genótipo (níveis categóricos), do fator dose de cálcio (níveis métricos,
 expresso na escala transformada) e a interação entre estes fatores. Para
 representar o efeito de cálcio, foram utilizados polinômio de segundo
 grau, sendo o grau do polinômio aumentado ou diminuido conforme
-necessidade.
+necessidade de melhorar ou simplificar o ajuste.
 
 ```{r}
-#-----------------------------------------------------------------------
-
 # Modelo de efeitos quadráticos por genótipo.
 m0 <- lm(mspa ~ gen * (dosep + I(dosep^2)), data = dc)
 
+# Verificação dos pressupostos.
 par(mfrow = c(2, 2))
 plot(m0); layout(1)
 
+# Quadro de análise de variância.
 anova(m0)
 
+# Reduzindo o modelo com a remoção dos termos quadráticos.
 m0 <- update(m0, . ~ gen * dosep)
 
-par(mfrow = c(2, 2))
-plot(m0); layout(1)
+# par(mfrow = c(2, 2))
+# plot(m0); layout(1)
 
+# Quadro de análise de variância.
 anova(m0)
 
+# Reduzindo o modelo pela retirada da interação.
 m0 <- update(m0, . ~ gen + dosep)
 anova(m0)
 
+# Estimativas dos parâmetros.
 summary(m0)
 ```
 
 Não houve interação entre genótipo e dose de cálcio. Em função disso, o
 modelo obtido para a predição contém apenas os efeitos aditivos dos
 fatores. Foi necessário apenas o polinômio de grau um para representar o
-efeito de cálcio.
+efeito de cálcio. Os resultados serão representados com as retas
+ajustadas para cada genótipo.
 
 ```{r}
+# Cria um conjunto de valores para predição.
 pred <- with(dc,
-             expand.grid(gen = levels(gen),
-                         dosep = eseq(dose)^0.3))
+             expand.grid(# dosep = eseq(dose, f = 0)^0.3)
+                         dosep = eseq(dosep, f = 0),
+                         gen = levels(gen)))
+
+
 ic <- predict(m0, newdata = pred, interval = "confidence")
 pred <- cbind(pred, as.data.frame(ic))
 
-xyplot(mspa ~ dose | gen,
+xyplot(mspa ~ dosep | gen,
        data = dc,
-       xlab = "Dose de cálcio",
+       # type = c("p", "r"),
+       xlab = "Dose de cálcio (escala transformada)",
        ylab = "Massa seca de parte áerea (g)") +
-    as.layer(xyplot(fit ~ dosep^(1/0.3) | gen,
+    as.layer(xyplot(fit ~ dosep | gen,
                     data = pred,
                     type = "l",
                     ly = pred$lwr,
@@ -306,84 +323,110 @@ xyplot(mspa ~ dose | gen,
 ```
 
 ```{r}
-#-----------------------------------------------------------------------
-# Compara os genótipos sobre a mesma dose de Ca.
-
+# Médias ajustadas, considerando um valor fixo de cálcio.
 lsm <- LSmeans(m0,  effect = "gen")
 lsm
 
-# Dose usada (é a média dos dados observados).
-lsm$grid$dosep[1]^(1/0.3)
+# Dose usada para obter as médias (é a média de cálcio dos dados
+# observados).
+d <- lsm$grid$dosep[1]^(1/0.3)
+d
 
+# Atribui nomes às linhas da matriz.
 L <- lsm$K
 rownames(L) <- levels(dc$gen)
 
+# Obtém os contrastes dois a dois.
 grid <- apmc(X = L,
              model = m0,
              focus = "gen",
              test = "fdr",
              cld2 = TRUE)
 
+# Gráfico de segmentos com as letras resumo das comparações múltiplas.
 segplot(reorder(gen, fit) ~ lwr + upr,
         centers = fit,
         data = grid,
         draw = FALSE,
         xlab = "Massa seca de parte áerea (g)",
-        ylab = "Genótipos",
+        ylab = "Genótipos (ordenados pela média)",
+        sub = list(
+            sprintf("Estimativas correspondentes à %0.2f de Ca", d),
+            font = 3, cex = 0.8),
         txt = sprintf("%0.1f %s", grid$fit, grid$cld)) +
-    layer(grid.rect(x = unit(centers - 1, "native"),
-                    y = unit(z, "native"),
-                    width = Reduce(unit.c,
-                                   lapply(txt,
-                                          FUN = unit,
-                                          x = 1.05,
-                                          units = "strwidth")),
-                    height = unit(1, "native"),
-                    just = c("right"),
-                    gp = gpar(fill = "white",
-                              col = NA,
-                              fontsize = 12))) +
-    layer(panel.text(x = centers,
-                     y = z,
-                     labels = txt,
-                     pos = 2))
+    layer({
+        x <- unit(centers, "native") - unit(0.005, "snpc")
+        y <- unit(z, "native")
+        grid.rect(x = x, y = y,
+                  width = Reduce(unit.c,
+                                 lapply(txt,
+                                        FUN = unit,
+                                        x = 1.05,
+                                        units = "strwidth")) +
+                      unit(0.005, "snpc"),
+                  height = unit(1, "lines"),
+                  just = "right",
+                  gp = gpar(fill = "white",
+                            col = NA,
+                            fontsize = 12))
+        grid.text(label = txt,
+                  just = "right",
+                  x = x - unit(0.005, "snpc"),
+                  y = y)
+    })
 ```
 
 # Massa seca de raízes
 
 ```{r}
-#-----------------------------------------------------------------------
-
 # Modelo de efeitos quadráticos por genótipo.
 m0 <- lm(msr ~ gen * (dosep + I(dosep^2)), data = dc)
 
+# Verificação dos pressupostos.
 par(mfrow = c(2, 2))
 plot(m0); layout(1)
 
+# Quadro de análise de variância.
 anova(m0)
 
+# Reduzindo o modelo com a remoção dos termos quadráticos.
 m0 <- update(m0, . ~ gen * dosep)
 
-par(mfrow = c(2, 2))
-plot(m0); layout(1)
+# par(mfrow = c(2, 2))
+# plot(m0); layout(1)
 
+# Quadro de análise de variância.
 anova(m0)
 
+# Reduzindo o modelo pela retirada da interação.
 m0 <- update(m0, . ~ gen + dosep)
 anova(m0)
 
+# Estimativas dos parâmetros.
 summary(m0)
 ```
+
+Não houve interação entre genótipo e dose de cálcio. Em função disso, o
+modelo obtido para a predição contém apenas os efeitos aditivos dos
+fatores. Foi necessário apenas o polinômio de grau um para representar o
+efeito de cálcio. Os resultados serão representados com as retas
+ajustadas para cada genótipo.
+
 ```{r}
+# Cria um conjunto de valores para predição.
 pred <- with(dc,
-             expand.grid(gen = levels(gen),
-                         dosep = eseq(dosep)))
+             expand.grid(# dosep = eseq(dose, f = 0)^0.3)
+                         dosep = eseq(dosep, f = 0),
+                         gen = levels(gen)))
+
+
 ic <- predict(m0, newdata = pred, interval = "confidence")
 pred <- cbind(pred, as.data.frame(ic))
 
-xyplot(msr ~ dosep | gen,
+xyplot(mspa ~ dosep | gen,
        data = dc,
-       xlab = "Dose de cálcio (transformada)",
+       # type = c("p", "r"),
+       xlab = "Dose de cálcio (escala transformada)",
        ylab = "Massa seca de raízes (g)") +
     as.layer(xyplot(fit ~ dosep | gen,
                     data = pred,
@@ -393,118 +436,408 @@ xyplot(msr ~ dosep | gen,
                     cty = "bands",
                     prepanel = prepanel.cbH,
                     panel = panel.cbH))
+```
 
-#-----------------------------------------------------------------------
-# Compara os genótipos sobre a mesma dose de Ca.
-
+```{r}
+# Médias ajustadas, considerando um valor fixo de cálcio.
 lsm <- LSmeans(m0,  effect = "gen")
 lsm
 
-# Dose usada (é a média dos dados observados).
-lsm$grid$dosep[1]^(1/0.3)
+# Dose usada para obter as médias (é a média de cálcio dos dados
+# observados).
+d <- lsm$grid$dosep[1]^(1/0.3)
+d
 
+# Atribui nomes às linhas da matriz.
 L <- lsm$K
 rownames(L) <- levels(dc$gen)
 
+# Obtém os contrastes dois a dois.
 grid <- apmc(X = L,
              model = m0,
              focus = "gen",
              test = "fdr",
              cld2 = TRUE)
 
+# Gráfico de segmentos com as letras resumo das comparações múltiplas.
 segplot(reorder(gen, fit) ~ lwr + upr,
         centers = fit,
         data = grid,
         draw = FALSE,
         xlab = "Massa seca de raízes (g)",
-        ylab = "Genótipos",
+        ylab = "Genótipos (ordenados pela média)",
+        sub = list(
+            sprintf("Estimativas correspondentes à %0.2f de Ca", d),
+            font = 3, cex = 0.8),
         txt = sprintf("%0.1f %s", grid$fit, grid$cld)) +
-    layer(grid.rect(x = unit(centers - 1, "native"),
-                    y = unit(z, "native"),
-                    width = Reduce(unit.c,
-                                   lapply(txt,
-                                          FUN = unit,
-                                          x = 1.05,
-                                          units = "strwidth")),
-                    height = unit(1, "native"),
-                    just = c("right"),
-                    gp = gpar(fill = "white",
-                              col = NA,
-                              fontsize = 12))) +
-    layer(panel.text(x = centers,
-                     y = z,
-                     labels = txt,
-                     pos = 2))
+    layer({
+        x <- unit(centers, "native") - unit(0.005, "snpc")
+        y <- unit(z, "native")
+        grid.rect(x = x, y = y,
+                  width = Reduce(unit.c,
+                                 lapply(txt,
+                                        FUN = unit,
+                                        x = 1.05,
+                                        units = "strwidth")) +
+                      unit(0.005, "snpc"),
+                  height = unit(1, "lines"),
+                  just = "right",
+                  gp = gpar(fill = "white",
+                            col = NA,
+                            fontsize = 12))
+        grid.text(label = txt,
+                  just = "right",
+                  x = x - unit(0.005, "snpc"),
+                  y = y)
+    })
 ```
 
 # Proporção de massa em raízes
 
 ```{r}
-#-----------------------------------------------------------------------
-
-dc$r <- with(dc, msr/(msr + mspa))
-
+# Cria variável que a porcentagem de massa seca de raízes em relação a
+# massa seca total da muda.
+dc$r <- with(dc, 100 * msr/(msr + mspa))
+```
+```{r}
 # Modelo de efeitos quadráticos por genótipo.
 m0 <- lm(r ~ gen * (dosep + I(dosep^2)), data = dc)
 
+# Verificação dos pressupostos.
 par(mfrow = c(2, 2))
 plot(m0); layout(1)
 
+# Quadro de análise de variância.
 anova(m0)
 
-m0 <- update(m0, . ~ gen * dosep)
-
-par(mfrow = c(2, 2))
-plot(m0); layout(1)
-
-anova(m0)
-
-m0 <- update(m0, . ~ gen + dosep)
-anova(m0)
-
+# Reduzindo o modelo mantendo apenas genótipo.
 m0 <- update(m0, . ~ gen)
 anova(m0)
 
+# Estimativas dos parâmetros.
 summary(m0)
+```
 
-#-----------------------------------------------------------------------
-# Compara os genótipos sobre a mesma dose de Ca.
-
+```{r}
+# Médias ajustadas, considerando um valor fixo de cálcio.
 lsm <- LSmeans(m0,  effect = "gen")
 lsm
 
+# Atribui nomes às linhas da matriz.
 L <- lsm$K
 rownames(L) <- levels(dc$gen)
 
+# Obtém os contrastes dois a dois.
 grid <- apmc(X = L,
              model = m0,
              focus = "gen",
              test = "fdr",
              cld2 = TRUE)
 
+# Gráfico de segmentos com as letras resumo das comparações múltiplas.
 segplot(reorder(gen, fit) ~ lwr + upr,
         centers = fit,
         data = grid,
         draw = FALSE,
-        xlab = "Proporção da massa total em raízes",
-        ylab = "Genótipos",
+        xlab = "Percentual de massa de raízes",
+        ylab = "Genótipos (ordenados pela média)",
         txt = sprintf("%0.1f %s", grid$fit, grid$cld)) +
-    layer(grid.rect(x = unit(centers - 0.008, "native"),
-                    y = unit(z, "native"),
-                    width = Reduce(unit.c,
-                                   lapply(txt,
-                                          FUN = unit,
-                                          x = 1.05,
-                                          units = "strwidth")),
-                    height = unit(1, "native"),
-                    just = c("right"),
-                    gp = gpar(fill = "white",
-                              col = NA,
-                              fontsize = 12))) +
-    layer(panel.text(x = centers,
-                     y = z,
-                     labels = txt,
-                     pos = 2))
+    layer({
+        x <- unit(centers, "native") - unit(0.005, "snpc")
+        y <- unit(z, "native")
+        grid.rect(x = x, y = y,
+                  width = Reduce(unit.c,
+                                 lapply(txt,
+                                        FUN = unit,
+                                        x = 1.05,
+                                        units = "strwidth")) +
+                      unit(0.005, "snpc"),
+                  height = unit(1, "lines"),
+                  just = "right",
+                  gp = gpar(fill = "white",
+                            col = NA,
+                            fontsize = 12))
+        grid.text(label = txt,
+                  just = "right",
+                  x = x - unit(0.005, "snpc"),
+                  y = y)
+    })
+```
+
+# Altura
+
+```{r}
+# Utilizar como variável concomitante a última data em foi medida em uma
+# ancova.
+str(da)
+
+# Função que extraí o registro completo mais velho de uma unidade
+# experimental (última observação completa registrada).
+last <- function(data, time, resp) {
+    tm <- data[, time]
+    data <- data[order(tm), ]
+    i <- max(which(!is.na(data[, resp])))
+    data[i, ]
+}
+
+# Reduz para uma tabela com uma linha por UE.
+dc <- ddply(da,
+            ~ue,
+            last, time = "data", resp = "alt")
+str(dc)
+
+xyplot(alt + dac ~ dias,
+       outer = TRUE,
+       data = da,
+       xlab = "Tempo após a primeira avaliação (dias)",
+       ylab = "Altura das mudas de teca (mm)",
+       col = "gray",
+       type = c("p", "smooth")) +
+    as.layer(xyplot(alt + dac ~ I(dias + 1),
+                    data = dc,
+                    outer = TRUE,
+                    col = "blue",
+                    pch = 19,
+                    type = c("p", "smooth")))
+```
+
+Para análise das variáveis altura e diâmetro à altura do colo será
+considerado análise de covariância. A covariável usada para corrigir os
+valores observados das respostas será o número de dias no último
+registro das variáveis. Dessa forma, todas as observações serão
+aproveitadas na análise, mesmo as que morreram antes do final do
+experimento.
+
+Verfica-se que uma relação não linear entre a altura (diâmetro) em
+função do dia em que é medida. Cada ponto em azul no gráfico representa
+o último valor registrado das variáveis para uma unidade experimental,
+ou seja, é o valor das variáveis mais próximo do final do experimento,
+imediatamente antes da muda morrer. Dada a relação quadrática exibida, o
+efeito do tempo será considerado no modelo com um termo polinomial de
+grau 2.
+
+```{r}
+# Modelo de efeitos quadráticos por genótipo.
+m0 <- lm(alt ~ dias + I(dias^2) + gen * (dosep + I(dosep^2)),
+         data = dc)
+
+# # Verificação dos pressupostos.
+# par(mfrow = c(2, 2))
+# plot(m0); layout(1)
+# MASS::boxcox(m0)
+
+# Quadro de análise de variância.
+anova(m0)
+
+# Reduzindo o modelo com o abandono do termo quadrático e interação.
+m0 <- update(m0, . ~ dias + I(dias^2) + gen + dosep)
+anova(m0)
+
+# Estimativas dos parâmetros.
+summary(m0)
+```
+
+Pelo quadro de ANOVA não existe interação entre genótipo e dose de
+cálcio. Verifica-se a existência apenas dos efeitos aditivos. No gráfico
+a seguir é representada a relação entre altura final e dose de cálcio
+para cada genótipo. Segundo o gráfico e também a estimativa do
+coeficiente do efeito de Ca, a altura do genótipo diminui com o aumento
+da dose de cálcio.
+
+```{r}
+# Último dia de medição das mudas.
+dmax <- max(dc$dias, na.rm = TRUE)
+
+# Cria um conjunto de valores para predição.
+pred <- with(dc,
+             expand.grid(
+                 dosep = eseq(dosep, f = 0),
+                 dias = dmax,
+                 gen = levels(gen)))
+
+ic <- predict(m0, newdata = pred, interval = "confidence")
+pred <- cbind(pred, as.data.frame(ic))
+
+xyplot(alt ~ dosep | gen,
+       data = subset(dc, dias == max(dias, na.rm = TRUE)),
+       # type = c("p", "r"),
+       xlab = "Dose de cálcio (escala transformada)",
+       ylab = "Altura das mudas (mm)") +
+    as.layer(xyplot(fit ~ dosep | gen,
+                    data = pred,
+                    type = "l",
+                    ly = pred$lwr,
+                    uy = pred$upr,
+                    cty = "bands",
+                    prepanel = prepanel.cbH,
+                    panel = panel.cbH))
+```
+
+As médias de altura dos genótipos serão comparadas considerando a altura
+final, ou seja, aquela prevista para os 135 dias.
+
+```{r}
+# Médias ajustadas, considerando um valor fixo de cálcio para o último
+# dia de medição.
+lsm <- LSmeans(m0,
+               effect = "gen",
+               at = list("dias" = dmax, "I(dias^2)" = dmax^2))
+lsm
+
+# Dose usada para obter as médias (é a média de cálcio dos dados
+# observados).
+d <- lsm$grid$dosep[1]^(1/0.3)
+d
+
+# Atribui nomes às linhas da matriz.
+L <- lsm$K
+rownames(L) <- levels(dc$gen)
+
+# Obtém os contrastes dois a dois.
+grid <- apmc(X = L,
+             model = m0,
+             focus = "gen",
+             test = "fdr",
+             cld2 = FALSE)
+
+# Gráfico de segmentos com as letras resumo das comparações múltiplas.
+segplot(reorder(gen, fit) ~ lwr + upr,
+        centers = fit,
+        data = grid,
+        draw = FALSE,
+        xlab = sprintf("Altura das mudas aos %d dias (mm)", dmax),
+        ylab = "Genótipos (ordenados pela média)",
+        sub = list(
+            sprintf("Estimativas correspondentes à %0.2f de Ca", d),
+            font = 3, cex = 0.8),
+        txt = sprintf("%0.1f %s", grid$fit, grid$cld)) +
+    layer({
+        x <- unit(centers, "native") - unit(0.005, "snpc")
+        y <- unit(z, "native")
+        grid.rect(x = x, y = y,
+                  width = Reduce(unit.c,
+                                 lapply(txt,
+                                        FUN = unit,
+                                        x = 1.05,
+                                        units = "strwidth")) +
+                      unit(0.005, "snpc"),
+                  height = unit(1, "lines"),
+                  just = "right",
+                  gp = gpar(fill = "white",
+                            col = NA,
+                            fontsize = 12))
+        grid.text(label = txt,
+                  just = "right",
+                  x = x - unit(0.005, "snpc"),
+                  y = y)
+    })
+```
+
+# Diâmetro à altura do colo
+
+A análise para diâmetro à altura do colo segue o mesmo roteiro da
+análise para altura das mudas.
+
+```{r}
+# Modelo de efeitos quadráticos por genótipo.
+m0 <- lm(dac ~ dias + I(dias^2) + gen * (dosep + I(dosep^2)),
+         data = dc)
+
+# # Verificação dos pressupostos.
+# par(mfrow = c(2, 2))
+# plot(m0); layout(1)
+# MASS::boxcox(m0)
+
+# Quadro de análise de variância.
+anova(m0)
+
+# Reduzindo o modelo com o abandono do termo quadrático e interação.
+m0 <- update(m0, . ~ dias + I(dias^2) + gen)
+anova(m0)
+
+# Estimativas dos parâmetros.
+summary(m0)
+```
+
+```{r}
+# Último dia de medição das mudas.
+dmax <- max(dc$dias, na.rm = TRUE)
+
+# Cria um conjunto de valores para predição.
+pred <- with(dc,
+             expand.grid(
+                 dosep = eseq(dosep, f = 0),
+                 dias = dmax,
+                 gen = levels(gen)))
+
+ic <- predict(m0, newdata = pred, interval = "confidence")
+pred <- cbind(pred, as.data.frame(ic))
+
+xyplot(dac ~ dosep | gen,
+       data = subset(dc, dias == max(dias, na.rm = TRUE)),
+       # type = c("p", "r"),
+       xlab = "Dose de cálcio (escala transformada)",
+       ylab = "Altura das mudas (mm)") +
+    as.layer(xyplot(fit ~ dosep | gen,
+                    data = pred,
+                    type = "l",
+                    ly = pred$lwr,
+                    uy = pred$upr,
+                    cty = "bands",
+                    prepanel = prepanel.cbH,
+                    panel = panel.cbH))
+```
+
+```{r}
+# Médias ajustadas, considerando um valor fixo de cálcio para o último
+# dia de medição.
+lsm <- LSmeans(m0,
+               effect = "gen",
+               at = list("dias" = dmax, "I(dias^2)" = dmax^2))
+lsm
+
+# Atribui nomes às linhas da matriz.
+L <- lsm$K
+rownames(L) <- levels(dc$gen)
+
+# Obtém os contrastes dois a dois.
+grid <- apmc(X = L,
+             model = m0,
+             focus = "gen",
+             test = "fdr",
+             cld2 = TRUE)
+
+# Gráfico de segmentos com as letras resumo das comparações múltiplas.
+segplot(reorder(gen, fit) ~ lwr + upr,
+        centers = fit,
+        data = grid,
+        draw = FALSE,
+        xlab = sprintf("Diâmetro à altura do colo aos %d dias (mm)", dmax),
+        ylab = "Genótipos (ordenados pela média)",
+        # sub = list(
+        #     sprintf("Estimativas correspondentes à %0.2f de Ca", d),
+        #     font = 3, cex = 0.8),
+        txt = sprintf("%0.1f %s", grid$fit, grid$cld)) +
+    layer({
+        x <- unit(centers, "native") - unit(0.005, "snpc")
+        y <- unit(z, "native")
+        grid.rect(x = x, y = y,
+                  width = Reduce(unit.c,
+                                 lapply(txt,
+                                        FUN = unit,
+                                        x = 1.05,
+                                        units = "strwidth")) +
+                      unit(0.005, "snpc"),
+                  height = unit(1, "lines"),
+                  just = "right",
+                  gp = gpar(fill = "white",
+                            col = NA,
+                            fontsize = 12))
+        grid.text(label = txt,
+                  just = "right",
+                  x = x - unit(0.005, "snpc"),
+                  y = y)
+    })
 ```
 
 # Informações da Sessão
