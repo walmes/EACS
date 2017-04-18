@@ -1,6 +1,8 @@
 #!/usr/bin/env Rscript
 
 options(echo = TRUE)
+R.version.string
+Sys.info()
 
 #--------------------------------------------
 # Carregar pacotes.
@@ -10,12 +12,18 @@ library(devtools)
 library(roxygen2)
 
 # - Instalando as dependencias (descritas no DESCRIPTION)
+install_github("walmes/wzRfun")
 install_deps(dependencies = TRUE,
              quiet = TRUE,
              upgrade = FALSE,
              repos = "http://cran-r.c3sl.ufpr.br/")
 
-sessionInfo()
+session_info()
+
+inpack <- installed.packages()
+rownames(inpack) <- NULL
+print(inpack[order(inpack[, "Package"]), c("Package", "Version")],
+      quote = FALSE)
 
 #--------------------------------------------
 # Carregar objetos do pacote.
@@ -29,6 +37,7 @@ packageVersion(pkg)
 
 #--------------------------------------------
 # Ignora check de caracteres non-ASCII nos datasets
+
 Sys.setenv(`_R_CHECK_ASCII_DATA_` = "FALSE")
 
 #--------------------------------------------
@@ -75,7 +84,10 @@ rm(list = ls())
 # .libPaths(new = lib)
 # .libPaths()
 
-install()
+# install()
+install(build_vignettes = FALSE,
+        dependencies = FALSE,
+        upgrade_dependencies = FALSE)
 
 # unlink(lib, recursive = TRUE)
 
