@@ -1,0 +1,385 @@
+---
+title: "Experimento fatorial fuplo com um controle negativo"
+author: >
+  [Fábio B. Ono](http://lattes.cnpq.br/2333713465839731) &
+  [Walmes M. Zeviani](http://lattes.cnpq.br/4410617539281650)
+date: '`r format(Sys.Date(), format = "%d de %B de %Y")`'
+output:
+  html_document:
+    code_folding: show
+vignette: >
+  %\VignetteIndexEntry{Experimento fatorial fuplo com um controle negativo}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style type="text/css">
+/*
+  Lista de símbolos:
+  http://www.w3schools.com/charsets/ref_utf_geometric.asp
+  ATTENTION: Quando coloca no style.css não funciona como deveria,
+  ao invés do simbolo fica exibido o texto
+*/
+div:not(.tocify) > ul li {
+  list-style-type: '&#9656;  ';
+}
+div:not(.tocify) > ul li ul li, ol li ul li {
+  list-style-type: '&#9657;  ';
+}
+</style>
+
+```{r setup, include = FALSE}
+source("config/setup.R")
+```
+
+# Descrição e análise exploratória
+
+```{r, results = "hide", message = FALSE, error = FALSE, warning = FALSE}
+#-----------------------------------------------------------------------
+# Carrega os pacotes necessários.
+
+rm(list = ls())
+library(lattice)
+library(latticeExtra)
+library(gridExtra)
+library(doBy)
+library(multcomp)
+library(EACS)
+```
+
+Os dados que serão analisados são de um experimento fatorial duplo 4
+$\times$ 2 com um controle negativo, comumente representado por 4
+$\times$ 2 $+$ 1. Os dados estão no objeto `fat2_adic`.
+
+A primeira dica importante para análise de experimentos fatoriais com
+tratamentos adicionais é: deixe os tratamentos adicionais serem os
+últimos níveis em todos os fatores. Nessa tabela foi usado `controle`
+como rótulo do controle negativo (sem adubação) tanto na coluna do fator
+`fonte` quanto na coluna do fator `modo`. Não é obrigatório que os nomes
+sejam os mesmo nas colunas. No entanto, não se deve colocar `NA` porque
+isso leva a remoção das linhas pelas funções de ajuste que precisam de
+observações completas.
+
+```{r}
+# Estrutura dos dados.
+str(fat2_adic)
+
+fat2_adic
+
+# Nomes curtos são mais fáceis de manusear.
+da <- fat2_adic
+
+# Tabela de frequência dos níveis.
+xtabs(~ fonte + modo, data = da)
+```
+
+A tabela de frequencia mostra o que já sabemos: temos um experimento
+fatorial 4 $\times$ 2 $+$ 1 com quatro repetições. Além disso, o nível
+que corresponde ao controle é o último em cada fator.
+
+```{r}
+xy1 <- resizePanels(
+    xyplot(prod ~ fonte | modo,
+           data = da,
+           xlab = "Fonte de adubo",
+           ylab = "Produção",
+           type = c("p", "a"),
+           layout = c(NA, 1),
+           scales = list(x = list(relation = "free"))),
+    w = c(4, 4, 1))
+
+xy2 <- resizePanels(
+    xyplot(prod ~ modo | fonte,
+           data = da,
+           xlab = "Forma de aplicação",
+           ylab = "Producação",
+           type = c("p", "a"),
+           layout = c(NA, 1),
+           scales = list(x = list(relation = "free"))),
+    w = c(2, 2, 2, 2, 1))
+
+grid.arrange(xy1, xy2, ncol = 1)
+```
+
+O gráfico de cima mostra que existe uam leve diferença do desempenho da
+fonte B em relação as outras fontes de adubação. Verifica-se também que
+o desempenho do controle está abaixo das celas do fatorial.  O gráfico
+de baixo indica haver pouca diferença entre as formas de aplicação. Além
+disso, não fornece evidências que marcam interação entre os fatores.
+
+# Ajuste do modelo e pressupostos
+
+A especificação do modelo via fórmula é a mesma, seja o experimento
+fatorial completo ou não. No entanto, devido o fatorial com tratamento
+adicional na realidade ser um fatorial completo com celas perdidas,
+alguns efeitos não serão estimados, justamente por causa das celas
+perdidas.  Na realidade, as celas não foram perdidas.  Quero dizer, não
+foi um acidente mas algo planejedado fazer o experimento da forma como
+feito.
+
+```{r}
+m0 <- lm(prod ~ bloc + fonte * modo, data = da)
+
+par(mfrow = c(2, 2))
+plot(m0)
+layout(1)
+
+anova(m0)
+
+cbind(coef(m0))
+```
+
+Os gráficos sobre os resíduos não apontam nenhuma evidência contra o
+atendimentos dos pressupostos.
+
+No quadro de análise de variância mostra não existência de
+interação. Também não foi significativo o efeito de modo de
+aplicação. Restou, portanto, apenas o efeito de fonte de abubo.
+
+Note que `fonte` tem 4 graus de liberdade (GL) enquanto que `modo` tem
+apenas 1 e a interação `fonte:modo` tem 3. Os 4 GL de fonte decorrem do
+fator ter 5 níveis (4 níveis do fatorial e o controle). Porém, o `modo`
+que deveria ter 2, porque têm 3 níveis (2 modos e o controle), fica com
+apenas 1 porque o efeito de controle já foi acomodado no termo
+`fonte`. E a interação resulta o número de combinações de celas que se
+cruzam nos dois fatores, ou seja, $(4 - 1) \times (2 - 1) = 3$.
+
+As combinações que não existem possuem valor igual a `NA` no vetor de
+estimativas. Isso indica que esses efeitos não foram estimados. De fato,
+só seriam estimados se estas celas experimentais existissem.
+
+# Dosdobramento das somas de quadrados
+
+Por uma questão didática, será ilustrado como desdobrar a soma de
+quadrados dentro do quadro de ANOVA. Os 4 GL associados ao termo `fonte`
+serão particionados em duas hipóteses: (a) $H_0$: a diferença entre as
+fontes A - D é nula ($\mu_A = \mu_B = \mu_C = \mu_D$) e (b) $H_0$: não
+existe diferença da testemunha para as fontes de adubação ($(\mu_A +
+\mu_B + \mu_C + \mu_D)/4 = \mu_{\text{controle}}$).
+
+Para facilmente conseguir esse desdobramento, serão utilizados os
+contrastes de Helmert. Nestes contrastes, a última coluna representa a
+nossa hipótese (b).
+
+```{r}
+# Contrastes de Helmert. A última coluna corresponde à "testemunha vs
+# demais" nos dois fatores.
+contrasts(C(da$modo,
+            contr = "contr.helmert"))
+contrasts(C(da$fonte,
+            contr = "contr.helmert"))
+```
+
+A função `aov()` será usada porque ela permite desdobrar as somas de
+quadrados dentro do quadro. Para isso é utilizado o argumento `split =`
+da função `summary()` quando operando sobre um objeto de classe
+*aov*. Os contrastes de Helmert são passados no argumento `contrasts =`
+para a função `aov()`.
+
+```{r}
+# Fonte é o primeiro termo -> Testemunha vs Fonte.
+m0 <- aov(prod ~ bloc + fonte * modo,
+          data = da,
+          contrasts = list(fonte = "contr.helmert",
+                           modo = "contr.helmert"))
+
+# Desdobramento das somas de quadrados.
+summary(m0,
+        split = list(
+            "fonte" = list("Entre Fontes" = 1:3,
+                           "Test vs Fontes" = 4)
+        ), expand.split = FALSE)
+
+# Agora modo é o primeiro termo -> Testemunha vs Modos (não faz muito
+# sentido para esses dados).
+m1 <- update(m0, . ~ bloc + modo * fonte)
+
+# Desdobramento das somas de quadrados.
+summary(m1,
+        split = list(
+            "modo" = list("Entre Modos" = 1,
+                           "Test vs Modos" = 2)
+        ), expand.split = FALSE)
+```
+
+Independente da ordem dos termos na fórmula (`fonte * modo` ou `modo *
+fonte`), a soma de quadrado para hipótese da testemunha versus os demais
+níveis foi o mesmo. Para os dados e o modelo que temos, isso era mesmo
+para acontecer. A soma de quadrados de `modo`, assim como de `fonte`,
+mudam de um modelo para outro. Isso acontece porque ora quem tem o nível
+controle é `fonte`, que entra primeiro no modelo `m0`, ora é `modo` que
+é o primeiro termo no modelo `m1`. A soma de quadrados da hipótese (a) é
+o que é exclusido de `fonte` e `modo`. Em ambos os casos, não muda o
+resultado para a intervação, que foi não significativa.
+
+# Obtenção das médias ajustadas
+
+As médias ajustadas são médias obtidias por meio de funções lineares dos
+efeitos estimados.  Em experimentos balanceados e com efeito ortogonais,
+as médias ajustadas coincidem as com as médias amostrais. No entanto, em
+situações mais gerais, as médias amostrais não são os estimadores
+corretos das médias populacionais.  Exceto para situações muito
+específicas, trabalhar com as médias ajustadas é sempre o adequado.
+
+```{r}
+# Novamente o mesmo modelo, classe lm.
+m0 <- lm(prod ~ bloc + fonte * modo,
+         data = da)
+
+# Quadro de anova.
+anova(m0)
+
+# Por causa dos efeitos não estimados, essa função retorna as médias
+# ajustadas, apenas NAs.
+LSmeans(m0, effect = "fonte")
+```
+
+A função `doBy::LSmeans()` obtém as médias ajustadas para modelos onde
+todos os efeitos são estimados. No caso em questão, tem-se `NA` no vetor
+de estimativas, o que indica efeitos não estimados. Com isso a obtenção
+das ls-means deverá ser feita explicitamente.
+
+```{r}
+# Matriz do modelo descartadas as linhas repetidas, caso hajam.
+U <- unique(model.matrix(m0))
+
+# Fatores do modelo, removidas as linhas repetidas também.
+db <- unique(subset(da, select = all.vars(formula(m0)[-2])))
+
+# Os tamanhos são iguais? Devem ser.
+nrow(db) == nrow(U)
+
+# Criando a matriz de LSmeans de forma alternativa.
+agr <- aggregate(U ~ fonte + modo,
+                 data = db,
+                 FUN = mean)
+
+# Índices para separar a parte tabela da parte matriz.
+i <- 1:2
+pred <- agr[, i]
+X <- as.matrix(agr[, -i])
+dim(X)
+
+# write.table(format(t(X), justify = "right"),
+#             row.names = FALSE,
+#             col.names = FALSE,
+#             quote = FALSE)
+
+# Matriz para obter as médias ajustadas ao multiplicas pelas estimativas
+# dos efeitos.
+print.table(local({X[X == 0] <- "."; colnames(X) <- NULL; t(X)}),
+            justify = "centre")
+```
+
+Para poder obter as médias ajustadas tem-se que resolver um problema de
+inconsistência de dimensão. O vetor de efeitos estimados, `coef(m0)`,
+com entradas para os efeitos não estimados que estão como `NA`. A matriz
+de covariância das estimativas, contém dimensão igual ao número de
+efeitos estimados. Os dois devem ter dimensão compatível. Para tornar
+compatível, serão removidos os `NA` do vetor. Essa modificação será
+feita nas entranhas do objeto `m0`.
+
+```{r}
+# ATTENTION: Dentro do objeto que guarda o ajuste está sendo removido os
+# NA de dentro do vetor de parâmetros estimados. Isso pode produzir
+# efeitos colaterais. Não é aconselhável alterar o conteúdo de objetos
+# assim.
+m0$coefficients <- coef(m0)[!is.na(coef(m0))]
+
+# As dimensões agora são compatíveis.
+dim(vcov(m0))
+length(coef(m0))
+
+# Mantém só as colunas com nomes de efeitos estimados.
+X <- X[, names(coef(m0))]
+dim(X)
+
+# Estima as médias de cada cela experimental, com intervalo de
+# confiança.
+ci <- confint(glht(m0, linfct = X), calpha = univariate_calpha())
+cbind(pred, ci$confint)
+
+# Médias amostrais das celas experimentais (apenas para conferir os
+# resultados).
+aggregate(prod ~ fonte + modo, data = da, mean)
+```
+
+# Analise do modelo reduzido
+
+Como não houve interação e nem diferença entre modos de aplicação, o
+modelo pode ser simplificado pelo abandono destes termos de efeito nulo.
+Com isso, desaparecem as dificuldades causadas pelo fatorial incompleto
+pois entramos em uma situação com um único fator. Tem o detalhe o número
+de repetições não é igual, mas isso não é um complicador diante dos
+recursos que temos.
+
+```{r}
+m1 <- update(m0, prod ~ bloc + fonte)
+
+# Testa se o conjunto de termos abandados tem efeito nulo.
+anova(m1, m0)
+
+# Quadro de anova.
+anova(m1)
+
+# Estimativa dos parâmetros e medidas de ajuste.
+summary(m1)
+
+# Média ajustadas. Desse objeto é extraído a matriz para obter médias
+# ajustadas.
+lsm <- LSmeans(m1, effect = "fonte")
+lsm
+
+# Matriz para obter médias ajustdas.
+X <- lsm$K
+
+# Tabela com os níveis dos fatores.
+pred <- lsm$grid
+
+# Comparações múltiplas por contrantes de Tukey. ATTENTION: são
+# contrastes de Tukey (comparações aos pares) e não o teste de Tukey. O
+# Teste de Tukey para essas médias iria envolver aproximações do tipo
+# média geométrica do número de repetições. A aproximação não
+# funcionaria bem.
+comp <- summary(glht(m1, linfct = mcp(fonte = "Tukey")))
+
+# Representação com letras (compact letter display).
+cld <- cld(comp, decreasing = TRUE)
+cld
+
+# Intervalos de confiança para as médias.
+ci <- confint(glht(m1, linfct = X), calpha = univariate_calpha())
+ci <- as.data.frame(ci$confint)
+
+# Junta todas as colunas em uma tabela só.
+pred <- cbind(pred, ci, cld = cld$mcletters$Letters)
+pred$fonte <- factor(pred$fonte, levels(da$fonte))
+pred
+```
+```{r, fig.height = 4}
+# Gráfico de segmentos.
+segplot(reorder(fonte, Estimate) ~ lwr + upr,
+        centers = Estimate,
+        data = pred,
+        xlab = "Produção",
+        ylab = "Fontes de abubo",
+        cld = pred$cld,
+        draw = FALSE) +
+    layer(panel.text(x = centers,
+                     y = z,
+                     pos = 3,
+                     labels = sprintf("%0.2f %s",
+                                      centers,
+                                      cld)))
+```
+
+O gráfico de segmentos resume os resultados do experimento. Verifica-se
+por ele que existem diferenças entre as fontes de adubação.
+
+# Informações da sessão
+
+```{r, echo = FALSE, results = "hold"}
+cat(format(Sys.time(),
+           format = "Atualizado em %d de %B de %Y.\n\n"))
+sessionInfo()
+```
