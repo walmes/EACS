@@ -341,7 +341,14 @@ grid <- apmc(X = L,
              model = m0,
              focus = "gen",
              test = "fdr",
-             cld2 = TRUE)
+             cld2 = FALSE)
+
+grid <- grid[order(grid$fit, decreasing = TRUE), ]
+ocld <- ordered_cld(grid$cld, grid$fit)
+grid$cld <- ocld
+
+# x <- attr(ocld, "ind") * 1
+# print.table(local({x[x == 0] <- NA; x}))
 
 # Gráfico de segmentos com as letras resumo das comparações múltiplas.
 segplot(reorder(gen, fit) ~ lwr + upr,
@@ -350,6 +357,7 @@ segplot(reorder(gen, fit) ~ lwr + upr,
         draw = FALSE,
         xlab = "Massa seca de parte áerea (g)",
         ylab = "Genótipos (ordenados pela média)",
+        # par.settings = list(layout.widths = list(right.padding = 10)),
         sub = list(
             sprintf("Estimativas correspondentes à %0.2f de Ca", d),
             font = 3, cex = 0.8),
@@ -374,6 +382,16 @@ segplot(reorder(gen, fit) ~ lwr + upr,
                   x = x - unit(0.005, "snpc"),
                   y = y)
     })
+# x <- attr(ocld, "ind")
+# index <- which(x[nrow(x):1, ], arr.ind = TRUE)
+# trellis.focus("panel", column = 1, row = 1, clip.off = TRUE)
+# xcor <- 1.03 + (index[, 2] - 1)/50
+# grid.segments(x0 = unit(xcor, "npc"),
+#               x1 = unit(xcor, "npc"),
+#               y0 = unit(index[, 1] + 0.5, units = "native"),
+#               y1 = unit(index[, 1] - 0.5, units = "native"),
+#               gp = gpar(lwd = 2, col = "red"))
+# trellis.unfocus()
 ```
 
 # Massa seca de raízes
@@ -457,7 +475,11 @@ grid <- apmc(X = L,
              model = m0,
              focus = "gen",
              test = "fdr",
-             cld2 = TRUE)
+             cld2 = FALSE)
+
+grid <- grid[order(grid$fit, decreasing = TRUE), ]
+ocld <- ordered_cld(grid$cld, grid$fit)
+grid$cld <- ocld
 
 # Gráfico de segmentos com as letras resumo das comparações múltiplas.
 segplot(reorder(gen, fit) ~ lwr + upr,
@@ -532,7 +554,11 @@ grid <- apmc(X = L,
              model = m0,
              focus = "gen",
              test = "fdr",
-             cld2 = TRUE)
+             cld2 = FALSE)
+
+grid <- grid[order(grid$fit, decreasing = TRUE), ]
+ocld <- ordered_cld(grid$cld, grid$fit)
+grid$cld <- ocld
 
 # Gráfico de segmentos com as letras resumo das comparações múltiplas.
 segplot(reorder(gen, fit) ~ lwr + upr,
@@ -700,6 +726,10 @@ grid <- apmc(X = L,
              test = "fdr",
              cld2 = FALSE)
 
+grid <- grid[order(grid$fit, decreasing = TRUE), ]
+ocld <- ordered_cld(grid$cld, grid$fit)
+grid$cld <- ocld
+
 # Gráfico de segmentos com as letras resumo das comparações múltiplas.
 segplot(reorder(gen, fit) ~ lwr + upr,
         centers = fit,
@@ -805,7 +835,11 @@ grid <- apmc(X = L,
              model = m0,
              focus = "gen",
              test = "fdr",
-             cld2 = TRUE)
+             cld2 = FALSE)
+
+grid <- grid[order(grid$fit, decreasing = TRUE), ]
+ocld <- ordered_cld(grid$cld, grid$fit)
+grid$cld <- ocld
 
 # Gráfico de segmentos com as letras resumo das comparações múltiplas.
 segplot(reorder(gen, fit) ~ lwr + upr,
