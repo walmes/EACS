@@ -1,5 +1,5 @@
 ---
-title: "Experimento fatorial fuplo com um controle negativo"
+title: "Experimento fatorial duplo com um controle negativo"
 author: >
   [Fábio B. Ono](http://lattes.cnpq.br/2333713465839731) &
   [Walmes M. Zeviani](http://lattes.cnpq.br/4410617539281650)
@@ -8,7 +8,7 @@ output:
   html_document:
     code_folding: show
 vignette: >
-  %\VignetteIndexEntry{Experimento fatorial fuplo com um controle negativo}
+  %\VignetteIndexEntry{Experimento fatorial duplo com um controle negativo}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -73,7 +73,7 @@ da <- fat2_adic
 xtabs(~ fonte + modo, data = da)
 ```
 
-A tabela de frequencia mostra o que já sabemos: temos um experimento
+A tabela de frequência mostra o que já sabemos: temos um experimento
 fatorial 4 $\times$ 2 $+$ 1 com quatro repetições. Além disso, o nível
 que corresponde ao controle é o último em cada fator.
 
@@ -101,7 +101,7 @@ xy2 <- resizePanels(
 grid.arrange(xy1, xy2, ncol = 1)
 ```
 
-O gráfico de cima mostra que existe uam leve diferença do desempenho da
+O gráfico de cima mostra que existe uma leve diferença do desempenho da
 fonte B em relação as outras fontes de adubação. Verifica-se também que
 o desempenho do controle está abaixo das celas do fatorial.  O gráfico
 de baixo indica haver pouca diferença entre as formas de aplicação. Além
@@ -114,7 +114,7 @@ fatorial completo ou não. No entanto, devido o fatorial com tratamento
 adicional na realidade ser um fatorial completo com celas perdidas,
 alguns efeitos não serão estimados, justamente por causa das celas
 perdidas.  Na realidade, as celas não foram perdidas.  Quero dizer, não
-foi um acidente mas algo planejedado fazer o experimento da forma como
+foi um acidente mas algo planejado fazer o experimento da forma como
 feito.
 
 ```{r}
@@ -134,7 +134,7 @@ atendimentos dos pressupostos.
 
 No quadro de análise de variância mostra não existência de
 interação. Também não foi significativo o efeito de modo de
-aplicação. Restou, portanto, apenas o efeito de fonte de abubo.
+aplicação. Restou, portanto, apenas o efeito de fonte de adubo.
 
 Note que `fonte` tem 4 graus de liberdade (GL) enquanto que `modo` tem
 apenas 1 e a interação `fonte:modo` tem 3. Os 4 GL de fonte decorrem do
@@ -148,7 +148,7 @@ As combinações que não existem possuem valor igual a `NA` no vetor de
 estimativas. Isso indica que esses efeitos não foram estimados. De fato,
 só seriam estimados se estas celas experimentais existissem.
 
-# Dosdobramento das somas de quadrados
+# Desdobramento das somas de quadrados
 
 Por uma questão didática, será ilustrado como desdobrar a soma de
 quadrados dentro do quadro de ANOVA. Os 4 GL associados ao termo `fonte`
@@ -209,12 +209,12 @@ para acontecer. A soma de quadrados de `modo`, assim como de `fonte`,
 mudam de um modelo para outro. Isso acontece porque ora quem tem o nível
 controle é `fonte`, que entra primeiro no modelo `m0`, ora é `modo` que
 é o primeiro termo no modelo `m1`. A soma de quadrados da hipótese (a) é
-o que é exclusido de `fonte` e `modo`. Em ambos os casos, não muda o
-resultado para a intervação, que foi não significativa.
+o que é exclusiva de `fonte` e `modo`. Em ambos os casos, não muda o
+resultado para a interação, que foi não significativa.
 
 # Obtenção das médias ajustadas
 
-As médias ajustadas são médias obtidias por meio de funções lineares dos
+As médias ajustadas são médias obtidas por meio de funções lineares dos
 efeitos estimados.  Em experimentos balanceados e com efeito ortogonais,
 as médias ajustadas coincidem as com as médias amostrais. No entanto, em
 situações mais gerais, as médias amostrais não são os estimadores
@@ -304,7 +304,7 @@ cbind(pred, ci$confint)
 aggregate(prod ~ fonte + modo, data = da, mean)
 ```
 
-# Analise do modelo reduzido
+# Análise do modelo reduzido
 
 Como não houve interação e nem diferença entre modos de aplicação, o
 modelo pode ser simplificado pelo abandono destes termos de efeito nulo.
