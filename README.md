@@ -1,7 +1,9 @@
+<img src="./vignettes/img/logo.png" width="150px" align="right" display="block">
+
 Estatística Aplicada à Ciência do Solo
 ======================================
 
-Prof. Walmes Zeviani (`walmes@ufpr.br`) e Colaboradores
+Prof. Walmes Zeviani (`walmes@ufpr.br`) e colaboradores
 
 ## Organização
 
@@ -13,42 +15,40 @@ instalar.
 
 ## Instalação
 
-O pacote pode ser instalado diretamente dos repositório em que está
-hospedado no GitHub (<https://github.com/walmes/EACS>) ou no GitLab
-(<https://gitlab.c3sl.ufpr.br/walmes/EACS>). Para isso é necessário ter
-o pacote `devtools`. Com ele, execute o código abaixo em uma sessão R.
+O pacote pode ser instalado diretamente do repositório em que está
+hospedado no GitHub (<https://github.com/walmes/EACS>). Para isso é
+necessário ter o pacote `devtools`. Com ele, execute o código abaixo em
+uma sessão R.
 
 ```r
 # Carrega o devtools.
 library(devtools)
 
-# Instala do GitLab (sob desenvolvimento).
-install_git(url = "https://gitlab.c3sl.ufpr.br/walmes/EACS.git")
-
 # Instala do GitHub (estável)
-install_github(repo = "EACS", username = "walmes")
+install_github("walmes/EACS")
 ```
 
 Caso não consiga instalar o pacote, tente fazer a partir dos aquivos
 comprimidos disponíveis em <http://leg.ufpr.br/~walmes/pacotes/>. Se
 você usa Windows, use o `zip`, se Linux use o `tar.gz`. O código abaixo
-mostra como fazer a instalação. Faça a use a versão atual no lugar de
-`x.y-z`.
+mostra como fazer a instalação. Substitua `x.y-z` pela versão do pacote.
 
 ```r
 # Instalando a partir do tarball (Linux).
 install.packages(pkgs = "EACS_x.y-z.tar.gz",
-                 repos = NULL, type = "source")
+                 repos = NULL,
+                 type = "source")
 
 # Instalando a partir do zip (Windows).
 install.packages(pkgs = "EACS_x.y.z.zip",
-                 repos = NULL, type = "source")
+                 repos = NULL,
+                 type = "source")
 ```
 
 Lembre-se que esse procedimento não instala as dependências do
-pacote. Portanto, na hora de usar pode ser dado falta de algo. Para
-evitar isso, antes de instalar, procure instalar todos os pacotes que
-são dependências para o EACS. Eles são listados no arquivo
+pacote. Portanto, na hora de usar pode faltar algo. Para evitar isso,
+antes de instalar, procure instalar todos os pacotes que são
+dependências para o EACS. Eles são listados no arquivo
 [DESCRIPTION](DESCRIPTION).
 
 ## Uso do Pacote
@@ -77,14 +77,15 @@ citation("EACS")
 
 ## Uso dos Dados
 
-As análises no pacote `EACS` foram feitas para serem de livre acesso das
-pessoas. Os conjuntos de dados estão disponíveis para ensino e
-aprendizado. No entanto, todo e qualquer uso dos dados, científico ou
-não, que gere publicações tais como, mas não se limitando, artigos,
-trabalhos em congressos, materias de blog e material didático devem ter
-o consentimento dos seus proprietários. Os dados no pacote `EACS` se
-tornam públicos antes das publicações que irão utilizá-los, já que as
-análises feita neste pacote são justamente para gerar os resultados que
-serão apresentados nestas publicações.
+As análises no pacote `EACS` foram feitas para serem de livre acesso. Os
+conjuntos de dados estão disponíveis para ensino e aprendizado. No
+entanto, todo e qualquer uso dos dados, científico ou não, que gere
+publicações tais como, mas não se limitando, artigos, trabalhos em
+congressos, materias de blog e material didático devem ter o
+consentimento dos seus proprietários.
+
+Os dados no pacote `EACS` se tornam públicos antes das publicações que
+irão utilizá-los, já que as análises feitas neste pacote são justamente
+para gerar os resultados que serão apresentados nas publicações.
 
 <!------------------------------------------- -->
