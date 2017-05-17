@@ -3,6 +3,8 @@
 Estatística Aplicada à Ciência do Solo
 ======================================
 
+[![Build Status](https://travis-ci.org/walmes/EACS.svg?branch=master)](https://travis-ci.org/walmes/EACS)
+
 Prof. Walmes Zeviani (`walmes@ufpr.br`) e colaboradores
 
 ## Organização
