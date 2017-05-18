@@ -14,6 +14,7 @@ vignettes/*.html
 !vignettes/_MathJax.html
 inst/doc
 inst/doc/*.Rmd
+docs
 
 ## Rnw/Rmd output files
 **/*_cache/*

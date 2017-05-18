@@ -13,3 +13,4 @@ LICENSE
 _output.yaml
 ci-c3sl.R
 _vignettes/
+^docs$
