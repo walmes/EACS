@@ -1,0 +1,83 @@
+body, td, caption {
+    font-size: 16px;
+}
+
+tt, code, pre {
+    font-family: "Inconsolata", "Andale Mono", monospace;
+}
+
+caption, p.caption {
+    text-align: left;
+    margin-left: 4em;
+    margin-right: 0em;
+    text-indent: -4em;
+    color: inherit;
+}
+
+img {
+    max-width: 100% !important;
+    display: block;
+    margin: auto;
+}
+
+blockquote {
+    font-size: 17.5px;
+    width: 90%;
+    border-left: none;
+    margin: auto;
+}
+
+blockquote > blockquote > p {
+    color: "red";
+    text-align: right;
+}
+
+a {
+    color: #7F4C2D;
+    text-decoration: none;
+}
+
+a:hover, a:focus {
+    color: #875b00;
+    /* text-decoration: underline; */
+}
+
+.nav-stacked > li > a {
+    padding: 5px 8px;
+}
+
+.nav-pills > li.active > a,
+.nav-pills > li.active > a:focus,
+.nav-pills > li.active > a:hover {
+    color: #fff;
+    /* color: #004E4E; */
+    background-color: #875b00;
+}
+
+.nav > li > a:focus,
+.nav > li > a:hover {
+    text-decoration: none;
+    background-color: #fff2e7;
+}
+
+img[alt="Build Status"] {
+    display: inherit;
+}
+
+tbody {
+    border-bottom: 2px solid #DDD;
+}
+
+tr.header {
+    border-top: 2px solid #DDD;
+}
+
+ul:not([class]) li {
+    list-style: none;
+}
+
+ul:not([class]) li:before {
+    content: '\25B8';
+    margin-left: -1em;
+    position: absolute;
+}

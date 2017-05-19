@@ -6,7 +6,7 @@ html_document:
   toc_float:
     collapsed: false
     smooth_scroll: false
-  css: config/style.css
+  css: ["config/pkgdown-style.css", "config/style.css"]
   fig_caption: yes
   highlight: default
   includes:

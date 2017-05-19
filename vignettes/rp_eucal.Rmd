@@ -13,22 +13,6 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-
-<style type="text/css">
-/* 
-  Lista de símbolos: 
-  http://www.w3schools.com/charsets/ref_utf_geometric.asp
-  ATTENTION: Quando coloca no style.css não funciona como deveria, 
-  ao invés do simbolo fica exibido o texto
-*/
-div:not(.tocify) > ul li {
-  list-style-type: '&#9656;  ';
-}
-div:not(.tocify) > ul li ul li, ol li ul li {
-  list-style-type: '&#9657;  ';
-}
-</style>
-
 ```{r setup, include=FALSE}
 source("config/setup.R")
 ```
