@@ -67,12 +67,26 @@ if (length(list.files("./vignettes"))) {
 check(cleanup = FALSE,
       manual = TRUE,
       vignettes = FALSE,
-      check_dir = "../")
+      check_dir = ".")
 
 #--------------------------------------------
 # Construir pacote.
 
-build(manual = TRUE, vignettes = TRUE)
+build(manual = TRUE, vignettes = TRUE, path = "./docs")
+
+#--------------------------------------------
+# Gerar documentação com pkgdown.
+
+library(pkgdown)
+
+# build_home()
+# build_reference()
+# build_articles()
+build_site()
+
+# Transfere CSS que é comum às vinhetas e site.
+file.copy(from = "./vignettes/config/pkgdown-style.css",
+          to = "./docs/", overwrite = TRUE)
 
 #--------------------------------------------
 # Instalar o pacote.

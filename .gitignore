@@ -12,8 +12,8 @@ vignettes/*.html
 !vignettes/_before_body.html
 !vignettes/_after_body.html
 !vignettes/_MathJax.html
-inst/doc
-inst/doc/*.Rmd
+inst/doc/
+!inst/doc/*.html
 docs
 
 ## Rnw/Rmd output files
