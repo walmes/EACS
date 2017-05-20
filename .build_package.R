@@ -106,3 +106,12 @@ install(build_vignettes = FALSE,
 # unlink(lib, recursive = TRUE)
 
 #--------------------------------------------
+# Transfere para public_html.
+
+# IP address and port (you can define these credential in .Rprofile).
+# credent <- scan(n = 2, what = "character")
+# cmd <- sprintf(paste("rsync -avzp ./docs/* --progress",
+#                      '--rsh="ssh -p%s"',
+#                      '"%s:~/public_html/pacotes/EACS"'),
+#                credent[2], credent[1])
+# system(cmd)
