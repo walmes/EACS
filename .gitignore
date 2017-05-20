@@ -1,5 +1,6 @@
 ## General
 README.html
+index.html
 CONTRIBUTING.html
 STYLEGUIDE.html
 plano.Rmd
@@ -15,6 +16,7 @@ vignettes/*.html
 inst/doc/
 !inst/doc/*.html
 docs
+*Rcheck/
 
 ## Rnw/Rmd output files
 **/*_cache/*

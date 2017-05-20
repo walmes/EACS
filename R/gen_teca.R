@@ -1,5 +1,6 @@
 #' @name gen_teca
-#' @title Desenvolvimento de mudas de teca em resposta a doses de Cálcio
+#' @title Desenvolvimento de mudas de teca em resposta a doses de
+#'     C\enc{á}{a}lcio
 #' @description O experimento foi instalado em casa de vegetação no mês
 #'     de Junho do ano de 2016, utilizando vasos de polietileno com 5
 #'     dm\eqn{^3} de solo. A umidade do solo foi mantida ente 60-70\% da
