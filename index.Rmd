@@ -35,11 +35,11 @@ comprimidos listados abaixo. Se você usa Windows, use o `zip`, se Linux
 use o `tar.gz`. O código abaixo mostra como fazer a
 instalação. Substitua `x.y-z` pela versão do pacote.
 
-```{r, echo = FALSE, results = "asis"}
-fls <- dir("./docs",
+```{r, eval = TRUE, echo = FALSE, results = "asis"}
+# setwd("./docs")
+fls <- dir(path = ".",
            pattern = "*.(zip|tar\\.gz)$",
            full.names = TRUE)
-# file.info(fls)
 if (length(fls) > 0) {
     bn <- basename(path = fls)
     cat(sprintf("  * [`%s`](./%s)", bn, bn), sep = "\n")
@@ -64,7 +64,23 @@ antes de instalar, procure instalar todos os pacotes que são
 dependências para o EACS. Eles são listados no arquivo
 [DESCRIPTION](DESCRIPTION).
 
-## Uso do Pacote
+```{r, echo = FALSE, results = "asis"}
+# setwd("./docs")
+fls <- dir(path = ".",
+           pattern = "manual.pdf$",
+           full.names = TRUE)[1]
+if (length(fls) > 0) {
+    txt <- sprintf(paste(
+        "## Manual em PDF\n\n",
+        "O manual em PDF do pacote está disponível para",
+        "baixar: [`%s`](%s)."),
+        basename(fls),
+        fls)
+    cat(txt, "\n")
+}
+```
+
+## Tour pelo pacote
 
 O código abaixo permite que fazer um *tour* pelo pacote EACS.
 
@@ -88,7 +104,7 @@ vignette(topic = "vignette_name_here", package = "EACS")
 citation("EACS")
 ```
 
-## Uso dos Dados
+## Uso dos dados
 
 As análises no pacote `EACS` foram feitas para serem de livre acesso. Os
 conjuntos de dados estão disponíveis para ensino e aprendizado. No
