@@ -5,15 +5,13 @@ Estatística Aplicada à Ciência do Solo
 
 [![Build Status](https://travis-ci.org/walmes/EACS.svg?branch=master)](https://travis-ci.org/walmes/EACS)
 
-Prof. Walmes Zeviani (`walmes@ufpr.br`) e colaboradores
-
 ## Organização
 
-O `EACS` é um pacote para o [software R](https://cran.r-project.org/). O
-pacote contém conjuntos de dados documentados e documentos que exibem a
-análise dos dados. Veja na seção [Uso do Pacote](#uso-do-pacote) como
-acessar o conteúdo do pacote e na seção [Instalação](#instalacao) como
-instalar.
+O `EACS` é um pacote não oficial para o
+[software R](https://cran.r-project.org/).  O pacote contém conjuntos de
+dados documentados e relatórios que exibem a análise dos dados.  Veja na
+seção [Uso do Pacote](#uso-do-pacote) como acessar o conteúdo do pacote
+e na seção [Instalação](#instalacao) como instalar.
 
 ## Instalação
 
@@ -33,7 +31,8 @@ install_github("walmes/EACS")
 Caso não consiga instalar o pacote, tente fazer a partir dos aquivos
 comprimidos listados abaixo. Se você usa Windows, use o `zip`, se Linux
 use o `tar.gz`. O código abaixo mostra como fazer a
-instalação. Substitua `x.y-z` pela versão do pacote.
+instalação. Substitua `x.y-z` pela versão do pacote conforme está no
+nome dos arquivos.
 
 ```{r, eval = TRUE, echo = FALSE, results = "asis"}
 # setwd("./docs")
@@ -58,11 +57,13 @@ install.packages(pkgs = "EACS_x.y.z.zip",
                  type = "source")
 ```
 
-Lembre-se que esse procedimento não instala as dependências do
-pacote. Portanto, na hora de usar pode faltar algo. Para evitar isso,
-antes de instalar, procure instalar todos os pacotes que são
-dependências para o EACS. Eles são listados no arquivo
-[DESCRIPTION](DESCRIPTION).
+Lembre-se de apontar o diretório de trabalho para o local onde está o
+arquivo baixado (use `setwd()`) ou forneça o caminho completo para o
+arquivo. Instalar o pacote pelos arquivos comprimidos não instala as
+dependências do pacote. Portanto, na hora de usá-lo pode faltar
+algo. Para evitar isso, antes de instalar, procure instalar todos os
+pacotes que são dependências para o EACS. Eles são listados no arquivo
+[DESCRIPTION].
 
 ```{r, echo = FALSE, results = "asis"}
 # setwd("./docs")
@@ -106,15 +107,23 @@ citation("EACS")
 
 ## Uso dos dados
 
-As análises no pacote `EACS` foram feitas para serem de livre acesso. Os
-conjuntos de dados estão disponíveis para ensino e aprendizado. No
-entanto, todo e qualquer uso dos dados, científico ou não, que gere
-publicações tais como, mas não se limitando, artigos, trabalhos em
-congressos, materias de blog e material didático devem ter o
-consentimento dos seus proprietários.
+As análises e dados no pacote `EACS` foram feitos para serem de livre
+acesso.  No entanto, todo e qualquer uso dos dados, científico ou não,
+que gere publicações tais como, mas não se limitando: artigos, trabalhos
+em congressos, materias de blog e material didático devem ter o
+consentimento dos seus proprietários. Entendemos que os dados gerados
+pelas pesquisas com financiamentos governamentais devem ser públicos,
+mas o pesquisador responsável pela pesquisa tem precedência sobre o uso
+dos dados em respeito à sua dedicação.
+
+Deseja-se ao fornecer acesso aos dados 1) gerar exemplos de análise que
+possam servir de base para outras pesquisas e 2) estimular pesquisas
+inovadoras de metodologia estatística a partir dos dados.
 
 Os dados no pacote `EACS` se tornam públicos antes das publicações que
 irão utilizá-los, já que as análises feitas neste pacote são justamente
 para gerar os resultados que serão apresentados nas publicações.
 
 <!------------------------------------------- -->
+[DESCRIPTION]: https://github.com/walmes/EACS/blob/master/DESCRIPTION
+[Walmes Zeviani]: https://www.researchgate.net/profile/Walmes_Zeviani2
