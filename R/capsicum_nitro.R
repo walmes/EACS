@@ -4,13 +4,15 @@
 #' @description Experimento foi instalado em casa de vegetação no mês de
 #'     outubro do ano de 2016, utilizando vasos de polietileno com 5
 #'     dm\eqn{^3} de solo dispostos conforme o delineamento inteiramente
-#'     casualizado. A unidade experimental foi um vaso cultivado com uma
-#'     planta de pimenta com umidade do solo mantida ente 65-55\% do
-#'     volume total de poros.
+#'     casualizado.  A unidade experimental foi um vaso cultivado com
+#'     uma planta de pimenta com umidade do solo mantida ente 65-55\% do
+#'     volume total de poros (a diferença entre pesagens consecutivas
+#'     nos vasos foi usadaa para repor a água consumida).
 #'
 #'     Os fatores estudados foram arranjados em um fatorial completo de
-#'     8 genótipos de pimenta (\emph{Capsicum} spp) \eqn{\times} 11
-#'     doses de adubação com nitrogênio (N) com uma ou duas repetições.
+#'     8 (acessos de) genótipos de pimenta (\emph{Capsicum} spp)
+#'     \eqn{\times} 11 doses de adubação com nitrogênio (N) com uma ou
+#'     duas repetições.
 #'
 #' @format Uma lista com 4 \emph{data frames} totalizando 16 variáveis
 #'     que são descritas a seguir.  A tabela \code{cres} contém os dados
@@ -22,16 +24,18 @@
 #'
 #' \describe{
 #'
-#' \item{\code{gen}}{Fator categórico que representa os oito genótipos
-#'     de pimenta:
+#' \item{\code{gen}}{Fator categórico que representa os oito acessos de
+#'     pimenta estudados, indicados pelos números que precedem o nome:
 #'       39 \emph{C. chinense} (2 repetições),
 #'       118 \emph{C. chinense} (2 rept),
 #'       17 \emph{C. frutense} (1 rept),
 #'       113 \emph{C. frutense} (2 rept),
 #'       116 \emph{C. annum} (2 rept),
 #'       163 \emph{C. annum} (1 rept),
-#'       66 \emph{C. annum v. pendulum} (1 rept) e
-#'       141 \emph{C. annum v. pratemirson} (1 rept).
+#'       66 \emph{C. baccatum var. pendulum} (1 rept) e
+#'       141 \emph{C. annum var. pratemirson} (1 rept).  Como indicado
+#'     entre parênteses, o número de repetições foi diferente entre
+#'     acessos.
 #' }
 #'
 #' \item{\code{dose}}{Fator de níveis métricos que são as doses de
@@ -44,7 +48,8 @@
 #'     de N.}
 #'
 #' \item{\code{data}}{Variável cronológica que indica a data em que a
-#'     altura da planta foi medida.}
+#'     altura da planta foi medida. Entre os registros tem-se um
+#'     intervalo médio de uma semana (semanal irregular).}
 #'
 #' \item{\code{alt}}{Variável resposta que é a altura da planta (mm)
 #'     medida ao longo do tempo.}
@@ -65,16 +70,23 @@
 #'
 #' \item{\code{flores}}{Variável resposta que é o número de dias para o
 #'     florescimento, evento indicado pela abertura da primeira flor da
-#'     planta com dias contados após a implantação do experimento.}
+#'     planta com dias contados após a implantação do
+#'     experimento. Quando a planta não apresenta florescimento
+#'     (\code{NA}), então não são observadas as demais variáveis
+#'     (maturação e demais variáveis de fruto) já que não foram
+#'     produzidos frutos para que fossem determinadas.}
 #'
 #' \item{\code{matur}}{Variável resposta que é o número de dias até o
 #'     primeiro fruto maduro da planta (maturação) com dias contados
-#'     após a implantação do experimento. Só ocorre maturação depois do
+#'     após a implantação do experimento. A maturação foi definida como
+#'     momento da mudança de cor do fruto, com os primeiro sinais de
+#'     amarelecimento, avermelhamento, de acordo com a cor final do
+#'     fruto maduro de cada genótipo. Só ocorre maturação depois do
 #'     florescimento.}
 #'
 #' \item{\code{nfrut}}{Variável resposta que é o número total de frutos
-#'     produzidos pela planta ao longo do experimento. Só ocorrem frutos
-#'     após o florescimento.}
+#'     produzidos pela planta ao longo do experimento (total
+#'     acumulado). Só ocorrem frutos após o florescimento.}
 #'
 #' \item{\code{mff}}{Variável resposta que é o total produzido em massa
 #'     fresca de frutos (g) por parcela no experimento.}
