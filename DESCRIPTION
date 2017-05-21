@@ -1,10 +1,13 @@
 Package: EACS
 Title: Estatística Aplicada à Ciência do Solo
 Version: 0.0-3
-Date: 2016-12-27
+Date: 2017-05-21
 Authors@R: as.person(c(
     "Walmes Marques Zeviani <walmes@ufpr.br> [cre,aut]",
-    "Milson Evaldo Serafim <milson.serafim@cas.ifmt.edu.br> [aut]"))
+    "Milson Evaldo Serafim <milson.serafim@cas.ifmt.edu.br> [ctb]",
+    "Fábio Benedito Ono [ctb]",
+    "Tárik Cazeiro El Kadri [ctb]",
+    "Willian Vieira Gonçalves [ctb]"))
 Description: Pacote que documenta conjuntos de dados de Projetos de
     Pesquisa na Ciência do Solo. O pacote possui as análises dos dados
     no formato de vinheta com o objetivo de disponilizar essas análises
@@ -14,7 +17,6 @@ URL:
     http://gitlab.c3sl.ufpr.br/walmes/EACS,
     https://github.com/walmes/EACS
 BugReports:
-    http://gitlab.c3sl.ufpr.br/walmes/EACS/issues,
     https://github.com/walmes/EACS/issues
 LazyData: true
 Encoding: UTF-8
