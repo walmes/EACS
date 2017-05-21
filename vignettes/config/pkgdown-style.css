@@ -37,9 +37,14 @@ a {
     text-decoration: none;
 }
 
+table a:not(.btn),
+.table a:not(.btn) {
+    color: #7F4C2D;
+    text-decoration: underline;
+}
+
 a:hover, a:focus {
     color: #875b00;
-    /* text-decoration: underline; */
 }
 
 .nav-stacked > li > a {
@@ -64,12 +69,27 @@ img[alt="Build Status"] {
     display: inherit;
 }
 
+table {
+    border-collapse: collapse;
+    /* border-spacing: 0; */
+}
+
+table.ref-index {
+    border-collapse: unset;
+}
+
 tbody {
     border-bottom: 2px solid #DDD;
 }
 
 tr.header {
     border-top: 2px solid #DDD;
+    border-bottom: 3px solid #DDD; /* Se <= 2px não aparece. */
+}
+
+table:not(.table-bordered) > tbody > tr > td,
+.table:not(.table-bordered) > tbody > tr > td {
+    border-color: #EEE;
 }
 
 ul:not([class]) li {

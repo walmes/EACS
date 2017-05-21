@@ -33,6 +33,7 @@ Suggests:
     rpart,
     doBy,
     multcomp,
+    reshape,
     reshape2,
     plyr,
     captioner,
