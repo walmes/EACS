@@ -1,22 +1,31 @@
 ## General
 README.html
 index.html
+index.md
 CONTRIBUTING.html
 STYLEGUIDE.html
 plano.Rmd
 playground.R
+*.utf8.md
+*.knit.md
 *.Rhistory
 *.Rproj.user
 *.RData
 *.Rout
+*.Rapp.history
+*-Ex.R
+.httr-oauth
+*Rcheck/
+docs/
+inst/doc/
+!inst/doc/*.html
 vignettes/*.html
+vignettes/*.pdf
 !vignettes/_before_body.html
 !vignettes/_after_body.html
 !vignettes/_MathJax.html
-inst/doc/
-!inst/doc/*.html
-docs
-*Rcheck/
+/*_cache/
+/cache/
 
 ## Rnw/Rmd output files
 **/*_cache/*

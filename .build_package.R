@@ -5,13 +5,13 @@ R.version.string
 Sys.info()
 
 #--------------------------------------------
-# Carregar pacotes.
+# Load packages.
 
 # - Para desenvolvimento do pacote
 library(devtools)
 library(roxygen2)
 
-# - Instalando as dependencias (descritas no DESCRIPTION)
+# - Install dependencies
 install_github("walmes/wzRfun")
 install_deps(dependencies = TRUE,
              quiet = TRUE,
@@ -26,7 +26,7 @@ print(inpack[order(inpack[, "Package"]), c("Package", "Version")],
       quote = FALSE)
 
 #--------------------------------------------
-# Carregar objetos do pacote.
+# Load package.
 
 load_all()
 
@@ -36,12 +36,12 @@ ls(2)
 packageVersion(pkg)
 
 #--------------------------------------------
-# Ignora check de caracteres non-ASCII nos datasets
+# Ignores non-ASCII characters in the datasets
 
 Sys.setenv(`_R_CHECK_ASCII_DATA_` = "FALSE")
 
 #--------------------------------------------
-# Produzir a documentação dos objetos.
+# Creates the documentation.
 
 document()
 
@@ -55,14 +55,14 @@ if (cp > 0) {
 }
 
 #--------------------------------------------
-# Gerar as vinhetas, caso existam.
+# Creates the vignettes.
 
 if (length(list.files("./vignettes"))) {
     build_vignettes(dependencies = FALSE)
 }
 
 #--------------------------------------------
-# Checar conteúdo e organização do pacote.
+# Check the package.
 
 check(cleanup = FALSE,
       manual = TRUE,
@@ -70,12 +70,14 @@ check(cleanup = FALSE,
       check_dir = ".")
 
 #--------------------------------------------
-# Construir pacote.
+# Build the package.
 
-build(manual = TRUE, vignettes = TRUE, path = "./docs")
+build(manual = TRUE,
+      vignettes = TRUE,
+      path = "./docs")
 
 #--------------------------------------------
-# Gerar documentação com pkgdown.
+# Creates the pkgdown documentation.
 
 library(pkgdown)
 
@@ -84,12 +86,14 @@ library(pkgdown)
 # build_articles()
 build_site()
 
-# Transfere CSS que é comum às vinhetas e site.
-file.copy(from = "./vignettes/config/pkgdown-style.css",
-          to = "./docs/", overwrite = TRUE)
+# Move stylesheet and mathjax files.
+file.copy(from = c("./vignettes/config/pkgdown-style.css",
+                   "./vignettes/config/MathJax.html"),
+          to = "./docs",
+          overwrite = TRUE)
 
 #--------------------------------------------
-# Instalar o pacote.
+# Installs the package.
 
 rm(list = ls())
 
@@ -106,7 +110,7 @@ install(build_vignettes = FALSE,
 # unlink(lib, recursive = TRUE)
 
 #--------------------------------------------
-# Transfere para public_html.
+# Transfer to server public_html.
 
 # IP address and port (you can define these credential in .Rprofile).
 # credent <- scan(n = 2, what = "character")

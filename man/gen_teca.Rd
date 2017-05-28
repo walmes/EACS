@@ -2,7 +2,8 @@
 % Please edit documentation in R/gen_teca.R
 \name{gen_teca}
 \alias{gen_teca}
-\title{Desenvolvimento de mudas de teca em resposta a doses de Cálcio}
+\title{Desenvolvimento de mudas de teca em resposta a doses de
+    C\enc{á}{a}lcio}
 \format{Um \code{data.frame} com 5800 observações e 7 variáveis, em
      que
 
