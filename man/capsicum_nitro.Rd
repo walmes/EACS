@@ -95,7 +95,45 @@
     amostra foi analizada em triplicata (3 valores por unidade
     experimental).}
 
-}}
+}
+
+    O experimento teve por objetivo estudar a resposta dos genótipos
+    de \emph{Capsicum} à doses crescentes de N. Para as condições do
+    estudo tem-se as seguintes hipóteses:
+
+\itemize{
+
+\item Os genótipos apresentam resposta positiva as doses de
+    nitrogênio para as variáveis resposta altura e diâmetro altura do
+    colo.
+
+\item O florescimento é retardado nos genótipos de pimenta com o
+    aumento das doses de N.
+
+\item As medidas de frutos: diâmetro, comprimento, número de frutos,
+    massa fresca e massa seca de frutos crescem em resposta às doses
+    de N.
+
+\item O teor de polifenois possui resposta negativa às doses
+    crescentes de N.
+
+\item A capacidade produtiva dos genótipos é determinada pelo tamanho
+    (altura e diâmetro colo) das plantas de cada espécie.
+
+\item Os genótipos diferem quanto ao teor de polifenois apresentado
+    nos frutos.
+
+}
+
+    Com este trabalho, busca-se definir a resposta dos diferentes
+    genótipos ao nitrogênio; as doses de máxima resposta e o teor de
+    N a partir do qual inicia efeitos negativos na planta.  Na
+    comparação entre genótipos, busca-se conhecer aqueles com maior
+    produção de frutos e teor de polifenois.  O tempo para
+    florescimento também é uma variável resposta de interesse na
+    comparação de genótipos, pois seu conhecimento permite conhecer o
+    potencial de genótipos em contribuir com a precocidade da
+    produção nos programas de melhoramento.}
 \source{
 Dados produzidos por Milson Evaldo Serafim (Orientador) e
     Paloma Braga (Bolsista de IC) em 2016.
