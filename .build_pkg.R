@@ -7,11 +7,14 @@ Sys.info()
 #--------------------------------------------
 # Load packages.
 
-# - Para desenvolvimento do pacote
 library(devtools)
 library(roxygen2)
 
-# - Install dependencies
+if (Sys.info()["user"] == "walmes") {
+    .libPaths(new = "/usr/lib/R/site-library")
+}
+
+# Install dependencies.
 install_github("walmes/wzRfun")
 install_deps(dependencies = TRUE,
              quiet = TRUE,
@@ -28,7 +31,7 @@ print(inpack[order(inpack[, "Package"]), c("Package", "Version")],
 #--------------------------------------------
 # Load package.
 
-load_all()
+devtools::load_all()
 
 pkg <- basename(getwd())
 # ls(sprintf("package:%s", pkg))
@@ -44,15 +47,7 @@ Sys.setenv(`_R_CHECK_ASCII_DATA_` = "FALSE")
 # Creates the documentation.
 
 document()
-
-cp <- compareVersion(a = as.character(packageVersion("devtools")),
-                     b = "1.9.1")
-
-if (cp > 0) {
-    check_man()
-} else {
-    check_doc()
-}
+check_man()
 
 #--------------------------------------------
 # Creates the vignettes.

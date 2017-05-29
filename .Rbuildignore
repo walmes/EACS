@@ -4,7 +4,7 @@
 ^\.Rproj\.user$
 ^\.gitlab-ci.yml$
 ^data-raw$
-^.build_package.R$
+^.build_pkg.R$
 ^.gitlab-ci.yml$
 ^.travis.yml$
 ^README.Rmd$

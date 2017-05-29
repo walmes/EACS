@@ -1,6 +1,6 @@
 R_build_package:
   script:
-    - ./.build_package.R
+    - ./.build_pkg.R
   tags:
     - r
     - devtools
