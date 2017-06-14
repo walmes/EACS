@@ -1,7 +1,6 @@
 #' @name capsicum_nitro
 #' @title Resposta de gen\enc{ó}{o}tipos de pimenta \enc{à}{a} doses de
-#'     nitrog\enc{ê}{e}nio
-#'
+#'     nitrog\enc{ê}{e}nio #'
 #' @description Experimento foi instalado em casa de vegetação no mês de
 #'     outubro do ano de 2016, utilizando vasos de polietileno com 5
 #'     dm\eqn{^3} de solo dispostos conforme o delineamento inteiramente

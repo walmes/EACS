@@ -8,7 +8,7 @@ output:
   html_document:
     code_folding: show
 vignette: >
-  %\VignetteIndexEntry{Desempenho agronomico de milho tratado com bioestimulantes}
+  %\VignetteIndexEntry{Desenvolvimento de mudas de teca em resposta à doses de Cálcio}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

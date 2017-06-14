@@ -1,6 +1,6 @@
 #' @name maracuja
 #' @title Cinza de cana em substrato de "terra de barranco" para
-#'     produção de mudas de maracujazeiro
+#'     produ\enc{çã}{ca}o de mudas de maracujazeiro
 #' @description Experimento que avaliou a quantidade de cinza na
 #'     composição de substratos para mudas de maracujazeiro combinado
 #'     com solo composto de agregados de diferentes tamanhos para duas
