@@ -1,0 +1,642 @@
+---
+title: "Cinza de cana em substrato de \"terra de barranco\" para produção de mudas de maracujazeiro"
+author: >
+  [Milson E. Serafim](http://lattes.cnpq.br/8676820051946774) &
+  [Walmes M. Zeviani](http://lattes.cnpq.br/4410617539281650)
+date: '`r format(Sys.Date(), format = "%d de %B de %Y")`'
+output:
+  html_document:
+    code_folding: show
+vignette: >
+  %\VignetteIndexEntry{Cinza de cana em substrato de "terra de barranco" para produção de mudas de maracujazeiro}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+library(lattice)
+lattice.options(default.theme = modifyList(
+                    standard.theme(color = FALSE),
+                    list(strip.background = list(col = "gray90"))))
+tps <- trellis.par.get()
+source("config/setup.R")
+trellis.par.set(tps)
+
+# opts_chunk$set(#dev.args = list(family = "Helvetica"),
+#                dpi = 96)
+options(width = 80)
+```
+
+# Definições da sessão
+
+```{r, message = FALSE}
+#-----------------------------------------------------------------------
+# Definições da sessão, pacotes a serem usados.
+
+# Instruções para instalação do wzRfun em:
+# browseURL("https://github.com/walmes/wzRfun")
+
+pkg <- c("lattice", "latticeExtra", "grid", "gridExtra", "reshape",
+         "plyr", "doBy", "multcomp", "MASS", "nlme", "wzRfun")
+sapply(pkg, library, character.only = TRUE, logical.return = TRUE)
+```
+
+```{r}
+#-----------------------------------------------------------------------
+
+data(maracuja)
+mara <- maracuja$cresc
+str(mara)
+
+mara <- transform(mara,
+                  agreg = factor(agreg,
+                                 labels = c("0-2 mm", "4-10 mm")),
+                  dias = as.numeric(data - min(data)))
+str(mara)
+
+# ftable(xtabs(~bloc + fam + agreg + cinz + dias, data = mara))
+
+# 3 bloc * 2 fam * 2 agreg * 7 cinz * 8 dias = 672 cells.
+mara$id <- with(mara, interaction(bloc, fam, agreg, cinz, dias))
+nlevels(mara$id)
+
+# Valores médios por parcela.
+mara <- ddply(mara,
+              .(bloc, fam, agreg, cinz, dias),
+              summarise,
+              alt = mean(alt))
+str(mara)
+
+#-----------------------------------------------------------------------
+# Ver.
+
+xyplot(alt ~ dias | fam * agreg,
+       groups = cinz,
+       data = mara,
+       type = c("p", "a"))
+
+#-----------------------------------------------------------------------
+# Modelo para altura final.
+
+m0 <- lm(alt ~ bloc + fam * agreg * cinz,
+         data = subset(mara, dias == max(dias)))
+
+# Resíduos.
+# par(mfrow = c(2,2)); plot(m0); layout(1)
+
+# Quadro de anova.
+anova(m0)
+```
+
+# Crescimento das plantas via modelo não linear de efeitos aleatórios
+
+```{r}
+#-----------------------------------------------------------------------
+# Usando modelos não lineares mistos.
+
+# Medidas repetidas nos indivíduos que são as parcelas.
+mara$parcela <- with(mara,
+                     interaction(bloc, fam, agreg, cinz, sep = "_"))
+# nlevels(mara$parcela) # 3 * 2 * 2 * 7
+
+marag <- groupedData(formula = alt ~ dias | parcela,
+                     data = mara,
+                     order = FALSE)
+str(marag)
+
+#-----------------------------------------------------------------------
+# Modelo sem efeito dos fatores experimentais.
+
+nn0 <- nlme(alt ~ SSlogis(dias, A, B, C),
+            fixed = A + B + C ~ 1,
+            random = A + B + C ~ 1,
+            data = marag,
+            start = list(fixed = c(148, 31, 6.8)))
+
+# Quadro com as estimativas dos parâmetros.
+summary(nn0)$tTable
+
+VarCorr(nn0)
+# intervals(nn0)
+# plot(nn0)
+# pairs(nn0)
+# par(mfrow = c(1,3)); apply(ranef(nn0), 2, qqnorm); layout(1)
+
+# Observações discrepantes.
+outl <- which(abs(residuals(nn0, type = "pearson")) > 3)
+outl
+
+# Remoção.
+marag <- marag[-outl, ]
+
+#-----------------------------------------------------------------------
+# O intercepto não é zero, não sei porque, mas incorporar no modelo.
+# modelo: Int + A/(1 + exp(-(x - x0)/S)).
+# modelo de efeitos aditivos, aleatório em A e B e modelagem da
+# variância.
+
+nn1 <- nlme(alt ~ int + A/(1 + exp(-(dias - d50)/S)),
+            fixed = list(int ~ 1,
+                         A ~ bloc + fam + agreg + cinz,
+                         d50 ~ bloc + fam + agreg + cinz,
+                         S ~ bloc + fam + agreg + cinz),
+            random = A + d50 + S ~ 1,
+            data = marag,
+            start = list(
+                fixed = c(5,
+                          120, 0, 0, 0, 0, 0,
+                          30, 0, 0, 0, 0, 0,
+                          4, 0, 0, 0, 0, 0)))
+
+# Quadro de testes de Wald para termos de efeito fixo.
+anova(nn1, type = "marginal")
+# summary(nn1)$tTable
+
+VarCorr(nn1)
+# plot(nn1)
+# par(mfrow = c(1,3)); apply(ranef(nn1), 2, qqnorm); layout(1)
+# intervals(nn1)
+
+# Pelo modelo acima ninguém interfere no crescimento da planta.
+
+#-----------------------------------------------------------------------
+# Modelo com interações.
+
+nn2 <- nlme(alt ~ int + A/(1 + exp(-(dias - d50)/S)),
+            fixed = list(int ~ 1,
+                         A ~ bloc + fam * agreg * cinz,
+                         d50 ~ bloc + fam * agreg * cinz,
+                         S ~ bloc + fam * agreg * cinz) ,
+            random = A + d50 + S ~ 1,
+            data = marag,
+            start = list(
+                fixed = c(5.2,
+                          120, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                          30, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                          4, 0, 0, 0, 0, 0, 0, 0, 0, 0)))
+
+anova(nn2, type = "marginal")
+# summary(nn2)$tTable
+
+VarCorr(nn2)
+# plot(nn2)
+# par(mfrow = c(1,3)); apply(ranef(nn2), 2, qqnorm); layout(1)
+# intervals(nn2)
+# pairs(nn2)
+
+# Esse parece ser um bom modelo, existe interação tripla apenas para A,
+# o resto não muda.
+
+#-----------------------------------------------------------------------
+# Modelo que é uma redução do nn2.
+
+nn3 <- nlme(alt ~ int + A/(1 + exp(-(dias - d50)/S)),
+            fixed = list(int ~ 1,
+                         A ~ bloc + fam * agreg * cinz,
+                         d50 ~ bloc,
+                         S ~ bloc) ,
+            random = A + d50 + S ~ 1,
+            data = marag,
+            start = list(
+                fixed = c(5.2,
+                          120, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                          30, 0, 0,
+                          4, 0, 0)))
+
+anova(nn3, type = "marginal")
+anova(nn3, nn2) # Ótimo!!
+
+summary(nn3)$tTable
+
+VarCorr(nn3)
+# plot(nn3)
+# par(mfrow = c(1,3)); apply(ranef(nn3), 2, qqnorm); layout(1)
+# intervals(nn3)
+# pairs(nn3)
+
+#-----------------------------------------------------------------------
+# Fazendo a predição.
+
+pred <- expand.grid(bloc = "1",
+                    fam = levels(mara$fam),
+                    agreg = levels(mara$agreg),
+                    cinz = seq(0, 50, l = 2),
+                    dias = seq(0, 60, l = 30))
+pred$y <- predict(nn3, newdata = pred, level = 0)
+
+xyplot(y ~ dias | fam * agreg,
+       groups = cinz,
+       data = pred,
+       type = c("l"))
+```
+
+```{r, fig.width = 7, fig.height = 7, dpi = 300}
+# Largura da página da coluna da revista (8 cm = 3.150 pol) e da folha
+# (17 cm = 6.690 pol).
+
+colr <- c("white", "black")
+colr <- colorRampPalette(colr, space = "rgb")
+
+wireframe(y ~ dias + cinz|fam * agreg,
+          data = pred,
+          scales = list(arrows = FALSE),
+          drape = TRUE,
+          zlim = c(0, 155),
+          zlab = list(expression(Altura ~ da ~ planta ~ (cm)),
+                      rot = 90,
+                      hjust = 0.5,
+                      vjust = -0.2),
+          xlab = list(expression(Dias),
+                      vjust = 1,
+                      rot = 30),
+          ylab = list(expression(Cinza ~ (t ~ ha^{-1})),
+                      vjust = 1,
+                      rot = -40),
+          strip = strip_combined,
+          par.strip.text = list(lines = 0.6),
+          par.settings = list(
+              regions = list(col = colr(100)),
+              layout.widths = list(xlab.axis.padding = 3)))
+
+```
+
+```{r}
+#-----------------------------------------------------------------------
+# Estimativas pontuais das assíntotas.
+
+summ <- summary(nn3)$tTable
+summ[grep("cinz", rownames(summ)), ]
+
+coefs <- fixef(nn3)
+vcovs <- vcov(nn3)
+# names(coefs)
+
+idA <- grep("^A\\.", names(coefs))
+coefsA <- coefs[idA]
+vcovsA <- vcovs[idA, idA]
+# length(coefsA); length(coef(m0))
+
+X0 <- LSmatrix(m0, effect = c("agreg", "fam"), at = list(cinz = 0))
+b0 <- X0 %*% coefsA
+v0 <- sqrt(diag(X0 %*% vcovsA %*% t(X0)))
+ic0 <- sapply(1:4, function(i) b0[i] + c(-1, 0, 1) * 1.96 * v0[i])
+ic0 <- t(ic0)
+colnames(ic0) <- c("Lower", "Estimate", "Upper")
+rownames(ic0) <- paste(c(outer(levels(mara$fam),
+                               levels(mara$agreg),
+                               paste)), "cinz 0")
+
+X48 <- LSmatrix(m0, effect = c("agreg", "fam"), at = list(cinz = 48))
+b48 <- X48 %*% coefsA
+v48 <- sqrt(diag(X48 %*% vcovsA %*% t(X48)))
+ic48 <- sapply(1:4, function(i) b48[i] + c(-1, 0, 1) * 1.96 * v48[i])
+ic48 <- t(ic48)
+colnames(ic48) <- c("Lower", "Estimate", "Upper")
+rownames(ic48) <- paste(c(outer(levels(mara$fam),
+                                levels(mara$agreg),
+                                paste)), "cinz 48")
+
+ics <- cbind(trat = c(rownames(ic0),
+                      rownames(ic48)),
+             data.frame(rbind(ic0, ic48)))
+
+
+p1 <-
+    segplot(reorder(trat, Estimate) ~ Lower + Upper,
+            data = ics,
+            draw.bands = FALSE,
+            centers = Estimate,
+            segments.fun = panel.arrows,
+            ends = "both",
+            angle = 90,
+            length = .05,
+            par.settings = simpleTheme(pch = 19, col = 1),
+            ylab = NULL,
+            xlab = expression(Ganho ~ em ~ altura ~ (cm)),
+            panel = function(x, y, z, ...) {
+                panel.abline(h = z, col = "grey", lty = "dashed")
+                panel.abline(v = 0, col = 1, lty = "dashed")
+                panel.segplot(x, y, z, ...)
+            })
+# print(p1)
+
+#-----------------------------------------------------------------------
+# Mas o contraste é uma matriz menos a outra, então.
+
+X <- X48 - X0
+b <- X %*% coefsA
+v <- X %*% vcovsA %*% t(X)
+t <- b/sqrt(diag(v))
+
+Z <- model.matrix(~fam * agreg,
+                  expand.grid(fam = levels(mara$fam),
+                              agreg = levels(mara$agreg)))
+d <- coefs[grep("cinz", names(coefs))]
+u <- vcovs[grep("cinz", names(coefs)),
+           grep("cinz", names(coefs))]
+d <- c(Z %*% d)
+u <- sqrt(diag(Z %*% u %*% t(Z)))
+ic <- sapply(1:4, function(i) d[i] + c(-1, 0, 1) * 1.96 * u[i])
+ic <- t(ic)
+colnames(ic) <- c("Lower", "Estimate", "Upper")
+rownames(ic) <- c(outer(levels(mara$fam),
+                        levels(mara$agreg),
+                        paste))
+ic <- cbind(trat = rownames(ic), as.data.frame(ic))
+
+p2 <- segplot(reorder(trat, Estimate) ~ Lower + Upper,
+              data = ic,
+              draw.bands = FALSE,
+              centers = Estimate,
+              segments.fun = panel.arrows,
+              ends = "both",
+              angle = 90,
+              length = .05,
+              par.settings = simpleTheme(pch = 19, col = 1),
+              ylab = NULL,
+              xlab = "Coeficiente de inclinação",
+              panel = function(x, y, z, ...) {
+                  panel.abline(h = z, col = "grey", lty = "dashed")
+                  panel.abline(v = 0, col = 1, lty = "dashed")
+                  panel.segplot(x, y, z, ...)
+              })
+# print(p2)
+```
+```{r,  dpi = 300}
+plot(p1, split = c(1, 1, 1, 2), more = TRUE)
+grid.text(label = "A", 0.025, 0.975)
+plot(p2, split = c(1, 2, 1, 2), more = FALSE)
+grid.text(label = "B", 0.025, 0.475)
+```
+
+# MSPA, MFPA, DS e CAV
+
+```{r}
+#-----------------------------------------------------------------------
+# Ler tabela de dados.
+
+da <- maracuja$final
+da <- transform(da,
+                agreg = factor(agreg,
+                               labels = c("0-2 mm", "4-10 mm")))
+str(da)
+
+u <- unique(da$cinz)
+cbind(u, u/1.5, sqrt(u/1.5), log(u/1.5, base = 2))
+
+# Doses de cinza em uma escala com distância mais regular entre níveis.
+da$cin <- sqrt(da$cinz/1.5)
+
+#-----------------------------------------------------------------------
+# Ver.
+
+combineLimits(
+    useOuterStrips(
+        xyplot(mfpa + mspa + ds + cav ~ cin | fam,
+               outer = TRUE,
+               groups = agreg,
+               data = da,
+               xlab = "Cinza (escala transformada)",
+               ylab = "Valor das variáveis resposta",
+               type = c("p", "smooth"),
+               auto.key = list(columns = 2,
+                               title = "Classe de agregado",
+                               cex.title = 1),
+               scales = list(y = "free"))))
+```
+
+```{r}
+#-----------------------------------------------------------------------
+# Especificação e ajuste dos modelos em batelada.
+
+# Respostas.
+resp <- c("mfpa", "mspa", "ds", "cav")
+
+# Lista de formulas.
+form0 <- lapply(paste(resp,
+                      "~ bloc + fam * agreg * (cinz + I(cinz^2))"),
+                as.formula)
+names(form0) <- resp
+
+# Ajustes.
+m0 <- lapply(form0, lm, data = da)
+
+#-----------------------------------------------------------------------
+# Quadros de anova.
+
+lapply(m0, anova)
+
+#-----------------------------------------------------------------------
+# Quadro de estimativas dos efeitos.
+
+lapply(m0, summary)
+
+#-----------------------------------------------------------------------
+# Avaliação dos pressupostos.
+
+par(mfrow = c(2,2)); plot(m0[["mfpa"]]); layout(1) ## ok!
+par(mfrow = c(2,2)); plot(m0[["mspa"]]); layout(1) ## ok!
+par(mfrow = c(2,2)); plot(m0[["ds"]]);   layout(1) ## bom.
+par(mfrow = c(2,2)); plot(m0[["cav"]]);  layout(1) ## ok!
+
+#-----------------------------------------------------------------------
+# Modelos após abandono de termos não significativos.
+
+form1 <- list(
+    mfpa = mfpa ~ bloc + agreg * cinz,
+    mspa = mspa ~ bloc + agreg * cinz,
+    ds = ds ~ bloc + (fam + agreg + cinz)^3 + (fam + agreg) * I(cinz^2),
+    cav = cav ~ bloc + fam * agreg * (cinz + I(cinz^2)))
+
+m1 <- lapply(form1, lm, data = da, contrast = list(bloc = contr.sum))
+lapply(m1, anova)
+
+# Anova entre modelos sequenciais.
+sapply(names(m1),
+       simplify = FALSE,
+       function(i) {
+           anova(m0[[i]], m1[[i]])
+       })
+
+#-----------------------------------------------------------------------
+# Valores preditos.
+
+gridlist <- list(bloc = "1",
+                 fam = levels(da$fam),
+                 agreg = levels(da$agreg),
+                 cin = seq(0, 6, l = 100),
+                 cinz = seq(0, 50, l = 100))
+
+m1 <- lapply(m1,
+             function(i) {
+                 predvars <- attr(terms(i), "term.labels")
+                 pred <- do.call(
+                     expand.grid,
+                     gridlist[predvars[!sapply(gridlist[predvars],
+                                               is.null)]])
+                 i$newdata <- pred
+                 return(i)
+             })
+
+mypredict <- function(m) {
+    cbind(m$newdata,
+          predict(m,
+                  newdata = m$newdata,
+                  interval = "confidence") -
+          coef(m)["bloc1"])
+}
+
+all.pred <- lapply(m1, mypredict)
+# str(all.pred)
+# lapply(all.pred, names)
+```
+
+```{r}
+#-----------------------------------------------------------------------
+# Gráficos.
+
+xlab <- expression("Cinza" ~ (t ~ ha^{-1}))
+ylab <- list(expression("Massa fresca de parte aérea" ~ (g)),
+             expression("Massa seca de parte aérea" ~ (g)),
+             expression("Densidade do solo" ~ (Mg ~ t^{-1})),
+             expression("Água consumida no ciclo" ~ (mL)))
+names(ylab) <- names(m1)
+
+l <- levels(da$agreg)
+n <- nlevels(da$agreg)
+key <- list(columns = 2,
+            title = "Classe de agregado (mm)",
+            cex.title = 1.1,
+            type = "o",
+            divide = 1,
+            text = list(l),
+            lines = list(
+                pch = trellis.par.get()$superpose.symbol$pch[1:n],
+                lty = trellis.par.get()$superpose.line$lty[1:n]))
+
+scales <- list(alternating = 1)
+
+#-----------------------------------------------------------------------
+# MFPA.
+
+p1 <- xyplot(mfpa ~ cinz,
+             groups = agreg,
+             data = da,
+             ylab = ylab[["mfpa"]],
+             xlab = xlab,
+             strip = strip.custom(bg = "gray90"),
+             key = key,
+             scales = scales) +
+    as.layer(with(all.pred[["mfpa"]],
+                  xyplot(fit ~ cinz,
+                         groups = agreg,
+                         type = "l",
+                         ly = lwr,
+                         uy = upr,
+                         cty = "bands",
+                         fill = 1,
+                         alpha = 0.2,
+                         prepanel = prepanel.cbH,
+                         panel = panel.superpose,
+                         panel.groups = panel.cbH)))
+
+#-----------------------------------------------------------------------
+# MSPA.
+
+p2 <- xyplot(mspa ~ cinz,
+             groups = agreg,
+             data = da,
+             ylab = ylab[["mspa"]],
+             xlab = xlab,
+             strip = strip.custom(bg = "gray90"),
+             key = key,
+             scales = scales) +
+    as.layer(with(all.pred[["mspa"]],
+                  xyplot(fit ~ cinz,
+                         groups = agreg,
+                         type = "l",
+                         ly = lwr,
+                         uy = upr,
+                         cty = "bands",
+                         fill = 1,
+                         alpha = 0.2,
+                         prepanel = prepanel.cbH,
+                         panel = panel.superpose,
+                         panel.groups = panel.cbH)))
+
+#-----------------------------------------------------------------------
+# DS.
+
+p3 <- xyplot(ds ~ cinz | fam,
+             groups = agreg,
+             data = da,
+             layout = c(NA, 1),
+             ylab = ylab[["ds"]],
+             xlab = NULL,
+             strip = strip.custom(bg = "gray90"),
+             key = key,
+             scales = scales) +
+    as.layer(with(all.pred[["ds"]],
+                  xyplot(fit ~ cinz | fam,
+                         groups = agreg,
+                         type = "l",
+                         ly = lwr,
+                         uy = upr,
+                         cty = "bands",
+                         fill = 1,
+                         alpha = 0.2,
+                         prepanel = prepanel.cbH,
+                         panel = panel.superpose,
+                         panel.groups = panel.cbH)))
+
+#-----------------------------------------------------------------------
+# CAV.
+
+p4 <- xyplot(cav ~ cinz | fam,
+             groups = agreg,
+             data = da,
+             layout = c(NA, 1),
+             ylab = ylab[["cav"]],
+             xlab = xlab,
+             strip = strip.custom(bg = "gray90"),
+             scales = scales) +
+    as.layer(with(all.pred[["cav"]],
+                  xyplot(fit ~ cinz | fam,
+                         groups = agreg,
+                         type = "l",
+                         ly = lwr,
+                         uy = upr,
+                         cty = "bands",
+                         fill = 1,
+                         alpha = 0.2,
+                         prepanel = prepanel.cbH,
+                         panel = panel.superpose,
+                         panel.groups = panel.cbH)))
+```
+
+```{r, fig.width = 4, fig.height = 7, dpi = 300}
+#-----------------------------------------------------------------------
+# Arranjo 1.
+
+x11(w = 4, h = 7)
+c(update(p1, ylab = c(ylab[[2]], ylab[[1]])),
+  p2,
+  layout = c(1, 2))
+```
+
+```{r, fig.height = 7, dpi = 300}
+#-----------------------------------------------------------------------
+# Arranjo 2.
+
+c(update(p3, ylab = c(ylab[[4]], ylab[[3]])),
+  p4,
+  layout = c(2, 2))
+```
+
+# Informações da Sessão
+
+```{r, echo = FALSE, results = "hold"}
+cat(format(Sys.time(),
+           format = "Atualizado em %d de %B de %Y.\n\n"))
+sessionInfo()
+```
