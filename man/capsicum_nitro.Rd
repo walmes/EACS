@@ -3,7 +3,7 @@
 \name{capsicum_nitro}
 \alias{capsicum_nitro}
 \title{Resposta de gen\enc{ó}{o}tipos de pimenta \enc{à}{a} doses de
-    nitrog\enc{ê}{e}nio}
+    nitrog\enc{ê}{e}nio #'}
 \format{Uma lista com 4 \emph{data frames} totalizando 16 variáveis
     que são descritas a seguir.  A tabela \code{cres} contém os dados
     para curva de crescimento em altura das plantas, \code{planta}

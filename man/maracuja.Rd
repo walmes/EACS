@@ -3,7 +3,7 @@
 \name{maracuja}
 \alias{maracuja}
 \title{Cinza de cana em substrato de "terra de barranco" para
-    produção de mudas de maracujazeiro}
+    produ\enc{çã}{ca}o de mudas de maracujazeiro}
 \format{Uma lista com dois elementos sendo \code{final} os dados
     obtidos ao final do experimento com a colheita das parcelas e
     \code{cresc} dados sobre o crescimento em altura das plantas.
