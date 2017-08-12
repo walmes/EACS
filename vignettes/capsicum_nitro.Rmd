@@ -1,0 +1,393 @@
+---
+title: "Resposta de genótipos de pimenta à doses de nitrogênio"
+author: >
+  [Milson E. Serafim](http://lattes.cnpq.br/8676820051946774) &
+  [Walmes M. Zeviani](http://lattes.cnpq.br/4410617539281650)
+date: '`r format(Sys.Date(), format = "%d de %B de %Y")`'
+output:
+  html_document:
+    code_folding: show
+vignette: >
+  %\VignetteIndexEntry{Resposta de genótipos de pimenta à doses de nitrogênio}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+source("config/setup.R")
+```
+
+# Descrição e Análise Exploratória
+
+```{r, results = "hide", message = FALSE, error = FALSE, warning = FALSE}
+#-----------------------------------------------------------------------
+# Carrega os pacotes necessários.
+
+rm(list = ls())
+library(lattice)
+library(latticeExtra)
+library(plyr)
+library(doBy)
+library(multcomp)
+library(candisc)
+library(wzRfun)
+library(EACS)
+
+# Para tracar ajuste de polinômios.
+panel_poly <- function(x, y, degree, ...) {
+    m0 <- lm(y ~ poly(x, degree = degree))
+    cc <- complete.cases(cbind(x, y))
+    xgrid <- seq(min(x[cc], na.rm = TRUE),
+                 max(x[cc], na.rm = TRUE),
+                 length.out = 30)
+    yfit <- predict(m0,
+                    newdata = list(x = xgrid))
+    panel.lines(x = xgrid, y = yfit, ...)
+}
+```
+
+```{r}
+# Exibe a estrutura dos dados.
+data(capsicum_nitro)
+str(capsicum_nitro)
+```
+```{r, eval = FALSE}
+# Acessa a documentação dos dados.
+help(capsicum_nitro, help_type = "html")
+```
+```{r}
+# Nomes curtos conferem maior agilidade.
+cn <- capsicum_nitro
+
+# Para criar uma versão abreviada dos níveis de genótipo.
+genab <- function(x){
+    gsub(pattern = "^(\\d+).*\\s(\\w{3})\\w*$",
+         replacement = "\\1 \\2",
+         x)
+}
+
+cn <- lapply(cn,
+             FUN = function(x) {
+                 x$genab <- factor(x$gen,
+                                   levels = levels(x$gen),
+                                   labels = genab(levels(x$gen)))
+                 return(x)
+             })
+
+# Versão abreviada dos níveis de genótipo.
+sapply(subset(cn$planta, select = c(gen, genab)), FUN = levels)
+
+#--------------------------------------------
+# Crescimento em altura das plantas.
+
+xyplot(alt ~ data | genab,
+       groups = interaction(dose, rept),
+       data = cn$cres,
+       as.table = TRUE,
+       layout = c(NA, 2),
+       type = "l")
+
+xyplot(alt ~ data | factor(dose),
+       groups = genab,
+       data = cn$cres,
+       as.table = TRUE,
+       layout = c(NA, 3),
+       auto.key = list(columns = 4),
+       type = "a")
+
+#--------------------------------------------
+# Variáveis medidas nas plantas.
+
+combineLimits(
+    useOuterStrips(
+        xyplot(flores + matur + nfrut + mff + msf + diamc ~
+                   log2(dose + 1) | genab,
+               outer = TRUE,
+               scales = list(y = list(relation = "free")),
+               data = cn$planta))) +
+    layer(panel_poly(x, y, degree = 2, ...))
+
+#--------------------------------------------
+# Variáveis medidas nos frutos.
+
+xyplot(diamf + compf ~ log2(dose + 1) | genab,
+       as.table = TRUE,
+       auto.key = list(columns = 2),
+       data = cn$fruto) +
+    glayer(panel_poly(x, y, degree = 2, type = "l", ...))
+
+#--------------------------------------------
+# Teores de substâncias determinados nos frutos.
+
+combineLimits(
+    useOuterStrips(
+        xyplot(ddph + lico + bcaro + polifen + flavon + antoc ~
+                   log2(dose + 1) | genab,
+               outer = TRUE,
+               data = cn$teor,
+               scales = list(y = list(relation = "free")),
+               as.table = TRUE))) +
+    layer(panel_poly(x, y, degree = 2, ...))
+```
+
+# Análise do crescimento
+
+Para simplificar, vamos trocar o problema de modelar as curvas de
+crescimento para fazer a análise do tamanho final das plantas.  O último
+registro de altura de cada planta será determinado.  A partir destes
+valores, será feita a especificação de um modelo para avaliar o efeito
+de genótipos e doses de nitrogênio.
+
+```{r}
+# Extraí o último registro de altura por unidade experimental.
+da <- ddply(.data = cn$cres,
+            .variables = .(gen, dose, rept),
+            .fun = function(x) {
+                i <- !is.na(x$alt)
+                tail(x[order(x$data), ][i, ], n = 1)
+            })
+
+xtabs(~data, data = da)
+
+# Remove observações indesejáveis.
+da <- subset(da,
+             data == max(data) &
+             !(genab == "163 ann" & alt > 600))
+
+# Verifica o efeito de nitrogênio e genótipo na altura (outliers
+# removidos).
+xyplot(alt ~ log2(dose + 1) | gen,
+       data = da) +
+    layer(panel_poly(x, y, degree = 1, type = "l", col = 2, ...)) +
+    layer(panel_poly(x, y, degree = 2, type = "l", col = 4, ...))
+
+da$ldose <- log2(da$dose + 1)
+```
+
+```{r}
+# Modelo saturado considerando dose como fator categórico.
+m0 <- lm(alt ~ gen * factor(dose),
+         data = da)
+anova(m0)
+
+# Modelo que expressa o efeito de dose com polinômio de grau 2.
+m1 <- update(m0, . ~ gen * poly(ldose, degree = 2))
+anova(m1)
+
+# Verifica se o modelo reduzido difere do saturado.
+anova(m1, m0)
+
+par(mfrow = c(2, 2))
+plot(m1); layout(1)
+# MASS::boxcox(m1)
+
+# Quadro de anova do modelo final.
+anova(m1)
+
+# Predição.
+pred <- with(da,
+             expand.grid(gen = levels(gen),
+                         ldose = seq(min(ldose),
+                                     max(ldose),
+                                     length.out = 30),
+                         KEEP.OUT.ATTRS = FALSE))
+dim(pred)
+
+# Obtém os valores preditos segundo o modelo ajustado.
+pred <- cbind(pred,
+              as.data.frame(predict(m1,
+                                    newdata = pred,
+                                    interval = "confidence")))
+str(pred)
+
+# Gráfico dos resultados.
+xyplot(alt ~ ldose | gen,
+       data = da) +
+    as.layer(
+        xyplot(fit + lwr + upr ~ ldose | gen,
+               col = c("black", "gray", "gray"),
+               data = pred,
+               type = "l"))
+
+# Rescrevendo o modelo para mais fácil interpretar os parâmetros.
+m2 <- update(m0, . ~ 0 + genab/(ldose + I(ldose^2)))
+all.equal(deviance(m2), deviance(m1))
+
+# Estimativas dos parâmetros \beta_0 + \beta_1 x + \beta_2 x^2 por
+# genótipo.
+summary(m2)
+```
+
+# Variáveis de planta
+
+FIXME Rever as análises que empregam discriminação canonica.
+
+```{r}
+str(cn$planta)
+cn$planta$ldose <- log2(cn$planta$dose + 1)
+
+# Verificar o tamanho da tabela caso completo.
+db <- cn$planta[complete.cases(cn$planta), ]
+nrow(db)/nrow(cn$planta)
+
+addmargins(xtabs(~gen + dose, data = db))
+
+# Será que isso dá uma boa manova?
+# dput(names(db)[(4:9)])
+
+m0 <- lm(cbind(flores, matur, nfrut, mff, msf, diamc) ~
+             gen * (ldose + I(ldose^2)),
+         data = db)
+anova(m0)
+
+m1 <- update(m0, . ~ gen * ldose)
+anova(m1)
+
+# TODO como interpretar isso, se é que é aconselhavel.
+plot(candisc(m1, term = "gen"))
+plot(candisc(m1, term = "ldose"))
+
+# help(capsicum_nitro, help_type = "html")
+
+#--------------------------------------------
+# Dias para o florescimento e maturação dos frutos.
+
+m0 <- lm(cbind(flores, matur) ~
+             gen * (ldose + I(ldose^2)),
+         data = cn$planta)
+anova(m0)
+
+m1 <- update(m0, . ~ gen)
+anova(m1)
+
+anova(m0, m1)
+
+r <- residuals(m1)
+splom(r, as.matrix = TRUE)
+cor(r)
+
+cd <- candisc(m1)
+summary(cd)
+
+plot(cd)
+
+#--------------------------------------------
+# Massa fresca e seca de folhas.
+
+m0 <- lm(cbind(mff, msf, nfrut, diamc) ~
+             gen * (ldose + I(ldose^2)),
+         data = db)
+anova(m0)
+
+m1 <- update(m0, . ~ gen * ldose)
+anova(m1, m0)
+anova(m1)
+
+cd <- candisc(m1, term = "gen")
+cd
+summary(cd)
+plot(cd)
+
+cd <- candisc(m1, term = "ldose")
+cd
+summary(cd)
+plot(cd)
+```
+
+# Variáveis de fruto
+
+FIXME Rever as análises que empregam discriminação canonica.
+
+```{r}
+str(cn)
+cn$fruto$ldose <- log2(cn$fruto$dose + 1)
+
+xtabs(~gen + dose, data = cn$fruto)
+
+# Tirando as médias por unidade
+dc <- aggregate(cbind(diamf, compf) ~ gen + ldose + rept,
+                data = cn$fruto,
+                FUN = mean, na.rm = TRUE)
+xtabs(~gen + ldose, data = dc)
+str(dc)
+
+str(cn$fruto)
+
+dc <- ddply(.data = cn$fruto,
+            .variables = .(gen, dose, ldose, rept),
+            .fun = summarise,
+            diamf = mean(diamf, na.rm = TRUE),
+            compf = mean(compf, na.rm = TRUE),
+            n = max(fruto))
+str(dc)
+
+# FIXME não está sendo considerado a estrutura de frutos dentro de
+# unidades experimentais aqui.
+
+m0 <- lm(cbind(diamf, compf) ~
+             gen * (ldose + I(ldose^2)),
+         # data = cn$fruto
+         data = dc#, weights = dc$n
+         )
+anova(m0)
+
+m1 <- update(m0, . ~ gen * ldose)
+anova(m1, m0)
+anova(m1)
+
+r <- residuals(m1)
+splom(r, as.matrix = TRUE)
+cor(r)
+
+cd <- candisc(m1, term = "gen")
+cd
+summary(cd)
+plot(cd)
+
+cd <- candisc(m1, term = "ldose")
+cd
+summary(cd)
+plot(cd)
+```
+
+# Teores de substâncias nos frutos
+
+FIXME Rever as análises que empregam discriminação canonica.
+
+```{r}
+str(cn$teor)
+dput(names(cn$teor)[4:9])
+
+cn$teor$ldose <- log2(cn$teor$dose + 1)
+
+m0 <- lm(cbind(ddph, lico, bcaro, polifen, flavon, antoc) ~
+             gen * (ldose + I(ldose^2)),
+         data = cn$teor)
+anova(m0)
+
+m1 <- update(m0, . ~ gen * ldose)
+anova(m1, m0)
+anova(m1)
+
+r <- residuals(m1)
+splom(r, as.matrix = TRUE)
+cor(r)
+
+cd <- candisc(m1, term = "gen")
+cd
+summary(cd)
+plot(cd)
+
+cd <- candisc(m1, term = "ldose")
+cd
+summary(cd)
+plot(cd)
+```
+
+# Informações da Sessão
+
+```{r, echo = FALSE, results = "hold"}
+cat(format(Sys.time(),
+           format = "Atualizado em %d de %B de %Y.\n\n"))
+sessionInfo()
+```
