@@ -9,8 +9,8 @@
     para curva de crescimento em altura das plantas, \code{planta}
     contém registros de variáveis medidas ao nível de planta (valores
     por planta), \code{fruto} contém variáveis medidas ao nível de
-    frutos (valores por fruto) e \code{polifen} contém os teores de
-    polifenois determinados em tripicata.
+    frutos (valores por fruto) e \code{teor} contém os teores de
+    substâncias químicas determinados em tripicata.
 
 \describe{
 
@@ -18,12 +18,12 @@
     pimenta estudados, indicados pelos números que precedem o nome:
       39 \emph{C. chinense} (2 repetições),
       118 \emph{C. chinense} (2 rept),
-      17 \emph{C. frutense} (1 rept),
-      113 \emph{C. frutense} (2 rept),
-      116 \emph{C. annum} (2 rept),
-      163 \emph{C. annum} (1 rept),
+      17 \emph{C. frutescens} (1 rept),
+      113 \emph{C. frutescens} (2 rept),
+      116 \emph{C. annuun} (2 rept),
+      163 \emph{C. annuun} (1 rept),
       66 \emph{C. baccatum var. pendulum} (1 rept) e
-      141 \emph{C. annum var. pratemirson} (1 rept).  Como indicado
+      141 \emph{C. annum var. praetermissum} (1 rept).  Como indicado
     entre parênteses, o número de repetições foi diferente entre
     acessos.
 }
@@ -38,7 +38,7 @@
     de N.}
 
 \item{\code{data}}{Variável cronológica que indica a data em que a
-    altura da planta foi medida. Entre os registros tem-se um
+    altura da planta foi medida.  Entre os registros tem-se um
     intervalo médio de uma semana (semanal irregular).}
 
 \item{\code{alt}}{Variável resposta que é a altura da planta (mm)
@@ -46,37 +46,37 @@
 
 \item{\code{fruto}}{Número inteiro que distingue entre os frutos
     medidos em cada unidade experimental. Tais frutos foram extraídos
-    por amostragem aleatória. Um número máximo de 5 frutos foram
-    medidos, independente de quão abundante tenha sido a
-    produção. Todos os frutos foram medidos quando a produção esteve
+    por amostragem aleatória na planta.  Um número máximo de 5 frutos
+    foram medidos, independente de quão abundante tenha sido a
+    produção.  Todos os frutos foram medidos quando a produção esteve
     aquém de 5 frutos.}
 
 \item{\code{diamf}}{Variável resposta que é o diâmetro do fruto de
-    pimenta (mm). Frutos extraídos por amostragem aleatória.}
+    pimenta (mm).  Frutos extraídos por amostragem aleatória.}
 
 \item{\code{compf}}{Variável resposta que é o comprimento do fruto de
-    pimenta (mm). Com \code{diamf} forma um par de variáveis medidas
+    pimenta (mm).  Com \code{diamf} forma um par de variáveis medidas
     sob os mesmos frutos.}
 
 \item{\code{flores}}{Variável resposta que é o número de dias para o
     florescimento, evento indicado pela abertura da primeira flor da
     planta com dias contados após a implantação do
-    experimento. Quando a planta não apresenta florescimento
+    experimento.  Quando a planta não apresenta florescimento
     (\code{NA}), então não são observadas as demais variáveis
     (maturação e demais variáveis de fruto) já que não foram
     produzidos frutos para que fossem determinadas.}
 
 \item{\code{matur}}{Variável resposta que é o número de dias até o
     primeiro fruto maduro da planta (maturação) com dias contados
-    após a implantação do experimento. A maturação foi definida como
+    após a implantação do experimento.  A maturação foi definida como
     momento da mudança de cor do fruto, com os primeiro sinais de
     amarelecimento, avermelhamento, de acordo com a cor final do
-    fruto maduro de cada genótipo. Só ocorre maturação depois do
+    fruto maduro de cada genótipo.  Só ocorre maturação depois do
     florescimento.}
 
 \item{\code{nfrut}}{Variável resposta que é o número total de frutos
     produzidos pela planta ao longo do experimento (total
-    acumulado). Só ocorrem frutos após o florescimento.}
+    acumulado).  Só ocorrem frutos após o florescimento.}
 
 \item{\code{mff}}{Variável resposta que é o total produzido em massa
     fresca de frutos (g) por parcela no experimento.}
@@ -90,10 +90,30 @@
 \item{\code{polifen}}{Variável resposta que é o teor de polifenois
     nos frutos (mg 100 g\eqn{^{-1}}).  Para determinação de
     polifenois foram colhidos aproximadamente 100 g de frutos frescos
-    de cada parcela. Os frutos foram macerrados em nitrogênio líquido
-    e posteriormente foi analizado o teror de polifenol.  Esta única
-    amostra foi analizada em triplicata (3 valores por unidade
+    de cada parcela.  Os frutos foram macerrados em nitrogênio
+    líquido e posteriormente foi analizado o teor de polifenol.  Esta
+    única amostra foi analizada em triplicata (3 valores por unidade
     experimental).}
+
+\item{\code{ddph}}{Variável resposta que é o teor de DPPH nos frutos
+    (mg 100 g\eqn{^{-1}}), obtido pelo mesmo procedimento usado para
+    \code{polifen}.}
+
+\item{\code{lico}}{Variável resposta que é o teor de licopeno nos
+    frutos (mg 100 g\eqn{^{-1}}), obtido pelo mesmo procedimento
+    usado para \code{polifen}.}
+
+\item{\code{bcaro}}{Variável resposta que é o teor de
+    \eqn{\beta}-caroteno nos frutos (mg 100 g\eqn{^{-1}}), obtido
+    pelo mesmo procedimento usado para \code{polifen}.}
+
+\item{\code{flavon}}{Variável resposta que é o teor de flavonoides
+    nos frutos (mg 100 g\eqn{^{-1}}), obtido pelo mesmo procedimento
+    usado para \code{polifen}.}
+
+\item{\code{antoc}}{Variável resposta que é o teor de antocianinas
+    nos frutos (mg 100 g\eqn{^{-1}}), obtido pelo mesmo procedimento
+    usado para \code{polifen}.}
 
 }
 
@@ -120,8 +140,8 @@
 \item A capacidade produtiva dos genótipos é determinada pelo tamanho
     (altura e diâmetro colo) das plantas de cada espécie.
 
-\item Os genótipos diferem quanto ao teor de polifenois apresentado
-    nos frutos.
+\item Os genótipos diferem quanto ao teor de polifenois e demais
+    substâncias apresentadas nos frutos.
 
 }
 
@@ -158,14 +178,15 @@ library(lattice)
 library(latticeExtra)
 
 xyplot(alt ~ data | gen,
-       type = "l",
        groups = interaction(dose, rept),
        data = capsicum_nitro$cres,
-       as.table = TRUE)
+       as.table = TRUE,
+       type = c("l"))
 
 combineLimits(
     useOuterStrips(
-        xyplot(flores + matur + nfrut + mff + msf + diamc ~ dose | gen,
+        xyplot(flores + matur + nfrut + mff + msf + diamc ~
+                   dose | gen,
                outer = TRUE,
                type = c("p", "smooth"),
                scales = list(y = list(relation = "free")),
@@ -173,11 +194,17 @@ combineLimits(
 
 xyplot(diamf + compf ~ dose | gen,
        type = c("p", "smooth"),
-       auto.key = TRUE,
+       as.table = TRUE,
        data = capsicum_nitro$fruto)
 
-xyplot(polifen ~ dose | gen,
-       data = capsicum_nitro$polifen,
-       type = c("p", "smooth"))
+combineLimits(
+    useOuterStrips(
+        xyplot(ddph + lico + bcaro + polifen + flavon + antoc ~
+                   dose | gen,
+               outer = TRUE,
+               data = capsicum_nitro$teor,
+               scales = list(y = list(relation = "free")),
+               as.table = TRUE,
+               type = c("p", "smooth"))))
 
 }
