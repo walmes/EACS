@@ -101,3 +101,13 @@ ul:not([class]) li:before {
     margin-left: -1em;
     position: absolute;
 }
+
+div#tocnav ul.nav-pills ul.nav-pills {
+  font-size: 85%;
+  text-indent: 1em;
+}
+
+div#tocnav ul.nav-pills ul.nav-pills ul.nav-pills {
+  font-size: 70%;
+  text-indent: 2em;
+}
