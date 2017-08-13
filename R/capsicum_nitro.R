@@ -1,6 +1,6 @@
 #' @name capsicum_nitro
 #' @title Resposta de gen\enc{ó}{o}tipos de pimenta \enc{à}{a} doses de
-#'     nitrog\enc{ê}{e}nio #'
+#'     nitrog\enc{ê}{e}nio
 #' @description Experimento foi instalado em casa de vegetação no mês de
 #'     outubro do ano de 2016, utilizando vasos de polietileno com 5
 #'     dm\eqn{^3} de solo dispostos conforme o delineamento inteiramente
@@ -169,6 +169,9 @@
 #'     Paloma Braga (Bolsista de IC) em 2016.
 #' @examples
 #'
+#' data(capsicum_nitro)
+#' str(capsicum_nitro)
+#'
 #' library(lattice)
 #' library(latticeExtra)
 #'
@@ -176,21 +179,25 @@
 #'        groups = interaction(dose, rept),
 #'        data = capsicum_nitro$cres,
 #'        as.table = TRUE,
-#'        type = c("l"))
+#'        type = "l")
 #'
 #' combineLimits(
 #'     useOuterStrips(
 #'         xyplot(flores + matur + nfrut + mff + msf + diamc ~
 #'                    dose | gen,
 #'                outer = TRUE,
-#'                type = c("p", "smooth"),
 #'                scales = list(y = list(relation = "free")),
-#'                data = capsicum_nitro$planta)))
+#'                data = capsicum_nitro$planta))) +
+#'     layer(panel.smoother(form = y ~ poly(x, degree = 2),
+#'                          method = "lm",
+#'                          ...))
 #'
 #' xyplot(diamf + compf ~ dose | gen,
-#'        type = c("p", "smooth"),
 #'        as.table = TRUE,
-#'        data = capsicum_nitro$fruto)
+#'        data = capsicum_nitro$fruto) +
+#'     glayer(panel.smoother(form = y ~ poly(x, degree = 2),
+#'                           method = "lm",
+#'                           ...))
 #'
 #' combineLimits(
 #'     useOuterStrips(
@@ -199,7 +206,9 @@
 #'                outer = TRUE,
 #'                data = capsicum_nitro$teor,
 #'                scales = list(y = list(relation = "free")),
-#'                as.table = TRUE,
-#'                type = c("p", "smooth"))))
+#'                as.table = TRUE))) +
+#'     layer(panel.smoother(form = y ~ poly(x, degree = 2),
+#'                          method = "lm",
+#'                          ...))
 #'
 NULL

@@ -3,7 +3,7 @@
 \name{capsicum_nitro}
 \alias{capsicum_nitro}
 \title{Resposta de gen\enc{ó}{o}tipos de pimenta \enc{à}{a} doses de
-    nitrog\enc{ê}{e}nio #'}
+    nitrog\enc{ê}{e}nio}
 \format{Uma lista com 4 \emph{data frames} totalizando 16 variáveis
     que são descritas a seguir.  A tabela \code{cres} contém os dados
     para curva de crescimento em altura das plantas, \code{planta}
@@ -174,6 +174,9 @@ Experimento foi instalado em casa de vegetação no mês de
 }
 \examples{
 
+data(capsicum_nitro)
+str(capsicum_nitro)
+
 library(lattice)
 library(latticeExtra)
 
@@ -181,21 +184,25 @@ xyplot(alt ~ data | gen,
        groups = interaction(dose, rept),
        data = capsicum_nitro$cres,
        as.table = TRUE,
-       type = c("l"))
+       type = "l")
 
 combineLimits(
     useOuterStrips(
         xyplot(flores + matur + nfrut + mff + msf + diamc ~
                    dose | gen,
                outer = TRUE,
-               type = c("p", "smooth"),
                scales = list(y = list(relation = "free")),
-               data = capsicum_nitro$planta)))
+               data = capsicum_nitro$planta))) +
+    layer(panel.smoother(form = y ~ poly(x, degree = 2),
+                         method = "lm",
+                         ...))
 
 xyplot(diamf + compf ~ dose | gen,
-       type = c("p", "smooth"),
        as.table = TRUE,
-       data = capsicum_nitro$fruto)
+       data = capsicum_nitro$fruto) +
+    glayer(panel.smoother(form = y ~ poly(x, degree = 2),
+                          method = "lm",
+                          ...))
 
 combineLimits(
     useOuterStrips(
@@ -204,7 +211,9 @@ combineLimits(
                outer = TRUE,
                data = capsicum_nitro$teor,
                scales = list(y = list(relation = "free")),
-               as.table = TRUE,
-               type = c("p", "smooth"))))
+               as.table = TRUE))) +
+    layer(panel.smoother(form = y ~ poly(x, degree = 2),
+                         method = "lm",
+                         ...))
 
 }
