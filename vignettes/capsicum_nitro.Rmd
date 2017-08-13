@@ -32,18 +32,6 @@ library(multcomp)
 library(candisc)
 library(wzRfun)
 library(EACS)
-
-# Para tracar ajuste de polinômios.
-panel_poly <- function(x, y, degree, ...) {
-    m0 <- lm(y ~ poly(x, degree = degree))
-    cc <- complete.cases(cbind(x, y))
-    xgrid <- seq(min(x[cc], na.rm = TRUE),
-                 max(x[cc], na.rm = TRUE),
-                 length.out = 30)
-    yfit <- predict(m0,
-                    newdata = list(x = xgrid))
-    panel.lines(x = xgrid, y = yfit, ...)
-}
 ```
 
 ```{r}
@@ -105,7 +93,9 @@ combineLimits(
                outer = TRUE,
                scales = list(y = list(relation = "free")),
                data = cn$planta))) +
-    layer(panel_poly(x, y, degree = 2, ...))
+    layer(panel.smoother(x, y,
+                         method = "lm",
+                         form = y ~ poly(x, degree = 2), ...))
 
 #--------------------------------------------
 # Variáveis medidas nos frutos.
@@ -114,7 +104,9 @@ xyplot(diamf + compf ~ log2(dose + 1) | genab,
        as.table = TRUE,
        auto.key = list(columns = 2),
        data = cn$fruto) +
-    glayer(panel_poly(x, y, degree = 2, type = "l", ...))
+    glayer(panel.smoother(x, y,
+                          method = "lm",
+                          form = y ~ poly(x, degree = 2), ...))
 
 #--------------------------------------------
 # Teores de substâncias determinados nos frutos.
@@ -127,7 +119,9 @@ combineLimits(
                data = cn$teor,
                scales = list(y = list(relation = "free")),
                as.table = TRUE))) +
-    layer(panel_poly(x, y, degree = 2, ...))
+    layer(panel.smoother(x, y,
+                         method = "lm",
+                         form = y ~ poly(x, degree = 2), ...))
 ```
 
 # Análise do crescimento
@@ -146,6 +140,7 @@ da <- ddply(.data = cn$cres,
                 i <- !is.na(x$alt)
                 tail(x[order(x$data), ][i, ], n = 1)
             })
+da$ldose <- log2(da$dose + 1)
 
 xtabs(~data, data = da)
 
@@ -156,22 +151,28 @@ da <- subset(da,
 
 # Verifica o efeito de nitrogênio e genótipo na altura (outliers
 # removidos).
-xyplot(alt ~ log2(dose + 1) | gen,
+xyplot(alt ~ ldose | genab,
        data = da) +
-    layer(panel_poly(x, y, degree = 1, type = "l", col = 2, ...)) +
-    layer(panel_poly(x, y, degree = 2, type = "l", col = 4, ...))
-
-da$ldose <- log2(da$dose + 1)
+    layer(panel.smoother(x, y,
+                         method = "lm",
+                         form = y ~ poly(x, degree = 2), ...))
 ```
+
+A análise exploratória dos dados, enriquecida com o ajuste de modelos
+separado por nível de genótipo, sugere a existência de interação entre o
+efeito de genótipos e nitrogênio, ou seja, para cada genótipo o efeito
+de nitrogênio se manifesta de forma particular.  Os gráficos sugerem que
+um polinômio de grau 2 é suficiente para expressar o efeito de
+nitrogênio.
 
 ```{r}
 # Modelo saturado considerando dose como fator categórico.
-m0 <- lm(alt ~ gen * factor(dose),
+m0 <- lm(alt ~ genab * factor(dose),
          data = da)
 anova(m0)
 
 # Modelo que expressa o efeito de dose com polinômio de grau 2.
-m1 <- update(m0, . ~ gen * poly(ldose, degree = 2))
+m1 <- update(m0, . ~ genab * poly(ldose, degree = 2))
 anova(m1)
 
 # Verifica se o modelo reduzido difere do saturado.
@@ -186,25 +187,31 @@ anova(m1)
 
 # Predição.
 pred <- with(da,
-             expand.grid(gen = levels(gen),
+             expand.grid(genab = levels(genab),
                          ldose = seq(min(ldose),
                                      max(ldose),
                                      length.out = 30),
                          KEEP.OUT.ATTRS = FALSE))
-dim(pred)
 
 # Obtém os valores preditos segundo o modelo ajustado.
 pred <- cbind(pred,
               as.data.frame(predict(m1,
                                     newdata = pred,
                                     interval = "confidence")))
-str(pred)
+
+# Legendas para os eixos.
+labs <- list(
+    xlab = expression("Dose de nitrogênio" ~
+                          (log[2](x + 1) * ", " * mg ~ dm^{-3})),
+    ylab = "Altura final das plantas (mm)")
 
 # Gráfico dos resultados.
-xyplot(alt ~ ldose | gen,
-       data = da) +
+xyplot(alt ~ ldose | genab,
+       data = da,
+       xlab = labs$xlab,
+       ylab = labs$ylab) +
     as.layer(
-        xyplot(fit + lwr + upr ~ ldose | gen,
+        xyplot(fit + lwr + upr ~ ldose | genab,
                col = c("black", "gray", "gray"),
                data = pred,
                type = "l"))
@@ -216,172 +223,836 @@ all.equal(deviance(m2), deviance(m1))
 # Estimativas dos parâmetros \beta_0 + \beta_1 x + \beta_2 x^2 por
 # genótipo.
 summary(m2)
+
+# Para abandonar termos, considerar nível de 10%.
+coeffs <- as.data.frame(summary(m2)$coefficients)
+subset(coeffs, `Pr(>|t|)` < 0.2, select = c(1, 4))
+
+# Função que cria um dummy ou indicadora o nível do fator fornecido.
+d <- function(factor, level) {
+    as.integer(factor == level)
+}
+
+# Declarando o polinômio de grau adequado para cada nível de genótipo.
+m3 <- update(m0, . ~ genab * ldose +
+                     d(genab, "118 chi"):I(ldose^2) +
+                     d(genab, "116 ann"):I(ldose^2))
+# summary(m3)
+anova(m3, m2)
+
+# Nova predição com o modelo reduzido.
+pred <- cbind(pred[, 1:2],
+              as.data.frame(predict(m3,
+                                    newdata = pred,
+                                    interval = "confidence")))
+
+# Gráfico dos resultados.
+xyplot(alt ~ ldose | genab,
+       data = da,
+       xlab = labs$xlab,
+       ylab = labs$ylab) +
+    as.layer(
+        xyplot(fit + lwr + upr ~ ldose | genab,
+               col = c("black", "gray", "gray"),
+               data = pred,
+               type = "l"))
 ```
 
 # Variáveis de planta
 
-FIXME Rever as análises que empregam discriminação canonica.
+```{r}
+# Estrutura dos dados de planta.
+str(cn$planta)
+
+# Frequência dos dados.
+xtabs(~genab + dose, data = cn$planta)
+
+# A dose transformada será usada em todas as análises.
+cn$planta$ldose <- log2(cn$planta$dose + 1)
+```
+
+## Florescimento
 
 ```{r}
-str(cn$planta)
-cn$planta$ldose <- log2(cn$planta$dose + 1)
+# Exploratória.
+xyplot(flores ~ ldose | genab,
+       data = cn$planta) +
+    layer(panel.smoother(x, y,
+                         method = "lm",
+                         form = y ~ poly(x, degree = 2), ...))
+
+# Declara modelo fatorial com dose expresso por polinômio de grau 2.
+m0 <- lm(flores ~ genab * poly(ldose, degree = 2),
+         data = cn$planta)
+anova(m0)
+
+# par(mfrow = c(2, 2))
+# plot(m0); layout(1)
+# MASS::boxcox(m0)
+
+# Declara o modelo reduzido contendo apenas o efeito de genótipo.
+m1 <- update(m0, . ~ genab)
+anova(m1, m0)
+
+# Comparações múltiplas entre médias de genótipos.
+L <- LSmatrix(m1, effect = "genab")
+rownames(L) <- attr(L, "grid")$genab
+pred <- apmc(L, m1, "genab", test = "fdr")
+arrange(pred, -fit)
+
+# Gráfico de segmentos.
+segplot(reorder(genab, fit) ~ lwr + upr,
+        centers = fit,
+        data = pred,
+        cld = sprintf("%0.1f %s", pred$fit, pred$cld),
+        draw = FALSE,
+        xlab = "Dias para o florescimento",
+        ylab = "Genótipo de pimenta") +
+    layer(panel.text(x = centers,
+                     y = z,
+                     labels = cld,
+                     pos = 3))
+```
+
+## Maturação
+
+```{r}
+# Exploratória.
+xyplot(matur ~ ldose | genab,
+       data = cn$planta) +
+    layer(panel.smoother(x, y,
+                         method = "lm",
+                         form = y ~ poly(x, degree = 2), ...))
+
+# Declara modelo fatorial com dose expresso por polinômio de grau 2.
+m0 <- lm(matur ~ genab * poly(ldose, degree = 2),
+         data = cn$planta)
+anova(m0)
+
+# par(mfrow = c(2, 2))
+# plot(m0); layout(1)
+# MASS::boxcox(m0)
+
+# Declara o modelo reduzido contendo apenas o efeito de genótipo.
+m1 <- update(m0, . ~ genab)
+anova(m1, m0)
+
+# Comparações múltiplas entre médias de genótipos.
+L <- LSmatrix(m1, effect = "genab")
+rownames(L) <- attr(L, "grid")$genab
+pred <- apmc(L, m1, "genab", test = "fdr")
+arrange(pred, -fit)
+
+# Gráfico de segmentos.
+segplot(reorder(genab, fit) ~ lwr + upr,
+        centers = fit,
+        data = pred,
+        cld = sprintf("%0.1f %s", pred$fit, pred$cld),
+        draw = FALSE,
+        xlab = "Dias para a maturação dos frutos",
+        ylab = "Genótipo de pimenta") +
+    layer(panel.text(x = centers,
+                     y = z,
+                     labels = cld,
+                     pos = 3))
+```
+
+## Número de frutos
+
+```{r}
+# Exploratória.
+xyplot(nfrut ~ ldose | genab,
+       data = cn$planta) +
+    layer(panel.smoother(x, y,
+                         method = "lm",
+                         form = y ~ poly(x, degree = 2), ...))
+
+# Declara modelo fatorial com dose expresso por polinômio de grau 2.
+m0 <- glm(nfrut ~ genab * poly(ldose, degree = 2),
+          data = cn$planta,
+          family = quasipoisson)
+anova(m0, test = "F")
+
+# par(mfrow = c(2, 2))
+# plot(m0); layout(1)
+# MASS::boxcox(m0)
+
+# Declara o modelo reduzido contendo apenas o efeito de genótipo.
+m1 <- update(m0, . ~ genab + ldose)
+anova(m1, m0, test = "F")
+
+# Comparações múltiplas entre médias de genótipos.
+L <- LSmatrix(m1, effect = "genab", at = list(ldose = 1))
+rownames(L) <- attr(L, "grid")$genab
+pred <- apmc(L, m1, "genab", test = "fdr")
+
+# Passa a inversa da função de ligação.
+pred[, c("fit", "lwr", "upr")] <-
+    m0$family$linkinv(pred[, c("fit", "lwr", "upr")])
+
+arrange(pred, -fit)
+
+# Gráfico de segmentos.
+segplot(reorder(genab, fit) ~ lwr + upr,
+        centers = fit,
+        data = pred,
+        cld = sprintf("%0.1f %s", pred$fit, pred$cld),
+        draw = FALSE,
+        xlab = "Número de frutos",
+        ylab = "Genótipo de pimenta") +
+    layer(panel.text(x = centers,
+                     y = z,
+                     labels = cld,
+                     pos = 3))
+
+# Predição.
+pred <- with(da,
+             expand.grid(genab = levels(genab),
+                         ldose = seq(min(ldose),
+                                     max(ldose),
+                                     length.out = 30),
+                         KEEP.OUT.ATTRS = FALSE))
+el <- predict(m1, newdata = pred, se.fit = TRUE)
+me <- with(el, outer(se.fit,
+                     c(fit = 0, lwr = -1, upr = 1) *
+                     qt(0.975, df = df.residual(m1)),
+                     FUN = "*"))
+ci <- sweep(me, MARGIN = 1, STATS = el$fit, FUN = "+")
+ci <- m0$family$linkinv(ci)
+pred <- cbind(pred, as.data.frame(ci))
+
+# Gráfico dos resultados.
+xyplot(nfrut ~ ldose | genab,
+       data = cn$planta,
+       xlab = labs$xlab,
+       ylab = "Número de frutos") +
+    as.layer(
+        xyplot(fit + lwr + upr ~ ldose | genab,
+               col = c("black", "gray", "gray"),
+               data = pred,
+               type = "l"))
+```
+
+## Massa fresca de frutos
+
+```{r}
+# Exploratória.
+xyplot(log10(mff) ~ ldose | genab,
+       data = cn$planta) +
+    layer(panel.smoother(x, y,
+                         method = "lm",
+                         form = y ~ poly(x, degree = 2), ...))
+
+# Declara modelo fatorial com dose expresso por polinômio de grau 2.
+m0 <- lm(log10(mff) ~ genab * poly(ldose, degree = 2),
+         data = cn$planta)
+anova(m0)
+
+# par(mfrow = c(2, 2))
+# plot(m0); layout(1)
+# MASS::boxcox(m0)
+
+# Declara o modelo reduzido contendo apenas o efeito de genótipo.
+m1 <- update(m0, . ~ genab + ldose)
+anova(m1, m0)
+
+# Comparações múltiplas entre médias de genótipos.
+L <- LSmatrix(m1, effect = "genab", at = list(ldose = 1))
+rownames(L) <- attr(L, "grid")$genab
+pred <- apmc(L, m1, "genab", test = "fdr")
+arrange(pred, -fit)
+
+# Gráfico de segmentos.
+segplot(reorder(genab, fit) ~ lwr + upr,
+        centers = fit,
+        data = pred,
+        cld = sprintf("%0.2f %s", pred$fit, pred$cld),
+        draw = FALSE,
+        xlab = "Massa fresca de frutos (g) (log 10)",
+        ylab = "Genótipo de pimenta") +
+    layer(panel.text(x = centers,
+                     y = z,
+                     labels = cld,
+                     pos = 3))
+```
+
+## Massa seca de frutos
+
+```{r}
+# Exploratória.
+xyplot(log10(msf) ~ ldose | genab,
+       data = cn$planta) +
+    layer(panel.smoother(x, y,
+                         method = "lm",
+                         form = y ~ poly(x, degree = 2), ...))
+
+# Declara modelo fatorial com dose expresso por polinômio de grau 2.
+m0 <- lm(log10(msf) ~ genab * poly(ldose, degree = 2),
+         data = cn$planta)
+anova(m0)
+
+# par(mfrow = c(2, 2))
+# plot(m0); layout(1)
+# MASS::boxcox(m0)
+
+# Declara o modelo reduzido contendo apenas o efeito de genótipo.
+m1 <- update(m0, . ~ genab + ldose)
+anova(m1, m0)
+
+# Comparações múltiplas entre médias de genótipos.
+L <- LSmatrix(m1, effect = "genab", at = list(ldose = 1))
+rownames(L) <- attr(L, "grid")$genab
+pred <- apmc(L, m1, "genab", test = "fdr")
+arrange(pred, -fit)
+
+# Gráfico de segmentos.
+segplot(reorder(genab, fit) ~ lwr + upr,
+        centers = fit,
+        data = pred,
+        cld = sprintf("%0.2f %s", pred$fit, pred$cld),
+        draw = FALSE,
+        xlab = "Massa seca de frutos (g) (log 10)",
+        ylab = "Genótipo de pimenta") +
+    layer(panel.text(x = centers,
+                     y = z,
+                     labels = cld,
+                     pos = 3))
+```
+
+## Diametro à altura do colo
+
+```{r}
+# Exploratória.
+xyplot(diamc ~ ldose | genab,
+       data = cn$planta) +
+    layer(panel.smoother(x, y,
+                         method = "lm",
+                         form = y ~ poly(x, degree = 2), ...))
+
+# Declara modelo fatorial com dose expresso por polinômio de grau 2.
+m0 <- lm(diamc ~ genab * poly(ldose, degree = 2),
+         data = cn$planta)
+anova(m0)
+
+# par(mfrow = c(2, 2))
+# plot(m0); layout(1)
+# MASS::boxcox(m0)
+
+# Declara o modelo reduzido contendo apenas o efeito de genótipo.
+m1 <- update(m0, . ~ genab * ldose)
+anova(m1, m0)
+
+# Predição.
+pred <- with(da,
+             expand.grid(genab = levels(genab),
+                         ldose = seq(min(ldose),
+                                     max(ldose),
+                                     length.out = 30),
+                         KEEP.OUT.ATTRS = FALSE))
+ci <- predict(m1, newdata = pred, interval = "confidence")
+pred <- cbind(pred, as.data.frame(ci))
+
+# Gráfico dos resultados.
+xyplot(diamc ~ ldose | genab,
+       data = cn$planta,
+       xlab = labs$xlab,
+       ylab = "Diâmetro à altura do colo (mm)") +
+    as.layer(
+        xyplot(fit + lwr + upr ~ ldose | genab,
+               col = c("black", "gray", "gray"),
+               data = pred,
+               type = "l"))
+```
+
+## Análise canônica discriminante
+
+```{r}
+#-----------------------------------------------------------------------
+# Análise multivariada.
 
 # Verificar o tamanho da tabela caso completo.
 db <- cn$planta[complete.cases(cn$planta), ]
 nrow(db)/nrow(cn$planta)
 
+# Frequência dos dados completos.
 addmargins(xtabs(~gen + dose, data = db))
 
-# Será que isso dá uma boa manova?
-# dput(names(db)[(4:9)])
-
-m0 <- lm(cbind(flores, matur, nfrut, mff, msf, diamc) ~
+# Modelo multivariado com 6 respostas.
+m0 <- lm(cbind(flores = flores,
+               matur = matur,
+               lnfrut = log(nfrut),
+               lmff = log(mff),
+               lmsf = log(msf),
+               diamc = diamc) ~
              gen * (ldose + I(ldose^2)),
          data = db)
 anova(m0)
 
-m1 <- update(m0, . ~ gen * ldose)
+# Simplificação do modelo.
+m1 <- update(m0, . ~ gen + ldose)
+anova(m1, m0)
 anova(m1)
 
-# TODO como interpretar isso, se é que é aconselhavel.
-plot(candisc(m1, term = "gen"))
-plot(candisc(m1, term = "ldose"))
-
-# help(capsicum_nitro, help_type = "html")
-
-#--------------------------------------------
-# Dias para o florescimento e maturação dos frutos.
-
-m0 <- lm(cbind(flores, matur) ~
-             gen * (ldose + I(ldose^2)),
-         data = cn$planta)
-anova(m0)
-
-m1 <- update(m0, . ~ gen)
-anova(m1)
-
-anova(m0, m1)
-
+# Diagrama dos resíduos.
 r <- residuals(m1)
 splom(r, as.matrix = TRUE)
 cor(r)
 
-cd <- candisc(m1)
-summary(cd)
+# Gráfico de correlação.
+corrplot::corrplot(cor(r),
+                   type = "upper",
+                   tl.pos = "d",
+                   outline = TRUE,
+                   method = "ellipse")
 
-plot(cd)
+#-----------------------------------------------------------------------
+# Canonical discriminant analysis.
 
-#--------------------------------------------
-# Massa fresca e seca de folhas.
-
-m0 <- lm(cbind(mff, msf, nfrut, diamc) ~
-             gen * (ldose + I(ldose^2)),
-         data = db)
-anova(m0)
-
-m1 <- update(m0, . ~ gen * ldose)
-anova(m1, m0)
-anova(m1)
-
-cd <- candisc(m1, term = "gen")
-cd
-summary(cd)
-plot(cd)
-
-cd <- candisc(m1, term = "ldose")
-cd
-summary(cd)
-plot(cd)
+# Efeito de genótipo.
+cdg <- candisc(m1, term = "gen")
+cdg
+```
+```{r, results = "hide", message = FALSE}
+par(mfrow = c(2, 2))
+plot(cdg)
+plot(cdg, which = c(1, 3))
+plot(cdg, which = c(2, 3))
+plot(cdg, which = c(1, 4))
+layout(1)
+```
+```{r}
+# Efeito de nitrogênio.
+cdd <- candisc(m1, term = "ldose")
+plot(cdd)
+cdd
 ```
 
 # Variáveis de fruto
 
-FIXME Rever as análises que empregam discriminação canonica.
-
 ```{r}
-str(cn)
-cn$fruto$ldose <- log2(cn$fruto$dose + 1)
-
-xtabs(~gen + dose, data = cn$fruto)
-
-# Tirando as médias por unidade
-dc <- aggregate(cbind(diamf, compf) ~ gen + ldose + rept,
-                data = cn$fruto,
-                FUN = mean, na.rm = TRUE)
-xtabs(~gen + ldose, data = dc)
-str(dc)
-
+# Estrutura dos dados.
 str(cn$fruto)
 
+# Log da dose será usado nas análises.
+cn$fruto$ldose <- log2(cn$fruto$dose + 1)
+
+# Frequência dos dados.
+xtabs(~genab + dose, data = cn$fruto)
+```
+
+```{r}
+# Agregando os dados para os valores médios e total de observações.
 dc <- ddply(.data = cn$fruto,
-            .variables = .(gen, dose, ldose, rept),
+            .variables = .(genab, ldose, rept),
             .fun = summarise,
             diamf = mean(diamf, na.rm = TRUE),
             compf = mean(compf, na.rm = TRUE),
             n = max(fruto))
 str(dc)
 
-# FIXME não está sendo considerado a estrutura de frutos dentro de
-# unidades experimentais aqui.
+xyplot(diamf + compf ~ ldose | genab,
+       scales = list(y = list(log = 10)),
+       data = dc) +
+    glayer(panel.smoother(x, y,
+                         method = "lm",
+                         form = y ~ poly(x, degree = 2), ...))
+```
 
-m0 <- lm(cbind(diamf, compf) ~
-             gen * (ldose + I(ldose^2)),
-         # data = cn$fruto
-         data = dc#, weights = dc$n
-         )
+## Comprimento dos frutos
+
+```{r}
+# Declara modelo fatorial com dose expresso por polinômio de grau 2.
+m0 <- lm(log10(compf) ~ genab * poly(ldose, degree = 2),
+         data = dc,
+         weights = n)
 anova(m0)
 
-m1 <- update(m0, . ~ gen * ldose)
+# par(mfrow = c(2, 2))
+# plot(m0); layout(1)
+# MASS::boxcox(m0)
+
+# Declara o modelo reduzido contendo apenas o efeito de genótipo.
+m1 <- update(m0, . ~ genab + ldose)
+anova(m1, m0)
+
+# Predição.
+pred <- with(da,
+             expand.grid(genab = levels(genab),
+                         ldose = seq(min(ldose),
+                                     max(ldose),
+                                     length.out = 30),
+                         KEEP.OUT.ATTRS = FALSE))
+ci <- predict(m1, newdata = pred, interval = "confidence")
+pred <- cbind(pred, as.data.frame(ci))
+
+# Gráfico dos resultados.
+xyplot(log10(compf) ~ ldose | genab,
+       data = dc,
+       xlab = labs$xlab,
+       ylab = "Comprimento do fruto (mm, log 10)") +
+    as.layer(
+        xyplot(fit + lwr + upr ~ ldose | genab,
+               col = c("black", "gray", "gray"),
+               data = pred,
+               type = "l"))
+```
+
+## Diâmetro dos frutos
+
+```{r}
+# Declara modelo fatorial com dose expresso por polinômio de grau 2.
+m0 <- lm(log10(diamf) ~ genab * poly(ldose, degree = 2),
+         data = dc,
+         weights = n)
+anova(m0)
+
+# par(mfrow = c(2, 2))
+# plot(m0); layout(1)
+# MASS::boxcox(m0)
+
+# Declara o modelo reduzido contendo apenas o efeito de genótipo.
+m1 <- update(m0, . ~ genab + ldose)
+anova(m1, m0)
+
+# Predição.
+pred <- with(da,
+             expand.grid(genab = levels(genab),
+                         ldose = seq(min(ldose),
+                                     max(ldose),
+                                     length.out = 30),
+                         KEEP.OUT.ATTRS = FALSE))
+ci <- predict(m1, newdata = pred, interval = "confidence")
+pred <- cbind(pred, as.data.frame(ci))
+
+# Gráfico dos resultados.
+xyplot(log10(diamf) ~ ldose | genab,
+       data = dc,
+       xlab = labs$xlab,
+       ylab = "Comprimento do fruto (mm, log 10)") +
+    as.layer(
+        xyplot(fit + lwr + upr ~ ldose | genab,
+               col = c("black", "gray", "gray"),
+               data = pred,
+               type = "l"))
+```
+
+## Análise canônica discriminante
+
+```{r}
+#-----------------------------------------------------------------------
+# Análise multivariada.
+
+# ATTENTION: o argumento `weights` não tem utilidade quando o lado
+# esquerdo da fórmula é uma matriz. Com isso, não é possível ponderar
+# análises multivariadas.
+
+# Modelos multivariado usando o log das variáveis.
+m0 <- lm(cbind(ldiamf = log10(diamf),
+               lcompf = log10(compf)) ~
+             genab * (ldose + I(ldose^2)),
+         data = dc)
+anova(m0)
+
+# Modelos reduzido.
+m1 <- update(m0, . ~ genab * ldose)
 anova(m1, m0)
 anova(m1)
 
-r <- residuals(m1)
-splom(r, as.matrix = TRUE)
-cor(r)
+# r <- residuals(m1)
+# splom(r, as.matrix = TRUE)
+# cor(r)
 
-cd <- candisc(m1, term = "gen")
-cd
-summary(cd)
-plot(cd)
+#-----------------------------------------------------------------------
+# Análise canonica discriminante.
 
-cd <- candisc(m1, term = "ldose")
-cd
-summary(cd)
-plot(cd)
+# Efeito de genótipo.
+cdg <- candisc(m1, term = "genab")
+plot(cdg)
+cdg
+summary(cdg)
+
+# Efeito de nitrogênio.
+cdl <- candisc(m1, term = "ldose")
+plot(cdl)
+cdl
+summary(cdl)
 ```
 
 # Teores de substâncias nos frutos
 
-FIXME Rever as análises que empregam discriminação canonica.
+```{r}
+# Estrutura dos dados.
+str(cn$teor)
+
+# Frequência dos dados.
+xtabs(~genab + dose, data = cn$teor)
+
+# Agrega para as médias das replicadas (são 3).
+dd <- ddply(.data = cn$teor,
+            .variables = .(genab, dose, rept),
+            .fun = colwise(mean, is.numeric))
+str(dd)
+
+# Log da dose será usada nas análises.
+dd$ldose <- log2(dd$dose + 1)
+```
+
+## DDPH
 
 ```{r}
-str(cn$teor)
-dput(names(cn$teor)[4:9])
+# Exploratória.
+xyplot(log10(ddph) ~ ldose | genab,
+       data = dd) +
+    layer(panel.smoother(x, y,
+                         method = "lm",
+                         form = y ~ poly(x, degree = 2), ...))
 
-cn$teor$ldose <- log2(cn$teor$dose + 1)
-
-m0 <- lm(cbind(ddph, lico, bcaro, polifen, flavon, antoc) ~
-             gen * (ldose + I(ldose^2)),
-         data = cn$teor)
+# Declara modelo fatorial com dose expresso por polinômio de grau 2.
+m0 <- lm(log10(ddph) ~ genab * poly(ldose, degree = 2),
+         data = dd)
 anova(m0)
 
-m1 <- update(m0, . ~ gen * ldose)
+# par(mfrow = c(2, 2))
+# plot(m0); layout(1)
+# MASS::boxcox(m0)
+
+# Declara o modelo reduzido contendo apenas o efeito de genótipo.
+m1 <- update(m0, . ~ genab)
 anova(m1, m0)
-anova(m1)
 
-r <- residuals(m1)
-splom(r, as.matrix = TRUE)
-cor(r)
+# Comparações múltiplas entre médias de genótipos.
+L <- LSmatrix(m1, effect = "genab")
+rownames(L) <- attr(L, "grid")$genab
+pred <- apmc(L, m1, "genab", test = "fdr")
+arrange(pred, -fit)
 
-cd <- candisc(m1, term = "gen")
-cd
-summary(cd)
-plot(cd)
+# Gráfico de segmentos.
+segplot(reorder(genab, fit) ~ lwr + upr,
+        centers = fit,
+        data = pred,
+        cld = sprintf("%0.2f %s", pred$fit, pred$cld),
+        draw = FALSE,
+        xlab = "DDPH (mg/100 g) (log 10)",
+        ylab = "Genótipo de pimenta") +
+    layer(panel.text(x = centers,
+                     y = z,
+                     labels = cld,
+                     pos = 3))
+```
 
-cd <- candisc(m1, term = "ldose")
-cd
-summary(cd)
-plot(cd)
+## Licofenol
+
+```{r}
+# Exploratória.
+xyplot(lico ~ ldose | genab,
+       data = dd) +
+    layer(panel.smoother(x, y,
+                         method = "lm",
+                         form = y ~ poly(x, degree = 2), ...))
+
+# Declara modelo fatorial com dose expresso por polinômio de grau 2.
+m0 <- lm(lico ~ genab * poly(ldose, degree = 2),
+         data = dd)
+anova(m0)
+
+# par(mfrow = c(2, 2))
+# plot(m0); layout(1)
+# MASS::boxcox(m0)
+
+# Declara o modelo reduzido contendo apenas o efeito de genótipo.
+m1 <- update(m0, . ~ genab)
+anova(m1, m0)
+
+# Comparações múltiplas entre médias de genótipos.
+L <- LSmatrix(m1, effect = "genab")
+rownames(L) <- attr(L, "grid")$genab
+pred <- apmc(L, m1, "genab", test = "fdr")
+arrange(pred, -fit)
+
+# Gráfico de segmentos.
+segplot(reorder(genab, fit) ~ lwr + upr,
+        centers = fit,
+        data = pred,
+        cld = sprintf("%0.2f %s", pred$fit, pred$cld),
+        draw = FALSE,
+        xlab = "Licofenol (mg/100 g)",
+        ylab = "Genótipo de pimenta") +
+    layer(panel.text(x = centers,
+                     y = z,
+                     labels = cld,
+                     pos = 3))
+```
+
+## $\beta$-caroteno
+
+```{r}
+# Exploratória.
+xyplot(bcaro ~ ldose | genab,
+       data = dd) +
+    layer(panel.smoother(x, y,
+                         method = "lm",
+                         form = y ~ poly(x, degree = 2), ...))
+
+# Declara modelo fatorial com dose expresso por polinômio de grau 2.
+m0 <- lm(bcaro ~ genab * poly(ldose, degree = 2),
+         data = dd)
+anova(m0)
+
+# par(mfrow = c(2, 2))
+# plot(m0); layout(1)
+# MASS::boxcox(m0)
+
+# Declara o modelo reduzido contendo apenas o efeito de genótipo.
+m1 <- update(m0, . ~ genab)
+anova(m1, m0)
+
+# Comparações múltiplas entre médias de genótipos.
+L <- LSmatrix(m1, effect = "genab")
+rownames(L) <- attr(L, "grid")$genab
+pred <- apmc(L, m1, "genab", test = "fdr")
+arrange(pred, -fit)
+
+# Gráfico de segmentos.
+segplot(reorder(genab, fit) ~ lwr + upr,
+        centers = fit,
+        data = pred,
+        cld = sprintf("%0.2f %s", pred$fit, pred$cld),
+        draw = FALSE,
+        xlab = "beta-caroteno (mg/100 g)",
+        ylab = "Genótipo de pimenta") +
+    layer(panel.text(x = centers,
+                     y = z,
+                     labels = cld,
+                     pos = 3))
+```
+
+## Polifenol
+
+```{r}
+# Exploratória.
+xyplot(polifen ~ ldose | genab,
+       data = dd) +
+    layer(panel.smoother(x, y,
+                         method = "lm",
+                         form = y ~ poly(x, degree = 2), ...))
+
+# Declara modelo fatorial com dose expresso por polinômio de grau 2.
+m0 <- lm(polifen ~ genab * poly(ldose, degree = 2),
+         data = dd)
+anova(m0)
+
+# par(mfrow = c(2, 2))
+# plot(m0); layout(1)
+# MASS::boxcox(m0)
+
+# Declara o modelo reduzido contendo apenas o efeito de genótipo.
+m1 <- update(m0, . ~ genab)
+anova(m1, m0)
+
+# Comparações múltiplas entre médias de genótipos.
+L <- LSmatrix(m1, effect = "genab")
+rownames(L) <- attr(L, "grid")$genab
+pred <- apmc(L, m1, "genab", test = "fdr")
+arrange(pred, -fit)
+
+# Gráfico de segmentos.
+segplot(reorder(genab, fit) ~ lwr + upr,
+        centers = fit,
+        data = pred,
+        cld = sprintf("%0.2f %s", pred$fit, pred$cld),
+        draw = FALSE,
+        xlab = "Polifenol (mg/100 g)",
+        ylab = "Genótipo de pimenta") +
+    layer(panel.text(x = centers,
+                     y = z,
+                     labels = cld,
+                     pos = 3))
+```
+
+## Flavonol
+
+```{r}
+# Exploratória.
+xyplot(flavon ~ ldose | genab,
+       data = dd) +
+    layer(panel.smoother(x, y,
+                         method = "lm",
+                         form = y ~ poly(x, degree = 2), ...))
+
+# Declara modelo fatorial com dose expresso por polinômio de grau 2.
+m0 <- lm(flavon ~ genab * poly(ldose, degree = 2),
+         data = dd)
+anova(m0)
+
+# par(mfrow = c(2, 2))
+# plot(m0); layout(1)
+# MASS::boxcox(m0)
+
+# Declara o modelo reduzido contendo apenas o efeito de genótipo.
+m1 <- update(m0, . ~ genab)
+anova(m1, m0)
+
+# Comparações múltiplas entre médias de genótipos.
+L <- LSmatrix(m1, effect = "genab")
+rownames(L) <- attr(L, "grid")$genab
+pred <- apmc(L, m1, "genab", test = "fdr")
+arrange(pred, -fit)
+
+# Gráfico de segmentos.
+segplot(reorder(genab, fit) ~ lwr + upr,
+        centers = fit,
+        data = pred,
+        cld = sprintf("%0.2f %s", pred$fit, pred$cld),
+        draw = FALSE,
+        xlab = "Flavonol (mg/100 g)",
+        ylab = "Genótipo de pimenta") +
+    layer(panel.text(x = centers,
+                     y = z,
+                     labels = cld,
+                     pos = 3))
+```
+
+## Antocianinas
+
+```{r}
+# Exploratória.
+xyplot(antoc ~ ldose | genab,
+       data = dd) +
+    layer(panel.smoother(x, y,
+                         method = "lm",
+                         form = y ~ poly(x, degree = 2), ...))
+
+# Declara modelo fatorial com dose expresso por polinômio de grau 2.
+m0 <- lm(antoc ~ genab * poly(ldose, degree = 2),
+         data = dd)
+anova(m0)
+
+# par(mfrow = c(2, 2))
+# plot(m0); layout(1)
+# MASS::boxcox(m0)
+
+# Declara o modelo reduzido contendo apenas o efeito de genótipo.
+m1 <- update(m0, . ~ genab)
+anova(m1, m0)
+
+# Comparações múltiplas entre médias de genótipos.
+L <- LSmatrix(m1, effect = "genab")
+rownames(L) <- attr(L, "grid")$genab
+pred <- apmc(L, m1, "genab", test = "fdr")
+arrange(pred, -fit)
+
+# Gráfico de segmentos.
+segplot(reorder(genab, fit) ~ lwr + upr,
+        centers = fit,
+        data = pred,
+        cld = sprintf("%0.2f %s", pred$fit, pred$cld),
+        draw = FALSE,
+        xlab = "Antocianinas (mg/100 g)",
+        ylab = "Genótipo de pimenta") +
+    layer(panel.text(x = centers,
+                     y = z,
+                     labels = cld,
+                     pos = 3))
 ```
 
 # Informações da Sessão
