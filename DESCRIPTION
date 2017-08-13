@@ -32,6 +32,8 @@ Suggests:
     nlme,
     splines,
     car,
+    candisc,
+    corrplot,
     nFactors,
     psych,
     rpart,
