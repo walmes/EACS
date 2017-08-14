@@ -257,7 +257,6 @@ wireframe(y ~ dias + cinz|fam * agreg,
           par.settings = list(
               regions = list(col = colr(100)),
               layout.widths = list(xlab.axis.padding = 3)))
-
 ```
 
 ```{r}
@@ -299,7 +298,6 @@ rownames(ic48) <- paste(c(outer(levels(mara$fam),
 ics <- cbind(trat = c(rownames(ic0),
                       rownames(ic48)),
              data.frame(rbind(ic0, ic48)))
-
 
 p1 <-
     segplot(reorder(trat, Estimate) ~ Lower + Upper,
@@ -618,18 +616,16 @@ p4 <- xyplot(cav ~ cinz | fam,
 #-----------------------------------------------------------------------
 # Arranjo 1.
 
-c(update(p1, ylab = c(ylab[[2]], ylab[[1]])),
-  p2,
-  layout = c(1, 2))
+p1 <- update(p1, ylab = c(ylab[[2]], ylab[[1]]))
+c(p1, p2, layout = c(1, 2))
 ```
 
-```{r, fig.height = 7, dpi = 300}
+```{r, fig.width = 4, fig.height = 7, dpi = 300}
 #-----------------------------------------------------------------------
 # Arranjo 2.
 
-c(update(p3, ylab = c(ylab[[4]], ylab[[3]])),
-  p4,
-  layout = c(2, 2))
+p3 <- update(p3, ylab = c(ylab[[4]], ylab[[3]]))
+c(p3, p4, layout = c(1, 2))
 ```
 
 # Informações da Sessão
