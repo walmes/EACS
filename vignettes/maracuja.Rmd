@@ -360,7 +360,7 @@ p2 <- segplot(reorder(trat, Estimate) ~ Lower + Upper,
               })
 # print(p2)
 ```
-```{r,  dpi = 300}
+```{r, dpi = 300}
 plot(p1, split = c(1, 1, 1, 2), more = TRUE)
 grid.text(label = "A", 0.025, 0.975)
 plot(p2, split = c(1, 2, 1, 2), more = FALSE)
@@ -618,7 +618,9 @@ p4 <- xyplot(cav ~ cinz | fam,
 
 # p1 <- update(p1, ylab = c(ylab[[2]], ylab[[1]]))
 # c(p1, p2, layout = c(1, 2))
-grid.arrange(p1, p2, ncol = 1)
+#grid.arrange(p1, p2, ncol = 1)
+p1
+p2
 ```
 
 ```{r, fig.width = 4, fig.height = 7, dpi = 300}
@@ -627,7 +629,9 @@ grid.arrange(p1, p2, ncol = 1)
 
 # p3 <- update(p3, ylab = c(ylab[[4]], ylab[[3]]))
 # c(p3, p4, layout = c(1, 2))
-grid.arrange(p3, p4, ncol = 1)
+# grid.arrange(p3, p4, ncol = 1)
+p3
+p4
 ```
 
 # Informações da Sessão
