@@ -616,16 +616,18 @@ p4 <- xyplot(cav ~ cinz | fam,
 #-----------------------------------------------------------------------
 # Arranjo 1.
 
-p1 <- update(p1, ylab = c(ylab[[2]], ylab[[1]]))
-c(p1, p2, layout = c(1, 2))
+# p1 <- update(p1, ylab = c(ylab[[2]], ylab[[1]]))
+# c(p1, p2, layout = c(1, 2))
+grid.arrange(p1, p2, ncol = 1)
 ```
 
 ```{r, fig.width = 4, fig.height = 7, dpi = 300}
 #-----------------------------------------------------------------------
 # Arranjo 2.
 
-p3 <- update(p3, ylab = c(ylab[[4]], ylab[[3]]))
-c(p3, p4, layout = c(1, 2))
+# p3 <- update(p3, ylab = c(ylab[[4]], ylab[[3]]))
+# c(p3, p4, layout = c(1, 2))
+grid.arrange(p3, p4, ncol = 1)
 ```
 
 # Informações da Sessão
