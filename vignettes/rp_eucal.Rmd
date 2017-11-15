@@ -15,6 +15,15 @@ vignette: >
 
 ```{r setup, include=FALSE}
 source("config/setup.R")
+
+# A revista pede que as figuras sejam em Arial.
+opts_chunk$set(#dpi = 96,
+               dev = "png",
+               dev.args = list(family = "Arial",
+                               pointsize = 18))
+
+# width in pixels = inches * dpi * 2.
+# 7 * 96 * 2
 ```
 
 ## Descrição e Análise Exploratória
@@ -69,6 +78,9 @@ assignInNamespace("print.correlation",
                   function(x, title) return(),
                   ns = "nlme")
 ```
+```{r, include = FALSE}
+devtools::load_all()
+```
 
 Os dados no *data frame* `rp_eucal` são resultados de um experimento em
 delineamento de blocos casualizados onde estudou-se o efeito de 4 tipos
@@ -82,6 +94,7 @@ camadas de 5 cm de espessura a partir da superfície no mesmo ponto
 # Nomes curtos são mais fáceis de manuzear.
 rp <- rp_eucal
 rp$dumid <- rp$umid0 - rp$umid6
+rp$cam <- rp$cam/100
 str(rp)
 
 # Visualização do desenho experimental.
@@ -116,8 +129,8 @@ parcela. Blocos podem ser de efeito aleatório.
 
 ```{r, echo = FALSE, fig.cap = cap}
 txt <-
-"Diagrama de dispersão da umidade (g g$^{-1}$) em 0 e 6 kPa em
- função da profundidade no perfil do solo (cm) para cada
+"Diagrama de dispersão da umidade (m$^3$ m$^{-3}$) em 0 e 6 kPa em
+ função da profundidade no perfil do solo (m) para cada
  manejo do solo. A linhas suaves foram adicionadas para marcar a
  tendência sobre a média dos dados."
 cap <- fg_nums(name = "umids",
@@ -127,8 +140,8 @@ cap <- fg_nums(name = "umids",
 # as duas.
 xyplot(umid0 + umid6 ~ cam | manejo,
        data = rp,
-       xlab = "Profundidade (cm)",
-       ylab = expression("Umidade do solo" ~ (g ~ g^{-1})),
+       xlab = "Profundidade (m)",
+       ylab = expression("Conteúdo de água do solo" ~ (m^3 ~ m^{-3})),
        type = c("p", "smooth"),
        auto.key = TRUE)
 ```
@@ -152,7 +165,7 @@ subset(rp, manejo == "BSL" & cam == 45)
 ```{r, echo = FALSE, fig.cap = cap}
 txt <-
 "Diagrama de dispersão de cada uma das respostas em
- função da profundidade no perfil do solo (cm) para cada
+ função da profundidade no perfil do solo (m) para cada
  manejo do solo. A linhas suaves foram adicionadas para marcar a
  tendência sobre a média dos dados. Pontos com as mesmas cores
  pertencem ao mesmo bloco."
@@ -165,7 +178,7 @@ xy <- xyplot(umid0 + umid6 + dumid + dens + rp ~ cam | manejo,
              outer = TRUE,
              groups = bloc,
              data = rp,
-             xlab = "Profundidade (cm)",
+             xlab = "Profundidade (m)",
              ylab = NULL,
              scales = list(y = list(relation = "free")),
              type = c("p", "smooth")) +
@@ -276,7 +289,7 @@ m0 <- lme(umid0 ~ manejo * ns(cam),
 
 # Modelo que expecifica correlação exponencial.
 m1 <- update(m0,
-             correlation = corExp(value = 5, form = ~cam))
+             correlation = corExp(value = 0.05, form = ~cam))
 anova(m0, m1)
 
 # Comparação visual dos ajustes.
@@ -308,7 +321,7 @@ r <- coef(m2$modelStruct$corStruct, unconstrained = FALSE)
 ```
 ```{r, echo = FALSE, fig.cap = cap}
 txt <-
-"Correlação entre camadas em função da distância (cm) entre elas no
+"Correlação entre camadas em função da distância (m) entre elas no
  perfil do solo."
 cap <- fg_nums(name = "corr-umid0",
                cap = txt)
@@ -317,19 +330,19 @@ curve(exp(-x/r),
       from = 0,
       to = max(rp$cam),
       ylab = "Correlação entre observações",
-      xlab = "Distância entre camadas do solo (cm)")
+      xlab = "Distância entre camadas do solo (m)")
 abline(v = 3 * r, h = exp(-3), lty = 2)
 ```
 
-A estimativa de alcance[^1] foi de `r 3*r` cm
+A estimativa de alcance[^1] foi de `r 3*r` m
 (`r fg_lab("corr-umid0")`). O gráfico mostra o decaimento da correlação
 entre camadas em função da distância entre elas segundo a função
 exponencial considerada no ajuste.
 
 ```{r, echo = FALSE, fig.cap = cap}
 txt <-
-"Valores observados de umidade do solo (g g$^{-1}$) em 0 kPa em
- função da profundidade do solo (cm) para cada manejo com a curva
+"Valores observados de umidade do solo (m$^3$ m$^{-3}$) em 0 kPa em
+ função da profundidade do solo (m) para cada manejo com a curva
  ajustada acompanhada das bandas de confiança (95%)."
 cap <- fg_nums(name = "pred-umid0",
                cap = txt)
@@ -340,8 +353,9 @@ pred <- cbind(pred, icpred(model = m2, data = pred))
 
 xyplot(umid0 ~ cam | manejo,
        data = rp[-63, ],
-       ylab = expression("Umidade em 0 kPa" ~ (g ~ g^{-1})),
-       xlab = "Profundidade (cm)") +
+       ylab = expression("Conteúdo de água do solo à 0 kPa" ~
+                             (m^3 ~ m^{-3})),
+       xlab = "Profundidade (m)") +
     as.layer(xyplot(fit ~ cam | manejo,
                     data = pred,
                     type = "l",
@@ -369,7 +383,7 @@ m0 <- lme(umid6 ~ manejo * bs(cam),
 
 # Modelo que expecifica correlação exponencial.
 m1 <- update(m0,
-             correlation = corExp(value = 2, form = ~cam))
+             correlation = corExp(value = 0.02, form = ~cam))
 anova(m0, m1)
 
 # Comparação visual dos ajustes.
@@ -401,7 +415,7 @@ r <- coef(m2$modelStruct$corStruct, unconstrained = FALSE)
 ```
 ```{r, echo = FALSE, fig.cap = cap}
 txt <-
-"Correlação entre camadas em função da distância (cm) entre elas no
+"Correlação entre camadas em função da distância (m) entre elas no
  perfil do solo."
 cap <- fg_nums(name = "corr-umid6",
                cap = txt)
@@ -410,19 +424,19 @@ curve(exp(-x/r),
       from = 0,
       to = max(rp$cam),
       ylab = "Correlação entre observações",
-      xlab = "Distância entre camadas do solo (cm)")
+      xlab = "Distância entre camadas do solo (m)")
 abline(v = 3 * r, h = exp(-3), lty = 2)
 ```
 
-A estimativa de alcance foi de `r 3*r` cm
+A estimativa de alcance foi de `r 3*r` m
 (`r fg_lab("corr-umid6")`). O gráfico mostra o decaimento da correlação
 entre camadas em função da distância entre elas segundo a função
 exponencial considerada no ajuste.
 
 ```{r, echo = FALSE, fig.cap = cap}
 txt <-
-"Valores observados de umidade do solo (g g$^{-1}$) em 6 kPa em
- função da profundidade do solo (cm) para cada manejo com a curva
+"Valores observados de umidade do solo (m$^3$ m$^{-3}$) em 6 kPa em
+ função da profundidade do solo (m) para cada manejo com a curva
  ajustada acompanhada das bandas de confiança (95%)."
 cap <- fg_nums(name = "pred-umid6",
                cap = txt)
@@ -433,8 +447,9 @@ pred <- cbind(pred, icpred(model = m2, data = pred))
 
 xyplot(umid6 ~ cam | manejo,
        data = rp[-63, ],
-       ylab = expression("Umidade em 6 kPa" ~ (g ~ g^{-1})),
-       xlab = "Profundidade (cm)") +
+       ylab = expression("Conteúdo de água do solo à 6 kPa" ~
+                             (m^3 ~ m^{-3})),
+       xlab = "Profundidade (m)") +
     as.layer(xyplot(fit ~ cam | manejo,
                     data = pred,
                     type = "l",
@@ -461,7 +476,7 @@ m0 <- lme(dumid ~ manejo * bs(cam),
 
 # Modelo que expecifica correlação exponencial.
 m1 <- update(m0,
-             correlation = corExp(value = 5, form = ~cam))
+             correlation = corExp(value = 0.05, form = ~cam))
 anova(m0, m1)
 
 # Comparação visual dos ajustes.
@@ -498,7 +513,7 @@ summary(glht(m0, linfct = L))
 ```{r, echo = FALSE, fig.cap = cap}
 txt <-
 "Valores observados para a diferença entre umidade do solo em 0 e 6
- kPa (g g$^{-1}$) em função da profundidade do solo (cm)
+ kPa (m$^3$ m$^{-3}$) em função da profundidade do solo (m)
  para cada manejo com a curva ajustada acompanhada das bandas de
  confiança (95%)."
 cap <- fg_nums(name = "pred-dumid",
@@ -510,9 +525,9 @@ pred <- cbind(pred, icpred(model = m0, data = pred))
 
 xyplot(dumid ~ cam | manejo,
        data = rp,
-       ylab = expression(
-           "Diferença de umidade em 0 e 6 kPa" ~ (g ~ g^{-1})),
-       xlab = "Profundidade (cm)") +
+       ylab = expression("Conteúdo de água do solo - 0 a 6 kPa" ~
+                             (m^3 ~ m^{-3})),
+       xlab = "Profundidade (m)") +
     as.layer(xyplot(fit ~ cam | manejo,
                     data = pred,
                     type = "l",
@@ -539,7 +554,7 @@ m0 <- lme(dens ~ manejo * bs(cam),
 
 # Modelo que expecifica correlação exponencial.
 m1 <- update(m0,
-             correlation = corExp(value = 5, form = ~cam))
+             correlation = corExp(value = 0.05, form = ~cam))
 anova(m0, m1)
 
 # Comparação visual dos ajustes.
@@ -575,7 +590,7 @@ summary(glht(m0, linfct = L))
 ```{r, echo = FALSE, fig.cap = cap}
 txt <-
 "Valores observados para a densidade do solo (Mg m$^{-3}$) em
- função da profundidade do solo (cm) para cada manejo com a curva
+ função da profundidade do solo (m) para cada manejo com a curva
  ajustada acompanhada das bandas de confiança (95%)."
 cap <- fg_nums(name = "pred-dens",
                cap = txt)
@@ -587,7 +602,7 @@ pred <- cbind(pred, icpred(model = m0, data = pred))
 xyplot(dens ~ cam | manejo,
        data = rp,
        ylab = expression("Densidade do solo" ~ (Mg ~ m^{-3})),
-       xlab = "Profundidade (cm)") +
+       xlab = "Profundidade (m)") +
     as.layer(xyplot(fit ~ cam | manejo,
                     data = pred,
                     type = "l",
@@ -614,7 +629,7 @@ m0 <- lme(rp ~ manejo * bs(cam),
 
 # Modelo que expecifica correlação exponencial.
 m1 <- update(m0,
-             correlation = corExp(value = 5, form = ~cam))
+             correlation = corExp(value = 0.05, form = ~cam))
 anova(m0, m1)
 
 # Comparação visual dos ajustes.
@@ -650,7 +665,7 @@ summary(glht(m0, linfct = L))
 ```{r, echo = FALSE, fig.cap = cap}
 txt <-
 "Valores observados para a resistência a penetração do solo (MPa) em
- função da profundidade do solo (cm) para cada manejo com a curva
+ função da profundidade do solo (m) para cada manejo com a curva
  ajustada acompanhada das bandas de confiança (95%)."
 cap <- fg_nums(name = "pred-rp",
                cap = txt)
@@ -662,7 +677,7 @@ pred <- cbind(pred, icpred(model = m0, data = pred))
 xyplot(rp ~ cam | manejo,
        data = rp,
        ylab = expression("Resistência à penetração" ~ (MPa)),
-       xlab = "Profundidade (cm)") +
+       xlab = "Profundidade (m)") +
     as.layer(xyplot(fit ~ cam | manejo,
                     data = pred,
                     type = "l",
@@ -693,8 +708,8 @@ colnames(r) <- rownames(r) <- unique(sort(rp$cam))
 levelplot(r,
           at = seq(-1, 1, by = 0.1),
           main = list("Correlação entre camadas", font = 1),
-          xlab = "Camada (cm)",
-          ylab = "Camada (cm)")
+          xlab = "Camada (m)",
+          ylab = "Camada (m)")
 
 # Predomínio e correlação positiva entre camadas adjacentes. A
 # correlação tende a se tornar negativa com o aumento da separação entre
