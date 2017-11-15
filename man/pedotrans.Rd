@@ -17,8 +17,8 @@
 
 \item{\code{metodo}}{Fator categórico que representa os métodos de
     análise textural do solo empregados para a determinação das
-    frações argila, areia e silte.  Os Métodos são Bouyoucos (Boy),
-    Pipeta (Pip) e Ultrassom (Ultsom).}
+    frações argila, areia e silte.  Os métodos laboratoriais foram
+    Bouyoucos (Boy), pipeta (Pip) e ultrassom (Ultsom).}
 
 \item{\code{arg}}{Variável resposta que é a fração de argila do solo,
     g kg\eqn{^{-1}}.}
