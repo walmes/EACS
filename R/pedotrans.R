@@ -13,9 +13,13 @@
 #'
 #' \describe{
 #'
-#' \item{\code{solo}}{Números inteiros que identificam os locais de
-#'     amostragem de solo. Todos os solos foram classificados como
-#'     latossolos.}
+#' \item{\code{unid}}{Números inteiros que identificam as unidades ou
+#'     locais de amostragem de solo. Todos os solos foram classificados
+#'     como latossolos.}
+#'
+#' \item{\code{rept}}{Números inteiros que identificam as repetições que
+#'     são amostras retiradas da mesma unidade amostral para
+#'     determinação das variáveis.}
 #'
 #' \item{\code{metodo}}{Fator categórico que representa os métodos de
 #'     análise textural do solo empregados para a determinação das
@@ -56,7 +60,13 @@
 #' \item{\code{ferro}}{Variável resposta que é o teor de ferro
 #'     (Fe\eqn{_2}O\eqn{_3}) do solo, g kg\eqn{^{-1}}.}
 #'
+#' \item{\code{co}}{Variável resposta que é o teor de carbono orgânico
+#'     do solo, \eqn{\mu}g L\eqn{^{-1}}.}
+#'
 #' \item{\code{dp}}{Variável resposta que é a densidade de partícula do
+#'     solo, kg m\eqn{^{-3}}.}
+#'
+#' \item{\code{ds}}{Variável resposta que é a densidade de partícula do
 #'     solo, kg m\eqn{^{-3}}.}
 #'
 #' }
@@ -71,10 +81,9 @@
 #'
 #' \describe{
 #'
-#' \item{\code{solo}}{Descrito acima.}
+#' \item{\code{unid}}{Descrito acima.}
 #'
-#' \item{\code{rept}}{Números inteiros que identificam as repetições no
-#'     processo de determinação da pressão de preconsolidação (PCC).}
+#' \item{\code{rept}}{Descrito acima.}
 #'
 #' \item{\code{tens}}{Fator de níveis métricos que é a tensão da água
 #'     aplicada às amostras de solo indeformadas determinação da pressão
@@ -82,6 +91,13 @@
 #'
 #' \item{\code{ppc}}{Variável resposta que é a pressão de
 #'     preconsolidação, em kPa.}
+#'
+#' \item{\code{umid}}{Variável resposta que é umidade volumétrica do
+#'     solo, dm\eqn{^3} dm\eqn{^{-3}}.  Ela representa a capacidade de
+#'     retenção de água no solo quando submetido as diferentes tensões
+#'     (kPa). As tensões de 1 a 10 kPa foram realizadas em unidade de
+#'     sucção e demais tensões foram realizadas com câmaras de pressão
+#'     de Richards.}
 #'
 #' }
 #'
@@ -96,7 +112,17 @@
 #'
 #' str(pedotrans)
 #'
-#' xyplot(ppc ~ tens | as.factor(solo),
+#' xyplot(ppc ~ tens | as.factor(unid),
+#'        groups = rept,
+#'        data = pedotrans$pcc,
+#'        jitter.x = TRUE,
+#'        type = c("p", "a"),
+#'        as.table = TRUE,
+#'        xlab = "Logaritmo base 10 da tensão aplicada (kPa)",
+#'        ylab = "Pressão de preconsolidação (kPa)",
+#'        scales = list(x = list(log = 10)))
+#'
+#' xyplot(umid ~ tens | as.factor(unid),
 #'        groups = rept,
 #'        data = pedotrans$pcc,
 #'        jitter.x = TRUE,
@@ -108,16 +134,14 @@
 #'
 #' f <- as.formula(
 #'     sprintf("%s ~ metodo",
-#'             paste(names(pedotrans$tex)[-(1:2)],
+#'             paste(names(pedotrans$tex)[-(1:3)],
 #'                   collapse = " + ")))
 #' xyplot(f,
 #'        data = pedotrans$tex,
 #'        outer = TRUE,
-#'        groups = solo,
+#'        groups = unid,
 #'        type = c("p", "a"),
 #'        as.table = TRUE,
-#'        xlab = "Método usado na determinação das frações texturais",
-#'        ylab = "Teores",
 #'        scales = list(y = "free"))
 #'
 NULL
