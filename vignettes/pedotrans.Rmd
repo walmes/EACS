@@ -1,0 +1,326 @@
+---
+title: "Funções de pedotransferência para latossolos de Goiás"
+author: >
+  [Walmes Marques Zeviani](http://lattes.cnpq.br/4410617539281650),
+  [Josué Gomes Delmond](http://lattes.cnpq.br/6926065775630839),
+  [Eduardo da Costa Severiano](http://lattes.cnpq.br/0288146552740769) &
+  [Carla Eloize Carducci](http://lattes.cnpq.br/3585988593213083)
+date: '`r format(Sys.Date(), format = "%d de %B de %Y")`'
+vignette: >
+  %\VignetteIndexEntry{Funções de pedotransferência para latossolos de Goiás}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+source("config/setup.R")
+options(width = 80)
+```
+
+## Configuração do ambiente
+
+```{r, results = "hide", message = FALSE, error = FALSE, warning = FALSE}
+#-----------------------------------------------------------------------
+# Carrega os pacotes necessários.
+
+rm(list = ls())
+library(lattice)
+library(latticeExtra)
+library(reshape2)
+library(dplyr)
+library(nlme)
+library(wzRfun)
+library(EACS)
+```
+```{r, include = FALSE}
+devtools::load_all()
+```
+
+## Ajuste da curva de retenção de água do solo
+
+### Ajuste por unidade experimental
+
+```{r}
+data(pedotrans)
+str(pedotrans)
+
+# Valores relacionados à tensão.
+pdt <- pedotrans$pcc
+
+# Troca tensão 0 por algo positivo para não desaparecer com o log.
+pdt$tens[pdt$tens == 0] <- 0.1
+pdt$ltens <- log(pdt$tens)
+
+# Cria unidade experimental.
+pdt$ue <- with(pdt, interaction(unid, rept, drop = FALSE))
+
+# Para mudar a ordem dos níveis.
+l <- c(t(matrix(levels(pdt$ue), nrow = 10)))
+pdt$ue <- factor(pdt$ue, levels = l)
+str(pdt)
+
+dcast(data = subset(pdt,
+                    unid == 1,
+                    select = c(tens, rept, umid)),
+      formula = tens ~ rept)
+
+xyplot(umid ~ tens | as.factor(unid),
+       groups = rept,
+       data = pdt,
+       jitter.x = TRUE,
+       type = c("p", "a"),
+       as.table = TRUE,
+       xscale.components = xscale.components.logpower,
+       xlab = "Logaritmo base 10 da tensão aplicada (kPa)",
+       ylab = expression("Umidade do solo" ~ (dm^{3} ~ dm^{-3})),
+       scales = list(x = list(log = 10)))
+```
+
+```{r, eval = FALSE}
+# Ajuste com interface gráfica para posicionar a curva e ter
+# convergência certa.
+
+library(rpanel)
+
+fit <- rp.nls(
+    model = umid ~ thr + (ths - thr)/(1 + exp(tha + ltens)^thn)^(1 - 1/thn),
+    data = pdt,
+    start = list(thr = c(0, 0.2, 0.5),
+                 ths = c(0.5, 1, 0.7),
+                 tha = c(-3, 3, 1),
+                 thn = c(1.1, 1.8, 1.5)),
+    subset = "ue")
+
+dput(sapply(fit, function(x) round(coef(x), 4)))
+```
+
+```{r}
+estimates <-
+structure(c(0.061, 0.4855, -0.118, 1.7796, 0.0928, 0.5308, 0.6793,
+1.5288, 0.1197, 0.5503, -0.2914, 1.6156, 0.0988, 0.6186, 1.1132,
+1.4495, 0.1222, 0.6502, 1.3007, 1.42, 0.1659, 0.601, 0.203, 1.5824,
+0.1533, 0.6647, 0.4815, 1.4977, 0.1708, 0.6708, 0.4919, 1.5473,
+0.1556, 0.6746, 0.494, 1.4457, 0.1937, 0.6966, 0.587, 1.5036,
+0.0615, 0.4923, -0.2585, 1.8835, 0.0895, 0.5511, 0.9341, 1.5466,
+0.1233, 0.5502, -0.2379, 1.678, 0.0859, 0.6408, 1.7727, 1.3445,
+0.1287, 0.622, 0.6943, 1.4923, 0.1427, 0.6097, 0.7708, 1.4351,
+0.1645, 0.6588, 0.3134, 1.5514, 0.1586, 0.6694, 0.6833, 1.415,
+0.1638, 0.6775, 0.7306, 1.4431, 0.1713, 0.7435, 1.7755, 1.355,
+0.0588, 0.4813, 0.0365, 1.6922, 0.0895, 0.5349, 0.6368, 1.5824,
+0.1268, 0.5484, -0.1657, 1.6755, 0.1072, 0.6024, 0.9629, 1.4858,
+0.13, 0.6146, 0.9213, 1.4441, 0.1502, 0.6244, 1.0353, 1.4251,
+0.1727, 0.6586, 0.052, 1.7006, 0.1649, 0.6689, 0.3891, 1.4947,
+0.1331, 0.7121, 1.5491, 1.3126, 0.1844, 0.712, 1.464, 1.3515,
+0.0589, 0.4909, -0.2484, 1.8562, 0.0773, 0.5457, 0.786, 1.484,
+0.1252, 0.5455, -0.2012, 1.6576, 0.1058, 0.6144, 0.8225, 1.5077,
+0.1302, 0.6269, 0.7135, 1.5172, 0.1543, 0.5982, 0.9032, 1.4007,
+0.1677, 0.6684, 0.4493, 1.5709, 0.1362, 0.6839, 1.2749, 1.3142,
+0.1498, 0.6949, 1.1838, 1.3787, 0.1901, 0.7087, 1.0781, 1.4224
+), .Dim = c(4L, 40L), .Dimnames = list(c("thr", "ths", "tha",
+"thn"), c("1.1", "2.1", "3.1", "4.1", "5.1", "6.1", "7.1", "8.1",
+"9.1", "10.1", "1.2", "2.2", "3.2", "4.2", "5.2", "6.2", "7.2",
+"8.2", "9.2", "10.2", "1.3", "2.3", "3.3", "4.3", "5.3", "6.3",
+"7.3", "8.3", "9.3", "10.3", "1.4", "2.4", "3.4", "4.4", "5.4",
+"6.4", "7.4", "8.4", "9.4", "10.4")))
+
+#-----------------------------------------------------------------------
+# Ajustar novamente para ter precisão cheia nas estimativas que foram
+# arredondadas para salvar espaço e ter objetos `nls`.
+
+f <- umid ~ thr + (ths - thr)/(1 + exp(tha + ltens)^thn)^(1 - 1/thn)
+fit <- vector(mode = "list", length = nlevels(pdt$ue))
+names(fit) <- levels(pdt$ue)
+
+for (i in names(fit)) {
+    fit[[i]] <- nls(f,
+                    data = subset(pdt, ue == i),
+                    start = estimates[, i])
+}
+
+estimates <- sapply(fit, FUN = coef)
+
+# Valores médios dos parâmetros.
+rowMeans(estimates)
+
+# Pares de diagramas de dispersão.
+splom(t(estimates),
+      groups = sub("\\..*", "", colnames(estimates)),
+      as.matrix = TRUE)
+```
+
+```{r}
+#-----------------------------------------------------------------------
+# Ajuste com a nlsList() para ter os intervalos de confiança.
+
+n0 <- nlsList(
+    model = umid ~ thr + (ths - thr)/(1 + exp(tha + ltens)^thn)^(1 - 1/thn) | ue,
+    data = subset(pdt, select = c(ltens, umid, ue)),
+    start = rowMeans(estimates))
+
+p <- plot(intervals(n0),
+          layout = c(4, NA))
+update(p,
+       xlab = "Estimativa",
+       ylab = "Unidade experimental")
+```
+
+### Índices S e I
+
+```{r}
+#-----------------------------------------------------------------------
+# Cálculo dos índices S e I.
+
+# Transforma de matriz para tabela.
+params <- cbind(as.data.frame(t(estimates)),
+                ue = colnames(estimates))
+rownames(params) <- NULL
+
+# Adiciona as colunas de `unid` e `rept`.
+params <- merge(unique(subset(pdt, select = c(unid, rept, ue))),
+                params,
+                by = "ue")
+
+# Ordena pelos níveis de `ue`.
+params <- params[order(params$ue), ]
+
+# Calcula S e I.
+params <- within(params, {
+    S <- -(ths - thr) * thn * (1 + 1/(1 - 1/thn))^(-(1 - 1/thn) - 1)
+    I <- -tha - log(1 - 1/thn)/thn
+    U <- thr + (ths - thr)/(1 + exp(tha + I)^thn)^(1 - 1/thn)
+})
+str(params)
+
+xyplot(umid ~ ltens | as.factor(ue),
+       data = pdt,
+       as.table = TRUE,
+       xlab = "Logaritmo base neperiana da tensão aplicada (kPa)",
+       ylab = expression("Umidade do solo" ~ (dm^{3} ~ dm^{-3}))) +
+    layer({
+        p <- as.list(params[packet.number(), ])
+        with(p, {
+            # Curva ajustada.
+            panel.curve(
+                thr + (ths - thr)/(1 + exp(tha + x)^thn)^(1 - 1/thn))
+            # Tensão, umidade e inclinação no ponto de inflexão.
+            panel.points(x = I, y = U, pch = 4)
+            panel.segments(I, 0, I, U, lty = 2)
+            panel.segments(-5, U, I, U, lty = 2)
+            panel.abline(a = U - S * I, b = S, lty = 3)
+        })
+    })
+```
+
+### Valores médios dos parâmetros por local
+
+```{r}
+#-----------------------------------------------------------------------
+# Valores médios dos parâmetros para cada unidade de latossolo.
+
+# Valores para os parâmetros da CRAS.
+crap <- summarise_all(
+    .tbl = group_by(.data = subset(params, select = -c(ue, rept)),
+                    unid),
+    .funs = funs(mean))
+
+# round(as.data.frame(crap), 4)
+round(crap, digits = 4)
+```
+
+### Estudo de correlação com variáveis texturais
+
+ATTENTION: qual dos métodos de determinação das variáveis texturais gera
+o conjunto de variáveis texturais com maior poder de explicação para as
+variáveis hídricas?  Explorar a correlação canônica?  Esse grau de
+explicação muda com o tipo de método?
+
+```{r}
+# Junta variáveis hídricas com texturais.
+cratex <- merge(crap, pedotrans$tex, by = "unid", all = TRUE)
+
+# # Gráfico de pares de diagramas de dispersão.
+# splom(subset(cratex, select = -c(unid, metodo)),
+#       groups = cratex$metodo,
+#       type = c("p", "r"))
+
+cra <- names(crap)[-1]
+tex <- names(pedotrans$tex)[-(1:2)]
+
+# Correlações entre os conjuntos de variáveis separado por método.
+b <- by(data = cratex,
+        INDICES = cratex$metodo,
+        FUN = function(x) {
+            k <- cor(subset(x, select = -c(unid, metodo)),
+                     method = "spearman")
+            k <- k[cra, tex]
+            m <- as.character(x$metodo[1])
+            print(m)
+            print(k)
+            k <- cbind(stack(as.data.frame(k)), cra = rownames(k))
+            names(k)[1:2] <- c(m, "tex")
+            return(k)
+        })
+
+# Coloca as correlações lado a lado.
+correl <- Reduce(
+    f = function(x, y) {
+        merge(x, y, by = c("tex", "cra"))
+    },
+    x = b)
+
+m <- levels(pedotrans$tex$metodo)
+
+# Número de vezes que cada método apresentou a maior correlação.
+table(apply(correl[, m],
+            MARGIN = 1,
+            FUN = function(x) {
+                m[which.max(abs(x))]
+            }))
+```
+
+### Análise de correlação canônica
+
+```{r}
+suppressPackageStartupMessages(library(candisc))
+
+cc <- by(data = cratex,
+         INDICES = cratex$metodo,
+         FUN = function(x) {
+             candisc::cancor(x = x[, c("arg", "sil")],
+                             y = x[, c("ths", "thr", "tha", "thn",
+                                       "U", "S", "I")])
+        })
+
+# Resumo do ajuste.
+cc
+
+par(mfrow = c(2, 2))
+# heplot(cc[[1]], which = c(1, 2))
+# heplot(cc[[2]], which = c(1, 2))
+# heplot(cc[[3]], which = c(1, 2))
+invisible(lapply(cc, FUN = heplot, which = c(1, 2)))
+layout(1)
+```
+
+## Ajuste da curva de pressão de preconsolidação
+
+```{r}
+xyplot(ppc ~ tens | as.factor(unid),
+       groups = rept,
+       data = pedotrans$pcc,
+       jitter.x = TRUE,
+       type = c("p", "a"),
+       as.table = TRUE,
+       xscale.components = xscale.components.logpower,
+       xlab = "Logaritmo base 10 da tensão aplicada (kPa)",
+       ylab = "Pressão de preconsolidação (kPa)",
+       scales = list(x = list(log = 10)))
+```
+
+## Informações da sessão
+
+```{r, echo = FALSE, results = "hold"}
+cat(format(Sys.time(),
+           format = "Atualizado em %d de %B de %Y.\n\n"))
+sessionInfo()
+```
