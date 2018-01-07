@@ -44,6 +44,7 @@ Suggests:
     reshape,
     reshape2,
     plyr,
+    dplyr,
     captioner,
     knitr
 VignetteBuilder: knitr
