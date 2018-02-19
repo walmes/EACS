@@ -16,10 +16,10 @@ vignette: >
 ```{r setup, include=FALSE}
 source("config/setup.R")
 
-# A revista pede que as figuras sejam em Arial.
+# A revista pede que as figuras sejam em Serif.
 opts_chunk$set(#dpi = 96,
                dev = "png",
-               dev.args = list(family = "Arial",
+               dev.args = list(family = "Palatino",
                                pointsize = 18))
 
 # width in pixels = inches * dpi * 2.
