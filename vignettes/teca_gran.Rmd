@@ -1,0 +1,258 @@
+---
+title: "Análise da Produção de Teca em Função de Variáveis do Granulométricas do Solo"
+author: >
+  [Walmes M. Zeviani](http://lattes.cnpq.br/4410617539281650) &
+  [Milson E. Serafim](http://lattes.cnpq.br/8676820051946774)
+vignette: >
+  %\VignetteIndexEntry{Análise da Produção de Teca em Função de Variáveis do Granulométricas do Solo}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+source("config/setup.R")
+```
+
+## Análise Exploratória
+
+```{r, results = "hide", message = FALSE, error = FALSE, warning = FALSE}
+#-----------------------------------------------------------------------
+# Carrega os pacotes necessários.
+
+# rm(list = objects())
+library(lattice)
+library(latticeExtra)
+library(EACS)
+library(corrplot)
+```
+```{r, include = FALSE}
+devtools::load_all()
+```
+```{r}
+#-----------------------------------------------------------------------
+# Análise exploratório dos dados.
+
+str(teca_gran) # Variáveis granulométricas.
+str(teca_qui)  # Variáveis químicas e físicas.
+str(teca_arv)  # Contém a produção.
+
+# Junção das informações.
+db <- merge(subset(teca_qui, select = c("loc", "cam", "arg", "cas", "acc")),
+            teca_gran,
+            all = TRUE)
+str(db)
+
+# Renomeia níveis.
+db$cam <- factor(db$cam, labels = 1:3)
+
+# Empilha.
+db_long <- reshape2::melt(data = db,
+                          id.vars = c("loc", "cam"),
+                          variable.name = "x",
+                          value.name = "y")
+db_long <- transform(db_long,
+                     resp_cam = paste(x, cam, sep = "_"))
+str(db_long)
+
+# Distribuição de densidade.
+densityplot(~y | x,
+            groups = cam,
+            data = db_long,
+            scales = "free",
+            as.table = TRUE)
+
+# Desempilha.
+db_wide <- reshape2::dcast(data = db_long,
+                           formula = loc ~ resp_cam,
+                           value.var = "y")
+# str(db_wide)
+
+# Adiciona a variável resposta.
+db_prod <- merge(subset(teca_arv, select = c("loc", "prod")),
+                 db_wide,
+                 by = "loc",
+                 all = TRUE)
+str(db_prod)
+
+parallelplot(~db_prod[-1], data = db_prod,
+             horizontal.axis = FALSE,
+             scales = list(x = list(rot = 90)))
+
+# splom(db_wide[, -1])
+r <- cor(db_prod[, -(1)])
+
+corrplot::corrplot(r,
+                   type = "upper",
+                   tl.pos = "d",
+                   outline = TRUE,
+                   method = "ellipse")
+```
+
+## Regressão com penalização LASSO
+
+A regressão com penalização LASSO será usada para fazer seleção de
+variáveis. Aquelas variáveis cujos coeficientes forem anulados pela
+penalização imposta serão removidas e então um modelo linear será
+ajustado apenas com as variáveis restantes.  Será usado validação
+cruzada para determinar o valor do parâmetro de penalidade.
+
+```{r, message = FALSE}
+library(glmnet)
+
+y <- db_prod$prod
+X <- as.matrix(db_prod[, 3:ncol(db_prod)])
+dim(X)
+
+# Escolha do parâmetro de penalidade por CV.
+set.seed(123)
+cvfit <- cv.glmnet(x = X, y = y, alpha = 1, nlambda = 300)
+
+# Perfil do MSE de validação em função de lambda.
+plot(cvfit)
+
+# Valor do parâmetro de penalidade.
+cvfit$lambda.min
+
+# Estimativas dos parâmetros com o lambda mínimo (cuidado ao
+# interpretar).
+b <- as.matrix(coef(cvfit, s = "lambda.min"))
+v <- tail(names(b[abs(b) > 0, ]), n = -1)
+round(coef(cvfit, s = "lambda.min"), digits = 4)
+
+# Quando alpha = 0, então é Ridge. Se alpha = 1, então é Lasso.
+fit_las <- glmnet(x = X, y = y, alpha = 1, nlambda = 100)
+
+# Traço das estimativas em função do hiperparâmetro de penalização.
+plot(fit_las, xvar = "lambda", label = TRUE)
+abline(h = 0, lty = 2)
+abline(v = log(cvfit$lambda.min), lty = 2, col = 2)
+
+str(db_prod)
+m0 <- lm(prod ~ ., data = db_prod[, c("prod", v)])
+summary(m0)
+```
+
+## Melhor subconjunto de preditoras
+
+```{r, message = FALSE}
+library(caret)
+
+# Controle da validação cruzada.
+set.seed(123)
+ctr <- trainControl(method = "repeatedcv",
+                    number = 10,
+                    repeats = 3,
+                    returnResamp = "all",
+                    savePredictions = "all")
+
+# Best subset regression.
+set.seed(123)
+fit_bsr <- train(y = y,
+                 x = X,
+                 method = "leapForward",
+                 trControl = ctr,
+                 tuneGrid = expand.grid(nvmax = seq(from = 1,
+                                                    to = 20,
+                                                    by = 1)))
+fit_bsr
+
+# xyplot(fit) + latticeExtra::as.layer(plot(fit))
+plot(fit_bsr) + latticeExtra::as.layer(xyplot(fit_bsr))
+
+# Resultado do modelo final.
+summary(fit_bsr$finalModel)
+
+b0 <- regsubsets(prod ~ . - loc,
+                 data = db_prod,
+                 method = "exhaustive",
+                 nvmax = 4)
+sel <- summary(b0)
+
+# Variáveis que são mantidas no modelo.
+sel <- sel$which[, -1]
+apply(sel,
+      MARGIN = 1,
+      FUN = function(x) {
+          colnames(sel)[x]
+      })
+```
+
+## Floresta aleatória
+
+```{r, message = FALSE}
+# Random forest.
+set.seed(123)
+fit_rfr <- train(y = y,
+                 x = X,
+                 method = "rf",
+                 importance = TRUE,
+                 ntree = 100,
+                 nodesize = 5,
+                 trControl = ctr,
+                 tuneGrid = expand.grid(mtry = seq(from = 1,
+                                                   to = 10,
+                                                   by = 1)))
+fit_rfr
+
+# xyplot(fit_rfr) + latticeExtra::as.layer(plot(fit_rfr))
+plot(fit_rfr) + latticeExtra::as.layer(xyplot(fit_rfr))
+
+# Resultado do modelo final.
+fit_rfr$finalModel
+
+# Importância das variáveis.
+plot(varImp(fit_rfr, scale = TRUE))
+# plot(varImp(fit_rfr, scale = FALSE))
+
+ip <- importance(fit_rfr$finalModel)
+head(ip[order(ip[, 1], decreasing = TRUE), ], n = 10)
+```
+
+## Regressão de componentes principais
+
+```{r, message = FALSE}
+# str(getModelInfo(model = "pcr")[[1]])
+
+# Principal components regression.
+set.seed(123)
+fit_pcr <- train(y = y,
+                 x = X,
+                 method = "pcr",
+                 trControl = ctr,
+                 tuneGrid = expand.grid(ncomp = seq(from = 1,
+                                                    to = 10,
+                                                    by = 1)))
+fit_pcr
+
+# xyplot(fit_pcr) + latticeExtra::as.layer(plot(fit_pcr))
+plot(fit_pcr) + latticeExtra::as.layer(xyplot(fit_pcr))
+
+# Resultado do modelo final.
+summary(fit_pcr$finalModel)
+
+fit_pcr$finalModel$loadings
+# fit_pcr$finalModel$coefficients
+
+# biplot(fit_pcr$finalModel)
+loa <- fit_pcr$finalModel$loadings[, ]
+plot(loa, asp = 1, type = "n")
+abline(v = 0, h = 0, lty = 3)
+arrows(loa[, 1], loa[, 2], 0, 0, length = 0.05, code = 1, col = "orange")
+text(loa[, 1], loa[, 2], rownames(loa))
+```
+
+## Ajuste final com as variáveis selecionadas
+
+Então, qual vai ser o modelo final?
+
+```{r}
+str(db_prod)
+```
+
+## Informações da Sessão
+
+```{r, echo = FALSE, results = "hold"}
+cat(format(Sys.time(),
+           format = "Atualizado em %d de %B de %Y.\n\n"))
+sessionInfo()
+```

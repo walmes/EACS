@@ -1,7 +1,7 @@
 Package: EACS
 Title: Estatística Aplicada à Ciência do Solo
-Version: 0.0-5
-Date: 2018-01-07
+Version: 0.0-6
+Date: 2018-10-29
 Authors@R: as.person(c(
     "Walmes Marques Zeviani <walmes@ufpr.br> [cre,aut]",
     "Milson Evaldo Serafim <milson.serafim@cas.ifmt.edu.br> [ctb]",
@@ -23,7 +23,7 @@ BugReports:
 LazyData: true
 Encoding: UTF-8
 Depends:
-    R (>= 3.3.0),
+    R (>= 3.3.4),
     wzRfun
 Suggests:
     lattice,
@@ -35,6 +35,8 @@ Suggests:
     splines,
     car,
     candisc,
+    caret,
+    glmnet,
     corrplot,
     nFactors,
     psych,
