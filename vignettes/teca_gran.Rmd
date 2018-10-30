@@ -22,8 +22,8 @@ source("config/setup.R")
 # rm(list = objects())
 library(lattice)
 library(latticeExtra)
-library(EACS)
 library(corrplot)
+library(EACS)
 ```
 ```{r, include = FALSE}
 devtools::load_all()
@@ -38,7 +38,7 @@ str(teca_arv)  # Contém a produção.
 
 # Junção das informações.
 db <- merge(subset(teca_qui, select = c("loc", "cam", "arg", "cas", "acc")),
-            teca_gran,
+            subset(teca_gran, select = -are),
             all = TRUE)
 str(db)
 
@@ -46,12 +46,13 @@ str(db)
 db$cam <- factor(db$cam, labels = 1:3)
 
 # Empilha.
-db_long <- reshape2::melt(data = db,
+db_long <- reshape2::melt(data = subset(db, cam != "1"),
                           id.vars = c("loc", "cam"),
                           variable.name = "x",
                           value.name = "y")
 db_long <- transform(db_long,
                      resp_cam = paste(x, cam, sep = "_"))
+db_long <- droplevels(db_long)
 str(db_long)
 
 # Distribuição de densidade.
@@ -59,6 +60,7 @@ densityplot(~y | x,
             groups = cam,
             data = db_long,
             scales = "free",
+            auto.key = TRUE,
             as.table = TRUE)
 
 # Desempilha.
@@ -88,54 +90,53 @@ corrplot::corrplot(r,
                    method = "ellipse")
 ```
 
-## Regressão com penalização LASSO
+O conjunto de dados obtido até aqui `db_prod` contém as variáveis
 
-A regressão com penalização LASSO será usada para fazer seleção de
-variáveis. Aquelas variáveis cujos coeficientes forem anulados pela
-penalização imposta serão removidas e então um modelo linear será
-ajustado apenas com as variáveis restantes.  Será usado validação
-cruzada para determinar o valor do parâmetro de penalidade.
+  * `prod`: produção de madeira.
+  * `arg`: o conteúdo de argila do solo.
+  * `are`: o conteúdo de areia do solo.
+  * `afina`, `amedi` e `agros`: fracionamento da areia em fina, média e
+    grossa.
+  * `cas`: o conteúdo de cascalho do solo.
+  * `acc`: soma de areia, cascalho e calhau (particulas grandes).
+
+As variáveis granulométricas do solo foram obtidas em 3 camadas do
+solo. No entando, considerando que a primeira camada é muito fina e mais
+sujeita às ações de manejo, não será considerada nas análises.
+
+## Regressão multipla com seleção de variáveis por stepwise
+
+A seleção de variáveis por stepwise irá remover/adicionar termos com a
+finalidade de minimizar a medida de ajuste BIC.
+
+```{r}
+m_full <- lm(prod ~ ., data = db_prod)
+summary(m_full)
+
+# Critério de BIC.
+m_sel <- step(m_full,
+              direction = "both",
+              k = log(nrow(db_prod)),
+              trace = FALSE)
+
+# Resumo do modelo selecionado.
+summary(m_sel)
+
+# par(mfrow = c(2, 2))
+# plot(m_sel)
+# layout(1)
+```
+
+## Controle do processo de particação dos dados
 
 ```{r, message = FALSE}
-library(glmnet)
+#-----------------------------------------------------------------------
+
+library(caret)
 
 y <- db_prod$prod
 X <- as.matrix(db_prod[, 3:ncol(db_prod)])
 dim(X)
-
-# Escolha do parâmetro de penalidade por CV.
-set.seed(123)
-cvfit <- cv.glmnet(x = X, y = y, alpha = 1, nlambda = 300)
-
-# Perfil do MSE de validação em função de lambda.
-plot(cvfit)
-
-# Valor do parâmetro de penalidade.
-cvfit$lambda.min
-
-# Estimativas dos parâmetros com o lambda mínimo (cuidado ao
-# interpretar).
-b <- as.matrix(coef(cvfit, s = "lambda.min"))
-v <- tail(names(b[abs(b) > 0, ]), n = -1)
-round(coef(cvfit, s = "lambda.min"), digits = 4)
-
-# Quando alpha = 0, então é Ridge. Se alpha = 1, então é Lasso.
-fit_las <- glmnet(x = X, y = y, alpha = 1, nlambda = 100)
-
-# Traço das estimativas em função do hiperparâmetro de penalização.
-plot(fit_las, xvar = "lambda", label = TRUE)
-abline(h = 0, lty = 2)
-abline(v = log(cvfit$lambda.min), lty = 2, col = 2)
-
-str(db_prod)
-m0 <- lm(prod ~ ., data = db_prod[, c("prod", v)])
-summary(m0)
-```
-
-## Melhor subconjunto de preditoras
-
-```{r, message = FALSE}
-library(caret)
 
 # Controle da validação cruzada.
 set.seed(123)
@@ -144,6 +145,87 @@ ctr <- trainControl(method = "repeatedcv",
                     repeats = 3,
                     returnResamp = "all",
                     savePredictions = "all")
+```
+
+## Regressão com penalização LASSO
+
+A regressão com penalização LASSO será usada para fazer seleção de
+variáveis. Aquelas variáveis cujos coeficientes forem anulados pela
+penalização imposta serão removidas e então um modelo linear será
+ajustado apenas com as variáveis restantes.  Será usado validação
+cruzada para determinar o valor do parâmetro de penalidade.
+
+```{r}
+# str(getModelInfo(model = "glmnet")[[1]])
+
+# Regressão com penalização LASSO.
+set.seed(123)
+fit_las <- train(y = y,
+                 x = X,
+                 method = "glmnet",
+                 trControl = ctr,
+                 tuneGrid = expand.grid(alpha = 1,
+                                        lambda = 2^seq(from = -5,
+                                                       to = 5,
+                                                       by = 0.2)))
+fit_las
+
+# Gráfico para escolha do `lambda`.
+sc <- list(x = list(log = 2))
+c("Traço médio" = plot(fit_las, scale = sc),
+  "Desempenhos individuais na CV" =
+      xyplot(fit_las, , scale = sc) + latticeExtra::as.layer(plot(fit_las, scale = sc)))
+
+# Resultado do modelo final.
+# fit_las$finalModel
+
+# Importância das variáveis.
+plot(varImp(fit_las))
+
+# names(fit_las$finalModel)
+
+# Lambda ótimo.
+fit_las$finalModel$lambdaOpt
+
+# Variáveis não anuladas pela penalidade.
+b <- coef(fit_las$finalModel, s = fit_las$finalModel$lambdaOpt)
+b
+
+b <- as.matrix(b)
+v <- tail(names(b[abs(b) > 0, ]), n = -1)
+
+# Resumo do modelo com as variáveis selecionadas.
+m_las <- lm(prod ~ ., data = db_prod[, c("prod", v)])
+summary(m_las)
+
+#--------------------------------------------
+# Para fazer o traço das estimativas com a penalização.
+
+# library(glmnet)
+#
+# # Quando alpha = 0, então é Ridge. Se alpha = 1, então é Lasso.
+# m_las <- glmnet(x = X, y = y, alpha = 1, nlambda = 100)
+#
+# # Traço das estimativas em função do hiperparâmetro de penalização.
+# plot(m_las, xvar = "lambda", label = TRUE)
+# abline(h = 0, lty = 2)
+# abline(v = log(fit_las$finalModel$lambdaOpt), lty = 2, col = 2)
+# abline(h = b[v, ], col = "orange", lty = 2)
+# points(x = rep(log(fit_las$finalModel$lambdaOpt), length(v)),
+#        y = b[v, ])
+```
+
+## Melhor subconjunto de preditoras
+
+O melhor subconjunto de variáveis é uma abordagem exaustiva que ajusta
+todos os modelos com $k$ variáveis de cada vez. Com cada valor de $k$,
+armazena-se o melhor modelo obtido. Depois verifica-se em qual $k$ está
+o melhor modelo final. Para a determinação do valor de $k$ será usada
+validação cruzada.
+
+```{r, message = FALSE}
+# str(getModelInfo(model = "rpart")[[1]])
+# help(rpart, h = "html")
 
 # Best subset regression.
 set.seed(123)
@@ -152,16 +234,19 @@ fit_bsr <- train(y = y,
                  method = "leapForward",
                  trControl = ctr,
                  tuneGrid = expand.grid(nvmax = seq(from = 1,
-                                                    to = 20,
+                                                    to = 10,
                                                     by = 1)))
 fit_bsr
 
-# xyplot(fit) + latticeExtra::as.layer(plot(fit))
-plot(fit_bsr) + latticeExtra::as.layer(xyplot(fit_bsr))
+# Gráfico para escolha do `k`.
+c("Traço médio" = plot(fit_bsr),
+  "Desempenhos individuais na CV" =
+      xyplot(fit_bsr) + latticeExtra::as.layer(plot(fit_bsr)))
 
 # Resultado do modelo final.
 summary(fit_bsr$finalModel)
 
+# Ajustando com k = 1 até 4.
 b0 <- regsubsets(prod ~ . - loc,
                  data = db_prod,
                  method = "exhaustive",
@@ -170,45 +255,76 @@ sel <- summary(b0)
 
 # Variáveis que são mantidas no modelo.
 sel <- sel$which[, -1]
-apply(sel,
-      MARGIN = 1,
-      FUN = function(x) {
-          colnames(sel)[x]
-      })
+sel <- apply(sel,
+             MARGIN = 1,
+             FUN = function(x) {
+                 colnames(sel)[x]
+             })
+sel
+
+m_bsr <- lm(prod ~ ., data = db_prod[, c("prod", sel[[1]])])
+summary(m_bsr)
 ```
 
-## Floresta aleatória
+## Árvore de regressão
 
-```{r, message = FALSE}
-# Random forest.
+A árvore de regressão faz partições no espaço das variáveis preditodas
+gerando uma árvore semelhande as de classificação taxonomica. Cada
+ramificação da árvore faz decisão com base no valor de corte de uma
+variável. Os nós terminais contém os valores médios e tamanho de amostra
+para cada caminho percorrido pela árvore do nó raiz até cada nó
+terminal. A árvore de regressão possui um parâmetro de complexidade `cp`
+será definido por validação cruzada. Quando menor o valor de `cp`, mais
+ramificações a árvore terá, levando a um modelo mais flexível sujeito a
+superajuste. Quanto menor o valor de `cp`, mais simples é o modelo (com
+menos partições e nós terminais). Será usado um tamanho mínimo de nó de
+5 observações (`minsplit`, 5 é 10% do número de registros) para
+ocorrência de partição.
+
+```{r}
+# str(getModelInfo(model = "rpart")[[1]])
+# help(rpart, h = "html")
+
+# Árvore regressão.
 set.seed(123)
-fit_rfr <- train(y = y,
+fit_arv <- train(y = y,
                  x = X,
-                 method = "rf",
-                 importance = TRUE,
-                 ntree = 100,
-                 nodesize = 5,
+                 method = "rpart",
                  trControl = ctr,
-                 tuneGrid = expand.grid(mtry = seq(from = 1,
-                                                   to = 10,
-                                                   by = 1)))
-fit_rfr
+                 control = rpart.control(minsplit = 5),
+                 tuneGrid = expand.grid(cp = seq(from = 0.01,
+                                                 to = 0.3,
+                                                 by = 0.01)))
+fit_arv
 
-# xyplot(fit_rfr) + latticeExtra::as.layer(plot(fit_rfr))
-plot(fit_rfr) + latticeExtra::as.layer(xyplot(fit_rfr))
+# Gráfico para escolha do `cp`.
+c("Traço médio" = plot(fit_arv),
+  "Desempenhos individuais na CV" =
+      xyplot(fit_arv) + latticeExtra::as.layer(plot(fit_arv)))
 
-# Resultado do modelo final.
-fit_rfr$finalModel
+m_arv <- rpart(prod ~ .,
+               data = db_prod,
+               control = rpart.control(cp = 0.23,
+                                       minsplit = 5))
+m_arv
 
-# Importância das variáveis.
-plot(varImp(fit_rfr, scale = TRUE))
-# plot(varImp(fit_rfr, scale = FALSE))
-
-ip <- importance(fit_rfr$finalModel)
-head(ip[order(ip[, 1], decreasing = TRUE), ], n = 10)
+par(mfrow = c(1, 2), xpd = FALSE)
+plot(m_arv)
+text(m_arv, use.n = TRUE)
+plot(prod ~ arg_2, data = db_prod)
+points(predict(m_arv) ~ arg_2, data = db_prod, col = 2)
+abline(v = 331.6, lty = 2, col = 2)
+layout(1)
 ```
 
 ## Regressão de componentes principais
+
+A regressão com componentes principais irá usar como variável regressora
+um conjunto de índices produzidos com combinações lineares das variáveis
+preditoras. Os índices sintetizam a informação das regressoras em uma
+dimensão menor porém prevervando ao máximo a contribuição das preditoras
+na construção de tais índices. O número de componentes principais
+(`ncomp`) será determinado por validação cruzada.
 
 ```{r, message = FALSE}
 # str(getModelInfo(model = "pcr")[[1]])
@@ -224,29 +340,146 @@ fit_pcr <- train(y = y,
                                                     by = 1)))
 fit_pcr
 
-# xyplot(fit_pcr) + latticeExtra::as.layer(plot(fit_pcr))
-plot(fit_pcr) + latticeExtra::as.layer(xyplot(fit_pcr))
+# Gráfico para escolha do `ncomp`.
+c("Traço médio" = plot(fit_pcr),
+  "Desempenhos individuais na CV" =
+      xyplot(fit_pcr) + latticeExtra::as.layer(plot(fit_pcr)))
 
 # Resultado do modelo final.
 summary(fit_pcr$finalModel)
 
+# Carregamentos para contrução dos índices.
 fit_pcr$finalModel$loadings
-# fit_pcr$finalModel$coefficients
+
+# Coeficientes de regressão.
+fit_pcr$finalModel$coefficients
 
 # biplot(fit_pcr$finalModel)
 loa <- fit_pcr$finalModel$loadings[, ]
-plot(loa, asp = 1, type = "n")
-abline(v = 0, h = 0, lty = 3)
-arrows(loa[, 1], loa[, 2], 0, 0, length = 0.05, code = 1, col = "orange")
-text(loa[, 1], loa[, 2], rownames(loa))
+cbind(loa)
+
+# plot(loa, asp = 1, type = "n")
+# abline(v = 0, h = 0, lty = 3)
+# arrows(loa[, 1], loa[, 2], 0, 0, length = 0.05, code = 1, col = "orange")
+# text(loa[, 1], loa[, 2], rownames(loa))
 ```
 
-## Ajuste final com as variáveis selecionadas
+## Floresta aleatória
 
-Então, qual vai ser o modelo final?
+```{r, message = FALSE}
+#-----------------------------------------------------------------------
+# https://machinelearningmastery.com/tune-machine-learning-algorithms-in-r/
+
+# # Customização de Random Forest para determinar `nodesize` e `mtry`,
+# customRF <- list(type = "Regression",
+#                  library = "randomForest",
+#                  loop = NULL)
+# customRF$parameters <- data.frame(parameter = c("mtry", "nodesize"),
+#                                   class = rep("numeric", 2),
+#                                   label = c("mtry", "nodesize"))
+# customRF$grid <- function(x, y, len = NULL, search = "grid") {}
+# customRF$fit <- function(x, y, wts, param, lev, last, weights, classProbs, ...) {
+#     randomForest(x, y, mtry = param$mtry, nodesize = param$nodesize, ...)
+# }
+# customRF$predict <- function(modelFit, newdata, preProc = NULL, submodels = NULL) {
+#     predict(modelFit, newdata)
+# }
+# customRF$prob <- function(modelFit, newdata, preProc = NULL, submodels = NULL) {
+#     predict(modelFit, newdata, type = "prob")
+# }
+#
+# # Random forest.
+# set.seed(123)
+# fit_rfr <- train(y = y,
+#                  x = X,
+#                  method = customRF,
+#                  importance = TRUE,
+#                  ntree = 100,
+#                  trControl = ctr,
+#                  tuneGrid = expand.grid(mtry = seq(from = 1,
+#                                                    to = 10,
+#                                                    by = 1),
+#                                         nodesize = c(3, 5, 8, 13, 21)))
+# fit_rfr
+#
+# # Gráfico para escolha do `mtry` e `nodesize`.
+# c("Traço médio" = plot(fit_rfr),
+#   "Desempenhos individuais na CV" =
+#       xyplot(fit_rfr, type = c("p", "a")))
+
+# str(getModelInfo(model = "rf")[[1]])
+
+# Random forest.
+set.seed(123)
+fit_rfr <- train(y = y,
+                 x = X,
+                 method = "rf",
+                 importance = TRUE,
+                 ntree = 100,
+                 nodesize = 8,
+                 trControl = ctr,
+                 tuneGrid = expand.grid(mtry = seq(from = 1,
+                                                   to = 5,
+                                                   by = 1)))
+fit_rfr
+
+# Gráfico para escolha do `mtry`.
+c("Traço médio" = plot(fit_rfr),
+  "Desempenhos individuais na CV" =
+      xyplot(fit_rfr) + latticeExtra::as.layer(plot(fit_rfr)))
+
+# Resultado do modelo final.
+fit_rfr$finalModel
+
+# Importância das variáveis.
+plot(varImp(fit_rfr, scale = TRUE))
+# plot(varImp(fit_rfr, scale = FALSE))
+
+ip <- importance(fit_rfr$finalModel)
+head(ip[order(ip[, 1], decreasing = TRUE), ], n = 10)
+```
+
+## Integração dos resultados
 
 ```{r}
-str(db_prod)
+preds <- cbind(resp = db_prod$prod,
+               m_sel = predict(m_sel),
+               m_bsr = predict(m_bsr),
+               m_arv = predict(m_arv),
+               pcr = predict(fit_pcr),
+               rfr = predict(fit_rfr))
+
+splom(preds, as.matrix = TRUE, type = c("p", "r"))
+
+# Correlação entre preditos e observados.
+cbind(sort(cor(preds)[, 1]))
+
+# Importância relativa das variáveis por cada modelo.
+vimp <- cbind("bsr" = unname(varImp(fit_bsr)$importance),
+              "las" = unname(varImp(fit_las)$importance),
+              "rfr" = unname(varImp(fit_rfr)$importance),
+              "pcr" = unname(varImp(fit_pcr)$importance))
+vimp
+
+vimp <- cbind(variable = rownames(vimp), stack(vimp))
+# names(vimp)
+
+barchart(reorder(variable, values) ~ values,
+         groups = ind,
+         data = vimp,
+         horizon = TRUE,
+         auto.key = TRUE) +
+    latticeExtra::layer({
+        panel.abline(v = c(0, 100), lty = 2)
+    })
+
+barchart(reorder(variable, values) ~ values | ind,
+         data = vimp,
+         horizon = TRUE,
+         layout = c(NA, 1)) +
+    latticeExtra::layer({
+        panel.abline(v = c(0, 100), lty = 2)
+    })
 ```
 
 ## Informações da Sessão
