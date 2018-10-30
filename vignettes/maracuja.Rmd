@@ -275,7 +275,7 @@ coefsA <- coefs[idA]
 vcovsA <- vcovs[idA, idA]
 # length(coefsA); length(coef(m0))
 
-X0 <- LSmatrix(m0, effect = c("agreg", "fam"), at = list(cinz = 0))
+X0 <- LE_matrix(m0, effect = c("agreg", "fam"), at = list(cinz = 0))
 b0 <- X0 %*% coefsA
 v0 <- sqrt(diag(X0 %*% vcovsA %*% t(X0)))
 ic0 <- sapply(1:4, function(i) b0[i] + c(-1, 0, 1) * 1.96 * v0[i])
@@ -285,7 +285,7 @@ rownames(ic0) <- paste(c(outer(levels(mara$fam),
                                levels(mara$agreg),
                                paste)), "cinz 0")
 
-X48 <- LSmatrix(m0, effect = c("agreg", "fam"), at = list(cinz = 48))
+X48 <- LE_matrix(m0, effect = c("agreg", "fam"), at = list(cinz = 48))
 b48 <- X48 %*% coefsA
 v48 <- sqrt(diag(X48 %*% vcovsA %*% t(X48)))
 ic48 <- sapply(1:4, function(i) b48[i] + c(-1, 0, 1) * 1.96 * v48[i])

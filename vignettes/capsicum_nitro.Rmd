@@ -295,7 +295,7 @@ m1 <- update(m0, . ~ genab)
 anova(m1, m0)
 
 # Comparações múltiplas entre médias de genótipos.
-L <- LSmatrix(m1, effect = "genab")
+L <- LE_matrix(m1, effect = "genab")
 rownames(L) <- attr(L, "grid")$genab
 pred <- apmc(L, m1, "genab", test = "fdr")
 arrange(pred, -fit)
@@ -338,7 +338,7 @@ m1 <- update(m0, . ~ genab)
 anova(m1, m0)
 
 # Comparações múltiplas entre médias de genótipos.
-L <- LSmatrix(m1, effect = "genab")
+L <- LE_matrix(m1, effect = "genab")
 rownames(L) <- attr(L, "grid")$genab
 pred <- apmc(L, m1, "genab", test = "fdr")
 arrange(pred, -fit)
@@ -382,7 +382,7 @@ m1 <- update(m0, . ~ genab + ldose)
 anova(m1, m0, test = "F")
 
 # Comparações múltiplas entre médias de genótipos.
-L <- LSmatrix(m1, effect = "genab", at = list(ldose = 1))
+L <- LE_matrix(m1, effect = "genab", at = list(ldose = 1))
 rownames(L) <- attr(L, "grid")$genab
 pred <- apmc(L, m1, "genab", test = "fdr")
 
@@ -457,7 +457,7 @@ m1 <- update(m0, . ~ genab + ldose)
 anova(m1, m0)
 
 # Comparações múltiplas entre médias de genótipos.
-L <- LSmatrix(m1, effect = "genab", at = list(ldose = 1))
+L <- LE_matrix(m1, effect = "genab", at = list(ldose = 1))
 rownames(L) <- attr(L, "grid")$genab
 pred <- apmc(L, m1, "genab", test = "fdr")
 arrange(pred, -fit)
@@ -500,7 +500,7 @@ m1 <- update(m0, . ~ genab + ldose)
 anova(m1, m0)
 
 # Comparações múltiplas entre médias de genótipos.
-L <- LSmatrix(m1, effect = "genab", at = list(ldose = 1))
+L <- LE_matrix(m1, effect = "genab", at = list(ldose = 1))
 rownames(L) <- attr(L, "grid")$genab
 pred <- apmc(L, m1, "genab", test = "fdr")
 arrange(pred, -fit)
@@ -821,7 +821,7 @@ m1 <- update(m0, . ~ genab)
 anova(m1, m0)
 
 # Comparações múltiplas entre médias de genótipos.
-L <- LSmatrix(m1, effect = "genab")
+L <- LE_matrix(m1, effect = "genab")
 rownames(L) <- attr(L, "grid")$genab
 pred <- apmc(L, m1, "genab", test = "fdr")
 arrange(pred, -fit)
@@ -864,7 +864,7 @@ m1 <- update(m0, . ~ genab)
 anova(m1, m0)
 
 # Comparações múltiplas entre médias de genótipos.
-L <- LSmatrix(m1, effect = "genab")
+L <- LE_matrix(m1, effect = "genab")
 rownames(L) <- attr(L, "grid")$genab
 pred <- apmc(L, m1, "genab", test = "fdr")
 arrange(pred, -fit)
@@ -907,7 +907,7 @@ m1 <- update(m0, . ~ genab)
 anova(m1, m0)
 
 # Comparações múltiplas entre médias de genótipos.
-L <- LSmatrix(m1, effect = "genab")
+L <- LE_matrix(m1, effect = "genab")
 rownames(L) <- attr(L, "grid")$genab
 pred <- apmc(L, m1, "genab", test = "fdr")
 arrange(pred, -fit)
@@ -950,7 +950,7 @@ m1 <- update(m0, . ~ genab)
 anova(m1, m0)
 
 # Comparações múltiplas entre médias de genótipos.
-L <- LSmatrix(m1, effect = "genab")
+L <- LE_matrix(m1, effect = "genab")
 rownames(L) <- attr(L, "grid")$genab
 pred <- apmc(L, m1, "genab", test = "fdr")
 arrange(pred, -fit)
@@ -993,7 +993,7 @@ m1 <- update(m0, . ~ genab)
 anova(m1, m0)
 
 # Comparações múltiplas entre médias de genótipos.
-L <- LSmatrix(m1, effect = "genab")
+L <- LE_matrix(m1, effect = "genab")
 rownames(L) <- attr(L, "grid")$genab
 pred <- apmc(L, m1, "genab", test = "fdr")
 arrange(pred, -fit)
@@ -1036,7 +1036,7 @@ m1 <- update(m0, . ~ genab)
 anova(m1, m0)
 
 # Comparações múltiplas entre médias de genótipos.
-L <- LSmatrix(m1, effect = "genab")
+L <- LE_matrix(m1, effect = "genab")
 rownames(L) <- attr(L, "grid")$genab
 pred <- apmc(L, m1, "genab", test = "fdr")
 arrange(pred, -fit)

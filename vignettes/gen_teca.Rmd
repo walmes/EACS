@@ -333,7 +333,7 @@ d <- lsm$grid$dosep[1]^(1/0.3)
 d
 
 # Atribui nomes às linhas da matriz.
-L <- lsm$K
+L <- lsm$L
 rownames(L) <- levels(dc$gen)
 
 # Obtém os contrastes dois a dois.
@@ -467,7 +467,7 @@ d <- lsm$grid$dosep[1]^(1/0.3)
 d
 
 # Atribui nomes às linhas da matriz.
-L <- lsm$K
+L <- lsm$L
 rownames(L) <- levels(dc$gen)
 
 # Obtém os contrastes dois a dois.
@@ -546,7 +546,7 @@ lsm <- LSmeans(m0,  effect = "gen")
 lsm
 
 # Atribui nomes às linhas da matriz.
-L <- lsm$K
+L <- lsm$L
 rownames(L) <- levels(dc$gen)
 
 # Obtém os contrastes dois a dois.
@@ -716,7 +716,7 @@ d <- lsm$grid$dosep[1]^(1/0.3)
 d
 
 # Atribui nomes às linhas da matriz.
-L <- lsm$K
+L <- lsm$L
 rownames(L) <- levels(dc$gen)
 
 # Obtém os contrastes dois a dois.
@@ -827,7 +827,7 @@ lsm <- LSmeans(m0,
 lsm
 
 # Atribui nomes às linhas da matriz.
-L <- lsm$K
+L <- lsm$L
 rownames(L) <- levels(dc$gen)
 
 # Obtém os contrastes dois a dois.

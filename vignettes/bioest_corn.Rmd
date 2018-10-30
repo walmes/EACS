@@ -53,8 +53,8 @@ library(EACS)
 contr <- function(li, L) {
     #' @param li Lista com dois elementos onde cada um é um conjunto de
     #'     índices da matriz \code{L}.
-    #' @param L Matriz proveniente da função \code{LSmeans()$K} ou
-    #'      \code{LSmatrix}.
+    #' @param L Matriz proveniente da função \code{LSmeans()$L} ou
+    #'      \code{LE_matrix}.
     #' @return Retorna uma matriz de contrastes de uma linha.
     stopifnot(length(li) == 2L)
     li <- lapply(li,
@@ -227,10 +227,10 @@ anova(m0)
 
 # Médias ajustadas.
 lsm <- LSmeans(m0, effect = "adub")
-lsm
+str(lsm)
 
 # Matriz de coeficientes para obter as ls-means.
-L <- lsm$K
+L <- lsm$L
 
 # Tabela com o nome dos tratamentos na ordem das médias.
 grid <- equallevels(lsm$grid, bio)

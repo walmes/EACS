@@ -59,6 +59,7 @@ bioe <- melt(bio,
 xyplot(value ~ dosep^0.3 | resp,
        groups = biocar,
        data = bioe,
+       as.table = TRUE,
        type = c("p", "smooth"),
        auto.key = list(title = "Biocarvão",
                        cex.title = 1.1,
@@ -110,7 +111,7 @@ layout(1)
 # Quadro de ANOVA.
 anova(m0)
 
-L <- LSmatrix(m0, effect = c("biocar", "P"))
+L <- LE_matrix(m0, effect = c("biocar", "P"))
 pred <- equallevels(attr(L, "grid"), bio)
 ci <- confint(glht(m0, linfct = L),
               calpha = univariate_calpha())$confint
@@ -221,7 +222,7 @@ layout(1)
 # Quadro de ANOVA.
 anova(m0)
 
-L <- LSmatrix(m0, effect = c("biocar", "P"))
+L <- LE_matrix(m0, effect = c("biocar", "P"))
 pred <- equallevels(attr(L, "grid"), bio)
 ci <- confint(glht(m0, linfct = L),
               calpha = univariate_calpha())$confint
@@ -332,7 +333,7 @@ layout(1)
 # Quadro de ANOVA.
 anova(m0)
 
-L <- LSmatrix(m0, effect = c("biocar", "P"))
+L <- LE_matrix(m0, effect = c("biocar", "P"))
 pred <- equallevels(attr(L, "grid"), bio)
 ci <- confint(glht(m0, linfct = L),
               calpha = univariate_calpha())$confint
@@ -443,7 +444,7 @@ layout(1)
 # Quadro de ANOVA.
 anova(m0)
 
-L <- LSmatrix(m0, effect = c("biocar", "P"))
+L <- LE_matrix(m0, effect = c("biocar", "P"))
 pred <- equallevels(attr(L, "grid"), bio)
 ci <- confint(glht(m0, linfct = L),
               calpha = univariate_calpha())$confint
@@ -554,7 +555,7 @@ layout(1)
 # Quadro de ANOVA.
 anova(m0)
 
-L <- LSmatrix(m0, effect = c("biocar", "P"))
+L <- LE_matrix(m0, effect = c("biocar", "P"))
 pred <- equallevels(attr(L, "grid"), bio)
 ci <- confint(glht(m0, linfct = L),
               calpha = univariate_calpha())$confint
@@ -665,7 +666,7 @@ layout(1)
 # Quadro de ANOVA.
 anova(m0)
 
-L <- LSmatrix(m0, effect = c("biocar", "P"))
+L <- LE_matrix(m0, effect = c("biocar", "P"))
 pred <- equallevels(attr(L, "grid"), bio)
 ci <- confint(glht(m0, linfct = L),
               calpha = univariate_calpha())$confint
@@ -776,7 +777,7 @@ layout(1)
 # Quadro de ANOVA.
 anova(m0)
 
-L <- LSmatrix(m0, effect = c("biocar", "P"))
+L <- LE_matrix(m0, effect = c("biocar", "P"))
 pred <- equallevels(attr(L, "grid"), bio)
 ci <- confint(glht(m0, linfct = L),
               calpha = univariate_calpha())$confint
@@ -887,7 +888,7 @@ layout(1)
 # Quadro de ANOVA.
 anova(m0)
 
-L <- LSmatrix(m0, effect = c("biocar", "P"))
+L <- LE_matrix(m0, effect = c("biocar", "P"))
 pred <- equallevels(attr(L, "grid"), bio)
 ci <- confint(glht(m0, linfct = L),
               calpha = univariate_calpha())$confint
@@ -998,7 +999,7 @@ layout(1)
 # Quadro de ANOVA.
 anova(m0)
 
-L <- LSmatrix(m0, effect = c("biocar", "P"))
+L <- LE_matrix(m0, effect = c("biocar", "P"))
 pred <- equallevels(attr(L, "grid"), bio)
 ci <- confint(glht(m0, linfct = L),
               calpha = univariate_calpha())$confint
@@ -1111,7 +1112,7 @@ layout(1)
 # Quadro de ANOVA.
 anova(m0)
 
-L <- LSmatrix(m0, effect = c("biocar", "P"))
+L <- LE_matrix(m0, effect = c("biocar", "P"))
 pred <- equallevels(attr(L, "grid"), bio)
 ci <- confint(glht(m0, linfct = L),
               calpha = univariate_calpha())$confint
@@ -1222,7 +1223,7 @@ layout(1)
 # Quadro de ANOVA.
 anova(m0)
 
-L <- LSmatrix(m0, effect = c("biocar", "P"))
+L <- LE_matrix(m0, effect = c("biocar", "P"))
 pred <- equallevels(attr(L, "grid"), bio)
 ci <- confint(glht(m0, linfct = L),
               calpha = univariate_calpha())$confint
@@ -1333,7 +1334,7 @@ layout(1)
 # Quadro de ANOVA.
 anova(m0)
 
-L <- LSmatrix(m0, effect = c("biocar", "P"))
+L <- LE_matrix(m0, effect = c("biocar", "P"))
 pred <- equallevels(attr(L, "grid"), bio)
 ci <- confint(glht(m0, linfct = L),
               calpha = univariate_calpha())$confint
@@ -1444,7 +1445,7 @@ layout(1)
 # Quadro de ANOVA.
 anova(m0)
 
-L <- LSmatrix(m0, effect = c("biocar", "P"))
+L <- LE_matrix(m0, effect = c("biocar", "P"))
 pred <- equallevels(attr(L, "grid"), bio)
 ci <- confint(glht(m0, linfct = L),
               calpha = univariate_calpha())$confint
@@ -1557,7 +1558,7 @@ layout(1)
 # Quadro de ANOVA.
 anova(m0)
 
-L <- LSmatrix(m0, effect = c("biocar", "P"))
+L <- LE_matrix(m0, effect = c("biocar", "P"))
 pred <- equallevels(attr(L, "grid"), bio)
 ci <- confint(glht(m0, linfct = L),
               calpha = univariate_calpha())$confint
@@ -1668,7 +1669,7 @@ layout(1)
 # Quadro de ANOVA.
 anova(m0)
 
-L <- LSmatrix(m0, effect = c("biocar", "P"))
+L <- LE_matrix(m0, effect = c("biocar", "P"))
 pred <- equallevels(attr(L, "grid"), bio)
 ci <- confint(glht(m0, linfct = L),
               calpha = univariate_calpha())$confint
@@ -1779,7 +1780,7 @@ layout(1)
 # Quadro de ANOVA.
 anova(m0)
 
-L <- LSmatrix(m0, effect = c("biocar", "P"))
+L <- LE_matrix(m0, effect = c("biocar", "P"))
 pred <- equallevels(attr(L, "grid"), bio)
 ci <- confint(glht(m0, linfct = L),
               calpha = univariate_calpha())$confint
@@ -1890,7 +1891,7 @@ layout(1)
 # Quadro de ANOVA.
 anova(m0)
 
-L <- LSmatrix(m0, effect = c("biocar", "P"))
+L <- LE_matrix(m0, effect = c("biocar", "P"))
 pred <- equallevels(attr(L, "grid"), bio)
 ci <- confint(glht(m0, linfct = L),
               calpha = univariate_calpha())$confint

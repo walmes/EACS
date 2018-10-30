@@ -331,7 +331,7 @@ lsm <- LSmeans(m1, effect = "fonte")
 lsm
 
 # Matriz para obter médias ajustdas.
-X <- lsm$K
+X <- lsm$L
 
 # Tabela com os níveis dos fatores.
 pred <- lsm$grid
