@@ -38,7 +38,8 @@ str(teca_arv)  # Contém a produção.
 
 # Junção das informações.
 db <- merge(subset(teca_qui, select = c("loc", "cam", "arg", "cas", "acc")),
-            subset(teca_gran, select = -are),
+            # subset(teca_gran, select = -are),
+            subset(teca_gran, select = -c(afina, amedi, agros)),
             all = TRUE)
 str(db)
 
@@ -62,6 +63,13 @@ densityplot(~y | x,
             scales = "free",
             auto.key = TRUE,
             as.table = TRUE)
+
+ecdfplot(~y | x,
+         groups = cam,
+         data = db_long,
+         scales = "free",
+         auto.key = TRUE,
+         as.table = TRUE)
 
 # Desempilha.
 db_wide <- reshape2::dcast(data = db_long,
@@ -88,6 +96,28 @@ corrplot::corrplot(r,
                    tl.pos = "d",
                    outline = TRUE,
                    method = "ellipse")
+
+# TODO: fazer uma tabela de estatísticas descritivas da variável
+# resposta e de cada preditora: média, mediana, quartis, desvio-padrão,
+# amplitude, CV.
+my_stats <- function(x) {
+    m <- mean(x)
+    fn <- fivenum(x)
+    s <- sd(x)
+    n <- sum(!is.na(x))
+    c("n" = n,
+      "Média" = m,
+      "Mediana" = fn[3],
+      "Mín." = fn[1],
+      "Máx." = fn[5],
+      "Q1" = fn[2],
+      "Q3" = fn[3],
+      "Desv. pad." = s,
+      "CV%" = 100 * s/m)
+}
+
+resum <- do.call(rbind, lapply(db_prod[, -1], FUN = my_stats))
+kable(resum, digits = 2)
 ```
 
 O conjunto de dados obtido até aqui `db_prod` contém as variáveis
@@ -104,7 +134,7 @@ As variáveis granulométricas do solo foram obtidas em 3 camadas do
 solo. No entando, considerando que a primeira camada é muito fina e mais
 sujeita às ações de manejo, não será considerada nas análises.
 
-## Regressão multipla com seleção de variáveis por stepwise
+## Regressão múltipla com seleção de variáveis por stepwise
 
 A seleção de variáveis por stepwise irá remover/adicionar termos com a
 finalidade de minimizar a medida de ajuste BIC.
@@ -224,7 +254,7 @@ o melhor modelo final. Para a determinação do valor de $k$ será usada
 validação cruzada.
 
 ```{r, message = FALSE}
-# str(getModelInfo(model = "rpart")[[1]])
+# str(getModelInfo(model = "leapForward")[[1]])
 # help(rpart, h = "html")
 
 # Best subset regression.
@@ -234,7 +264,7 @@ fit_bsr <- train(y = y,
                  method = "leapForward",
                  trControl = ctr,
                  tuneGrid = expand.grid(nvmax = seq(from = 1,
-                                                    to = 10,
+                                                    to = 8,
                                                     by = 1)))
 fit_bsr
 
@@ -245,6 +275,8 @@ c("Traço médio" = plot(fit_bsr),
 
 # Resultado do modelo final.
 summary(fit_bsr$finalModel)
+
+library(leaps)
 
 # Ajustando com k = 1 até 4.
 b0 <- regsubsets(prod ~ . - loc,
@@ -284,6 +316,7 @@ ocorrência de partição.
 ```{r}
 # str(getModelInfo(model = "rpart")[[1]])
 # help(rpart, h = "html")
+library(rpart)
 
 # Árvore regressão.
 set.seed(123)
@@ -336,7 +369,7 @@ fit_pcr <- train(y = y,
                  method = "pcr",
                  trControl = ctr,
                  tuneGrid = expand.grid(ncomp = seq(from = 1,
-                                                    to = 10,
+                                                    to = 8,
                                                     by = 1)))
 fit_pcr
 
@@ -358,15 +391,15 @@ fit_pcr$finalModel$coefficients
 loa <- fit_pcr$finalModel$loadings[, ]
 cbind(loa)
 
-# plot(loa, asp = 1, type = "n")
-# abline(v = 0, h = 0, lty = 3)
-# arrows(loa[, 1], loa[, 2], 0, 0, length = 0.05, code = 1, col = "orange")
-# text(loa[, 1], loa[, 2], rownames(loa))
+plot(loa, asp = 1, type = "n")
+abline(v = 0, h = 0, lty = 3)
+arrows(loa[, 1], loa[, 2], 0, 0, length = 0.05, code = 1, col = "orange")
+text(loa[, 1], loa[, 2], rownames(loa))
 ```
 
 ## Floresta aleatória
 
-```{r, message = FALSE}
+```{r, include = FALSE, eval = FALSE, message = FALSE}
 #-----------------------------------------------------------------------
 # https://machinelearningmastery.com/tune-machine-learning-algorithms-in-r/
 
@@ -406,7 +439,8 @@ cbind(loa)
 # c("Traço médio" = plot(fit_rfr),
 #   "Desempenhos individuais na CV" =
 #       xyplot(fit_rfr, type = c("p", "a")))
-
+```
+```{r, message = FALSE}
 # str(getModelInfo(model = "rf")[[1]])
 
 # Random forest.
@@ -435,8 +469,8 @@ fit_rfr$finalModel
 plot(varImp(fit_rfr, scale = TRUE))
 # plot(varImp(fit_rfr, scale = FALSE))
 
-ip <- importance(fit_rfr$finalModel)
-head(ip[order(ip[, 1], decreasing = TRUE), ], n = 10)
+# ip <- importance(fit_rfr$finalModel)
+# head(ip[order(ip[, 1], decreasing = TRUE), ], n = 10)
 ```
 
 ## Integração dos resultados
@@ -455,10 +489,10 @@ splom(preds, as.matrix = TRUE, type = c("p", "r"))
 cbind(sort(cor(preds)[, 1]))
 
 # Importância relativa das variáveis por cada modelo.
-vimp <- cbind("bsr" = unname(varImp(fit_bsr)$importance),
-              "las" = unname(varImp(fit_las)$importance),
-              "rfr" = unname(varImp(fit_rfr)$importance),
-              "pcr" = unname(varImp(fit_pcr)$importance))
+vimp <- cbind("Best subset regression" = unname(varImp(fit_bsr)$importance),
+              "Lasso penalized regression" = unname(varImp(fit_las)$importance),
+              "Random forest regression" = unname(varImp(fit_rfr)$importance),
+              "Principal components regression" = unname(varImp(fit_pcr)$importance))
 vimp
 
 vimp <- cbind(variable = rownames(vimp), stack(vimp))
@@ -476,7 +510,7 @@ barchart(reorder(variable, values) ~ values,
 barchart(reorder(variable, values) ~ values | ind,
          data = vimp,
          horizon = TRUE,
-         layout = c(NA, 1)) +
+         layout = c(NA, 2)) +
     latticeExtra::layer({
         panel.abline(v = c(0, 100), lty = 2)
     })
