@@ -13,3 +13,5 @@ r_packages:
   - knitr
   - rmarkdown
   - rpanel
+r_check_args: "--no-vignettes"
+r_build_args: "--as-cran --no-vignettes"

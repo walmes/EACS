@@ -1,7 +1,7 @@
 Package: EACS
 Title: Estatística Aplicada à Ciência do Solo
-Version: 0.0-6
-Date: 2018-10-29
+Version: 0.0-7
+Date: 2014-04-06
 Authors@R: as.person(c(
     "Walmes Marques Zeviani <walmes@ufpr.br> [cre,aut]",
     "Milson Evaldo Serafim <milson.serafim@cas.ifmt.edu.br> [ctb]",
@@ -28,28 +28,30 @@ Depends:
 Suggests:
     lattice,
     latticeExtra,
-    grid,
-    gridExtra,
-    MASS,
-    nlme,
-    splines,
-    car,
-    candisc,
-    caret,
-    leaps,
-    glmnet,
-    rpart,
-    corrplot,
-    nFactors,
-    psych,
-    doBy,
-    multcomp,
-    reshape,
-    reshape2,
     plyr,
-    dplyr,
+    reshape2,
+    nlme,
     captioner,
-    knitr
+    multcomp,
+    doBy,
+    rpart,
+    nFactors,
+    car,
+    splines,
+    gridExtra,
+    rpanel,
+    psych,
+    dplyr,
+    reshape,
+    leaps,
+    knitr,
+    grid,
+    corrplot,
+    caret,
+    candisc,
+    tidyverse,
+    quantreg,
+    devtools
 VignetteBuilder: knitr
 RoxygenNote: 6.0.1
 Remotes: walmes/wzRfun
