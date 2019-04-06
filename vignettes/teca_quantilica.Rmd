@@ -1,0 +1,289 @@
+---
+title: "Regressão quantílica para produção de Teca"
+author: >
+  [Walmes M. Zeviani](http://lattes.cnpq.br/4410617539281650) &
+  [Milson E. Serafim](http://lattes.cnpq.br/8676820051946774)
+vignette: >
+  %\VignetteIndexEntry{Regressão quantílica para produção de Teca}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+source("config/setup.R")
+```
+
+## Análise Exploratória
+
+```{r, eval = FALSE, include = FALSE}
+devtools::load_all()
+```
+```{r, results = "hide", message = FALSE, error = FALSE, warning = FALSE}
+#-----------------------------------------------------------------------
+# Carrega os pacotes necessários.
+
+library(EACS)
+library(quantreg)
+library(tidyverse)
+```
+
+## Prepara a tabela de dados
+
+```{r}
+# glimpse(teca_arv)
+# glimpse(teca_qui)
+# glimpse(teca_crapar)
+# glimpse(teca_gran)
+
+# Junções.
+tb <- full_join(teca_qui, teca_crapar)
+tb <- inner_join(tb, teca_arv[, c("loc", "prod")])
+tb <- as_tibble(tb)
+glimpse(tb)
+
+# Trata valor alto de P.
+tb$p[tb$p > 80] <- NA
+
+# Empilha os valores das variáveis de solo.
+tb_long <- tb %>%
+    gather(key = "variable", value = "valor", ph:cad)
+```
+
+```{r, fig.height = 10}
+# Protótipo.
+gg <- ggplot(data = tb_long,
+             mapping = aes(x = valor, y = prod, color = cam)) +
+    facet_wrap(facets = ~variable, scales = "free_x", ncol = 3) +
+    geom_point(shape = 1) +
+    labs(color = "Camada") +
+    xlab("Valor da variável de solo") +
+    ylab("Produção de teca")
+
+# Regressão linear simples.
+gg +
+    geom_smooth(method = "lm",
+                formula = y ~ poly(x, degree = 2),
+                se = FALSE)
+
+# Regressão quantílica.
+gg +
+    geom_quantile(quantiles = 0.9,
+                  formula = y ~ poly(x, degree = 2))
+```
+
+## Regressão quantílica
+
+```{r}
+tb_fit <- tb_long %>%
+    group_by(variable, cam) %>%
+    drop_na() %>%
+    nest()
+
+# ATTENTION: o modelo 0 é reajustado em função dos missings que mudam de
+# quantidade como função do split.
+tb_fit <- tb_fit %>%
+    mutate(qtl_0 = map(data,
+                       rq,
+                       formula = prod ~ 1,
+                       tau = 0.9),
+           qtl_1 = map(data,
+                       rq,
+                       formula = prod ~ valor,
+                       tau = 0.9),
+           qtl_2 = map(data,
+                       rq,
+                       formula = prod ~ valor + I(valor^2),
+                       tau = 0.9))
+
+# # Quadro de anova para modelos encaixados.
+# tb_fit <- tb_fit %>%
+#     mutate(anova_01 = map(qtl_1, anova, qtl_0),
+#            anova_12 = map2(qtl_2, qtl_1, anova))
+extract_coef <- function(fit_work, fit_ref) {
+    if (missing(fit_ref)) {
+        p <- NULL
+    } else {
+        p <- anova(fit_work, fit_ref)$table$pvalue
+    }
+    b <- coef(fit_work)
+    c(b, pvalue = p) %>%
+        as.list() %>%
+        data.frame(check.names = FALSE)
+}
+
+# # Teste.
+# extract_coef(tb_fit$qtl_2[[1]], tb_fit$qtl_1[[1]])
+# extract_coef(tb_fit$qtl_1[[1]], qtl_0)
+
+# Extrai as estimativas e valor p para criar tabela.
+tb_result <- tb_fit %>%
+    transmute(variable = variable,
+              cam = cam,
+              null = map(qtl_0, extract_coef),
+              first = map2(qtl_1, qtl_0, extract_coef),
+              secon = map2(qtl_2, qtl_1, extract_coef),
+              ) %>%
+    gather("model", "coef", -variable, -cam) %>%
+    unnest(coef)
+tb_result
+
+# Organiza para melhor disposição da informação.
+tb_result <- tb_result %>%
+    rename(beta_0 = "(Intercept)",
+           beta_1 = "valor",
+           beta_2 = "I(valor^2)") %>%
+    select(-pvalue, everything()) %>%
+    mutate(model = factor(model, levels = unique(model))) %>%
+    arrange(variable, cam, model)
+tb_result
+
+# Ajustes significativos a 5%. Pega o maior modelo.
+tb_signif <- tb_result %>%
+    filter(pvalue < 0.05) %>%
+    group_by(variable, cam) %>%
+    slice(n()) %>%
+    ungroup()
+
+knitr::kable(tb_result)
+knitr::kable(tb_signif)
+```
+
+```{r}
+# Limites de recomendação.
+
+# Torância: 10% abaixo da maior produção observada.
+tol <- max(teca_arv$prod) - max(teca_arv$prod) * 0.9
+
+quantile_limits <- function(beta_0, beta_1, beta_2, tol, x_range) {
+    coefs <- c(c = beta_0, b = beta_1, a = beta_2)
+    # ex <- extendrange(x_range)
+    ex <- x_range
+    x_seq <- seq(ex[1], ex[2], length.out = 51)
+    if (is.finite(beta_2)) {
+        # Modelo de segundo grau.
+        x_opt <- -beta_1/(2 * beta_2)
+        y_opt <- c(x_opt^(0:2) %*% coefs)
+        roots <- with(as.list(coefs), {
+            delta <- sqrt(b^2 - 4 * a * (c - y_opt + tol))
+            suppressWarnings({
+                (-b + c(-1, 1) * delta)/(2 * a)
+            })
+        })
+        limits <- data.frame(y_opt = y_opt,
+                             x_opt = x_opt,
+                             y_tol = y_opt - tol,
+                             x_tol_inf = min(roots),
+                             x_tol_sup = max(roots))
+        pred <- data.frame(x = x_seq,
+                           y = beta_0 + beta_1 * x_seq + beta_2 * x_seq^2)
+        return(list(limits, pred))
+    } else if (is.finite(beta_1)) {
+        # Modelo de primeiro grau.
+        y_range <- beta_0 + beta_1 * x_range
+        x_opt <- x_range[which.max(y_range)]
+        y_opt <- max(y_range)
+        x_tol <- x_opt - tol/beta_1
+        limits <- data.frame(y_opt = y_opt,
+                             x_opt = x_opt,
+                             y_tol = y_opt - tol,
+                             x_tol_inf = ifelse(x_tol < x_opt, x_tol, NA),
+                             x_tol_sup = ifelse(x_tol > x_opt, x_tol, NA))
+        pred <- data.frame(x = x_seq,
+                           y = beta_0 + beta_1 * x_seq)
+        return(list(limits, pred))
+    } else {
+        # Modelo nulo.
+        pred <- data.frame(x = x_seq,
+                           y = beta_0)
+        limits <- data.frame(y_opt = beta_0,
+                             x_opt = NA,
+                             y_tol = beta_0 - tol,
+                             x_tol_inf = NA,
+                             x_tol_sup = NA)
+        return(list(limits, pred))
+    }
+}
+
+# Amplitude das variáveis preditoras.
+tb_range <- tb_long %>%
+    drop_na() %>%
+    group_by(variable, cam) %>%
+    summarise(x_range = list(range(valor)))
+
+# O modelo para cada camada com prioridade secon > first > null.
+tb_model <- tb_result %>%
+    filter(pvalue < 0.05 | is.na(pvalue)) %>%
+    group_by(variable, cam) %>%
+    slice(n()) %>%
+    ungroup()
+# xtabs(~variable + cam, data = tb_model)
+
+# Junta com a informação de amplitude das variáveis.
+tb_limits <- inner_join(tb_model, tb_range)
+
+# Obtém os limites e a tabela de valores preditos.
+tb_limits <- tb_limits %>%
+    mutate(limits = pmap(list(beta_0,
+                              beta_1,
+                              beta_2,
+                              tol = tol,
+                              x_range = x_range),
+                         quantile_limits))
+tb_limits
+
+# Variávies para traçar as linhas de orientação.
+tb_lines <- tb_limits %>%
+    select(variable, cam, limits) %>%
+    mutate(limits = map(limits, `[[`, 1)) %>%
+    unnest(limits)
+# xtabs(~variable + cam, data = tb_lines)
+
+# Valores preditos de acordo com os modelos escolhidos.
+tb_pred <- tb_limits %>%
+    select(variable, cam, limits) %>%
+    mutate(limits = map(limits, `[[`, 2)) %>%
+    unnest(limits)
+# xtabs(~variable + cam, data = tb_pred)
+```
+
+```{r, fig.height = 10}
+# Gráfico.
+ggplot(data = tb_long,
+       mapping = aes(x = valor, y = prod, color = cam)) +
+    facet_wrap(facets = ~variable, scales = "free_x", ncol = 3) +
+    geom_point(shape = 1) +
+    # ylim(extendrange(teca_arv$prod)) +
+    labs(color = "Camada") +
+    xlab("Valor da variável de solo") +
+    ylab("Produção de teca") +
+    # geom_quantile(quantiles = 0.9,
+    #               formula = y ~ poly(x, degree = 2),
+    #               linetype = 2) +
+    geom_line(data = tb_pred,
+              mapping = aes(x = x, y = y, color = cam),
+              size = 1.25) +
+    # geom_hline(data = tb_lines,
+    #            mapping = aes(yintercept = y_opt, color = cam),
+    #            linetype = 2) +
+    # geom_hline(data = tb_lines,
+    #            mapping = aes(yintercept = y_tol, color = cam),
+    #            linetype = 3) +
+    geom_vline(data = tb_lines,
+               mapping = aes(xintercept = x_opt, color = cam)) +
+    geom_vline(data = tb_lines,
+               mapping = aes(xintercept = x_tol_inf, color = cam),
+               linetype = 4) +
+    geom_vline(data = tb_lines,
+               mapping = aes(xintercept = x_tol_sup, color = cam),
+               linetype = 4) +
+    theme()
+```
+
+## Informações da Sessão
+
+```{r, echo = FALSE, results = "hold"}
+cat(format(Sys.time(),
+           format = "Atualizado em %d de %B de %Y.\n\n"))
+sessionInfo()
+```
+<!-- . -->
