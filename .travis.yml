@@ -19,4 +19,4 @@ r_packages:
 cache: packages
 warnings_are_errors: false
 r_check_args: "--no-vignettes"
-r_build_args: "--as-cran --no-vignettes"
+r_build_args: "--as-cran --no-build-vignettes"
