@@ -16,7 +16,7 @@ Description: Pacote que documenta conjuntos de dados de Projetos de
     como molde ou inspiração para problemas que sejam semelhantes.
 License: GPL-3
 URL:
-    http://gitlab.c3sl.ufpr.br/walmes/EACS,
+    http://leg.ufpr.br/~walmes/pacotes/EACS,
     https://github.com/walmes/EACS
 BugReports:
     https://github.com/walmes/EACS/issues
@@ -53,5 +53,5 @@ Suggests:
     quantreg,
     devtools
 VignetteBuilder: knitr
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1
 Remotes: walmes/wzRfun

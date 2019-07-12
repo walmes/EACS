@@ -19,3 +19,6 @@ ci-c3sl.R
 Rplots.pdf
 README.*
 LICENSE
+^doc$
+^Meta$
+EACS_*

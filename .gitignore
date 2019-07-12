@@ -1,4 +1,4 @@
-## General
+## General -------------------------------------------------------------
 README.html
 index.html
 index.md
@@ -18,6 +18,8 @@ playground.R
 *Rcheck/
 docs/
 inst/doc/
+doc/
+Meta/
 !inst/doc/*.html
 vignettes/*.html
 vignettes/*.pdf
@@ -26,8 +28,9 @@ vignettes/*.pdf
 !vignettes/_MathJax.html
 /*_cache/
 /cache/
+EACS_*
 
-## Rnw/Rmd output files
+## Rnw/Rmd output files ------------------------------------------------
 **/*_cache/*
 **/*_files/*
 **/figure/*
@@ -36,7 +39,7 @@ vignettes/*.pdf
 *.tex
 *.vrb
 
-## Core latex/pdflatex auxiliary files:
+## Core latex/pdflatex auxiliary files: --------------------------------
 *.aux
 *.lof
 *.log
@@ -49,18 +52,18 @@ vignettes/*.pdf
 *.cb
 *.cb2
 
-## Intermediate documents:
+## Intermediate documents: ---------------------------------------------
 *.dvi
 *-converted-to.*
 
-## Build tool auxiliary files:
+## Build tool auxiliary files: -----------------------------------------
 *.fdb_latexmk
 *.synctex
 *.synctex.gz
 *.synctex.gz(busy)
 *.pdfsync
 
-## Bibliography auxiliary files (bibtex/biblatex/biber):
+## Bibliography auxiliary files (bibtex/biblatex/biber): ---------------
 *.bbl
 *.bcf
 *.blg
@@ -68,7 +71,7 @@ vignettes/*.pdf
 *-blx.bib
 *.brf
 
-## Emacs
+## Emacs ---------------------------------------------------------------
 .#*
 *~
 #*
