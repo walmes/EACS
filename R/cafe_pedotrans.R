@@ -1,40 +1,71 @@
 #' @name cafe_pedotrans
-#' @title TITULO PARA ESSE CONJUNTO DE DADOS
-#' @description DESCRIÇÃO DO EXPERIMENTO (LOCAL, DESENHO EXPERIMENTAL,
-#'     UNIDADES EXPERIMENTAIS, ARRANJO DE FATORES), HIPÓTESES, ETC.
-#' @format A \code{data.frame} with 180 observations and 11 variables,
+#' @title Modelagem da capacidade de suporte de carga de latossolos com
+#'     diferente mineralogia
+#' @description O experimento foi realizado em São Roque de Minas, Minas
+#'     Gerais (20 15' 43" S, 46 22' 17" E) no delineamento experimental
+#'     inteiramente casualizado com 3 repetições. Foram avaliados o
+#'     efeito de tipo de solo, dois experimentos independentes com a
+#'     mesma estrutura foram instalados em propriedades com solo
+#'     diferente. Foi avaliada a posição de amostragem com níveis linha
+#'     do cultivo do café onde é aplicado alta dose de gesso e
+#'     entrelinha do cultivo do café que tem manejo feito com
+#'     gramíneas. Também avaliou-se a profundidade do solo com amostras
+#'     coletadas em 3 camadas. As variáveis resposta estão descritas a
+#'     seguir.
+#'
+#'     As hipóteses que motivaram essa investigação são i) determinar
+#'     ser o sistema de manejo alterou a capacidade de suporte de carga
+#'     dos solos e ii) se o sistema de manejo foi capaz de padronizar a
+#'     estrutura de solos de mineralogia distinta.
+#'
+#' @format A \code{data.frame} with 180 observations and 12 variables,
 #'     in which
 #'
 #' \describe{
 #'
-#' DENTRO DAS CHAVES A SEGUIR COLOCAR A DESCRIÇÃO, SIGNIFICADO, UNIDADES
-#' DE MEDIDA DE CADA UMA DAS VARIÁVEIS DA TABELA.
+#' \item{\code{solo}}{Fator experimental qualitivo que indica o tipo de
+#'     solo.}
 #'
-#' \item{\code{solo}}{  }
+#' \item{\code{tensao}}{Tensão matricial aplicada nas amostras de solo:
+#'     6, 33, 100, 500, 1500, 3000 kPa.}
 #'
-#' \item{\code{tensao}}{  }
+#' \item{\code{posi}}{Fator experimental qualitativo que é a posição em
+#'     relação as linhas de cultivo do café: linha e entrelinha.}
 #'
-#' \item{\code{posi}}{  }
+#' \item{\code{prof}}{0-5,10-15,20-25m}
 #'
-#' \item{\code{prof}}{  }
+#' \item{\code{rep}}{Variável numérica que distingue entre as repetições
+#'     do mesmo ponto experimental.}
 #'
-#' \item{\code{rep}}{  }
+#' \item{\code{dsi}}{Variável medida nas amostras de solo que é a
+#'     densidade do solo inicial, em g cm\eqn{^{-3}}.}
 #'
-#' \item{\code{dsi}}{  }
+#' \item{\code{dsp}}{Variável medida nas amostras de solo que é a
+#'     densidade na pressão de preconsolidação, em g cm\eqn{^{-3}}.}
 #'
-#' \item{\code{dsp}}{  }
+#' \item{\code{thetai}}{Variável medida nas amostras de solo que é o
+#'     conteúdo de água, cm\eqn{^3} cm\eqn{^{-3}}.}
 #'
-#' \item{\code{thetai}}{  }
+#' \item{\code{ppc}}{Valor de pressão de preconsolidação observado na
+#'     amostra de solo, em kPa.}
 #'
-#' \item{\code{ppc}}{  }
+#' \item{\code{trt}}{Variável criada pela combinação dos níveis de solo,
+#'     posição e profundidade para indicar cada ponto experimental ou
+#'     tratamento presente no experimento.}
 #'
-#' \item{\code{trt}}{  }
-#'
-#' \item{\code{ue}}{  }
+#' \item{\code{ue}}{Variável criada pela combinação dos níveis de solo,
+#'     posição, profundidade e repetição para indicar cada curva
+#'     presente no experimento.}
 #'
 #' }
-#' @source INDICAR AS PESSOAS DONAS DAS PESQUISA/DADOS COM EMAIL PARA
-#'     CONTATO E URL PARA PERFIL DO LATTES.
+#'
+#' @source Carla Eloize Carducci, \email{elocarducci@@gmail.com},
+#'     \url{http://buscatextual.cnpq.br/buscatextual/visualizacv.do?id=K4713341P8};
+#'     Geraldo Cesar de Oliveria, \email{geraldooliveira@@dcs.ufla.br},
+#'     \url{http://buscatextual.cnpq.br/buscatextual/visualizacv.do?id=K4728903U6};
+#'     Eduardo Costa Severiano,
+#'     \email{eduardo.severiano@@ifgoiano.edu.br},
+#'     \url{http://buscatextual.cnpq.br/buscatextual/visualizacv.do?id=K4777485Y2}.
 #' @examples
 #'
 #' library(lattice)

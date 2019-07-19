@@ -1,11 +1,11 @@
 ---
-title: "Funções de pedotransferência para latossolos em sistema conservacionista"
+title: "Modelagem da capacidade de suporte de carga de latossolos com diferente mineralogia"
 author: >
   [Walmes Marques Zeviani](http://lattes.cnpq.br/4410617539281650) &
   [Carla Eloize Carducci](http://lattes.cnpq.br/3585988593213083)
 date: '`r format(Sys.Date(), format = "%d de %B de %Y")`'
 vignette: >
-  %\VignetteIndexEntry{Funções de pedotransferência para latossolos em sistema conservacionista}
+  %\VignetteIndexEntry{Modelagem da capacidade de suporte de carga de latossolos com diferente mineralogia}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -124,11 +124,12 @@ on log of preconsolidation pressure (response variable) can be properly
 described by a second order polynomial. Log of preconsolidation pressure
 was modelled as a function of soil type, sampling position, soil depth
 and log of matric tension. All interactions (until the 4th degree) were
-declared. The effect of experimental unit was explained by random effets
-terms in intercept, slope and curvature. Likelihood ratio tests were
-performed to check the relevance random effects terms. Wald F tests were
-performed check the relevance of fixed effect terms, so those not
-relevant were abandoned getting a simpler model.
+declared. The effect of experimental unit was accounted by random effets
+terms in intercept, slope and curvature of the linear mixed effects
+model. Likelihood ratio tests were performed to check the relevance
+random effects terms and Wald F tests were performed check the relevance
+of fixed effect terms, so those not relevant were abandoned getting a
+simpler model.
 
 ```{r}
 # Random intercept.
@@ -173,107 +174,17 @@ anova(m0, m3)
 anova(m3)
 ```
 
-The model with random effets in the intercept were not inferior to those
-more complex that included random effects for slope and curvature. So,
-the selected model has random effects of experimental units on the
-intercept only.
+The model with random effets in the intercept were not inferior, by the
+likelihood ratio test, to those more complex that included random
+effects for slope and curvature. So, the selected model has random
+effects of experimental units on the intercept only.
 
-From this model, there weren't 4th degree signficant interactions
-neither 3rd degree. There were 2nd degree signficant interactions
-involving soil or posi at 10%, and involving depth at less than 1%. All
-two way interactions were kept except those involving depth and soil or
-position. So, depth and soil have additive effect, the same for depth
-and position.
-
-```{r}
-# Conditions to get estimated values.
-pred <- with(da,
-             expand.grid(solo = levels(solo),
-                         posi = levels(posi),
-                         prof = levels(prof),
-                         logtensao = seq(0.5, 3.5, length = 31),
-                         KEEP.OUT.ATTRS = FALSE))
-
-# Model matrix for prediction.
-X <- model.matrix(formula(terms(m3))[-2], data = pred)
-
-# Checks.
-stopifnot(ncol(X) == length(fixef(m3)))
-stopifnot(all(colnames(X) == names(fixef(m3))))
-
-# Predicted value.
-pred$fit <- X %*% fixef(m3)
-
-# Standard error of predicted values.
-pred$se <- sqrt(diag(X %*% tcrossprod(vcov(m3), X)))
-
-# Quantile of t distribution.
-qtl <- qt(p = 0.975, df = df.residual(m3))
-
-# Confidence limits for predicted value.
-pred$lwr <- pred$fit - qtl * pred$se
-pred$upr <- pred$fit + qtl * pred$se
-
-# Fitted curves with confidence bands and observed data.
-# Soil in evidence.
-ggplot(data = da,
-       mapping = aes(x = tensao, y = ppc, color = solo)) +
-    facet_grid(facets = prof ~ posi) +
-    geom_point() +
-    scale_x_log10() +
-    scale_y_log10() +
-    geom_line(data = pred,
-              mapping = aes(x = 10^logtensao,
-                            y = 10^fit,
-                            color = solo)) +
-    geom_smooth(data = pred,
-                mapping = aes(x = 10^logtensao,
-                              y = 10^fit,
-                              ymin = 10^lwr,
-                              ymax = 10^upr),
-                stat = "identity",
-                show.legend = FALSE) +
-    labs(x = axis_text$tensao,
-         y = axis_text$pcc,
-         color = axis_text$solo)
-
-# Fitted curves with confidence bands and observed data.
-# Position in evidence.
-ggplot(data = da,
-       mapping = aes(x = tensao, y = ppc, color = posi)) +
-    facet_grid(facets = prof ~ solo) +
-    geom_point() +
-    scale_x_log10() +
-    scale_y_log10() +
-    geom_line(data = pred,
-              mapping = aes(x = 10^logtensao,
-                            y = 10^fit,
-                            color = posi)) +
-    geom_smooth(data = pred,
-                mapping = aes(x = 10^logtensao,
-                              y = 10^fit,
-                              ymin = 10^lwr,
-                              ymax = 10^upr),
-                stat = "identity",
-                show.legend = FALSE) +
-    labs(x = axis_text$tensao,
-         y = axis_text$pcc,
-         color = axis_text$posi)
-```
-
-The above graphics displays the estimated quadratic curve fitted (solid
-line) in each combination of soil, position and depth to describe log of
-preconsolidation pressure as a function of log matric tension. The
-shaded region wrapping the estimated curve is the confidence band for
-the fitted conditional mean. By analysing the curves, we conclude that
-the predicted value for each soil differ at most part of the matric
-tension domain. The difference is greater in the interrow position than
-in row. The difference is the same in all depth at the same position
-level, since there wasn't 3rd degree interaction involving soil,
-position and depth.
-
-The next graphics shows that there is little difference in predicted
-value for the sampling position at the KH soil.
+From this model, by Wald F tests, there weren't 4th degree signficant
+interactions neither 3rd degree. There were 2nd degree signficant
+interactions involving soil or position at 10%, and involving depth at
+less than 1%. All two way interactions were kept except those involving
+depth and soil or depth and position. So, depth and soil have additive
+effect, the same for depth and position.
 
 ## Curve comparison
 
@@ -309,6 +220,15 @@ ord2 <- names(b) %>%
 grid$b0 <- c(L %*% (b * ord0))
 grid$b1 <- c(L %*% (b * ord1))
 grid$b2 <- c(L %*% (b * ord2))
+
+grid <- grid %>%
+    mutate(label = sprintf("'%0.2f' %s '%0.3f' * x %s '%0.4f' * x^2",
+                           b0,
+                           ifelse(b1 >= 0, "+", "-"),
+                           abs(b1),
+                           ifelse(b2 >= 0, "+", "-"),
+                           abs(b2)))
+
 
 # Table of equation coefficients for each experimental point.
 grid
@@ -349,7 +269,7 @@ order polynomial.
 
 ```{r}
 # To compare curves with Wald F test statistic.
-compare_two_curves <- function(index, levels = NULL) {
+compare_curves <- function(index, levels = NULL) {
     J <- L[index, , drop = FALSE]
     K <- wzRfun::apc(J, lev = levels)
     f_test <- apply(K[, , drop = FALSE],
@@ -373,7 +293,7 @@ grid %>%
     mutate(row = 1:n()) %>%
     group_by(posi, prof) %>%
     do({
-        compare_two_curves(.$row, .$solo)
+        compare_curves(.$row, .$solo)
     }) %>%
     as.data.frame()
 
@@ -382,7 +302,7 @@ grid %>%
     mutate(row = 1:n()) %>%
     group_by(solo, prof) %>%
     do({
-        compare_two_curves(.$row, .$posi)
+        compare_curves(.$row, .$posi)
     }) %>%
     as.data.frame()
 
@@ -390,7 +310,7 @@ grid %>%
 #     mutate(row = 1:n()) %>%
 #     group_by(solo, posi) %>%
 #     do({
-#         compare_two_curves(.$row, as.integer(.$prof))
+#         compare_curves(.$row, as.integer(.$prof))
 #     }) %>%
 #     as.data.frame()
 ```
@@ -408,17 +328,132 @@ The tables above shows the F statistics and associate p-value to test
 the equality of two curves using the Wald test. Curves from soils were
 compared for each position and depth combination (6 conditions). Because
 there wasn't 3rd order interaction, the F statistic is the same for all
-depth at the same position. The greater difference, as stated when the
-curves on the graphics were interpreted, is between soil curves at
-interrow position.
+depth at the same position. The greater difference, as showed by the
+curves on the next graphics, is between soil curves at interrow
+position.
 
 The same test were applied to test equality of curves between position
 for each soil and depth combination (6 conditions). Because there wasn't
 3rd order interaction, the F statistic is the same for all depth at the
-same soil. The greater difference, as stated when the curves on the
-graphics were interpreted, is between position curves at GA
+same soil. The greater difference, as showed by the
+curves on the next graphics, is between position curves at GA
 soil. Despite the overlapping of confidence bands between position in
 the KH soil, according two the F test, these curves are not equal at 5%.
+
+```{r}
+# Conditions to get estimated values.
+pred <- with(da,
+             expand.grid(solo = levels(solo),
+                         posi = levels(posi),
+                         prof = levels(prof),
+                         logtensao = seq(0.5, 3.5, length = 31),
+                         KEEP.OUT.ATTRS = FALSE))
+
+# Model matrix for prediction.
+X <- model.matrix(formula(terms(m3))[-2], data = pred)
+
+# Checks.
+stopifnot(ncol(X) == length(fixef(m3)))
+stopifnot(all(colnames(X) == names(fixef(m3))))
+
+# Predicted value.
+pred$fit <- X %*% fixef(m3)
+
+# Standard error of predicted values.
+pred$se <- sqrt(diag(X %*% tcrossprod(vcov(m3), X)))
+
+# Quantile of t distribution.
+qtl <- qt(p = 0.975, df = df.residual(m3))
+
+# Confidence limits for predicted value.
+pred$lwr <- pred$fit - qtl * pred$se
+pred$upr <- pred$fit + qtl * pred$se
+
+# Adds the equation to annotate on graphics.
+grid <- grid %>%
+    mutate(xpos = 2.5,
+           ypos = ifelse(solo == "GA", 500, 400) - 30,
+           hjust = c(0),
+           vjust = c(0))
+
+# Fitted curves with confidence bands and observed data.
+# Soil in evidence.
+ggplot(data = da,
+       mapping = aes(x = tensao, y = ppc, color = solo)) +
+    facet_grid(facets = prof ~ posi) +
+    geom_point() +
+    scale_x_log10() +
+    scale_y_log10() +
+    geom_line(data = pred,
+              mapping = aes(x = 10^logtensao,
+                            y = 10^fit,
+                            color = solo)) +
+    geom_smooth(data = pred,
+                mapping = aes(x = 10^logtensao,
+                              y = 10^fit,
+                              ymin = 10^lwr,
+                              ymax = 10^upr),
+                stat = "identity",
+                show.legend = FALSE) +
+    geom_text(data = grid,
+              mapping = aes(x = xpos,
+                            y = ypos,
+                            label = label,
+                            hjust = hjust,
+                            vjust = vjust),
+              show.legend = FALSE,
+              parse = TRUE) +
+    labs(x = axis_text$tensao,
+         y = axis_text$pcc,
+         color = axis_text$solo)
+
+grid <- grid %>%
+    mutate(xpos = 2.5,
+           ypos = ifelse(posi == "Interrow", 500, 400) - 30)
+
+# Fitted curves with confidence bands and observed data.
+# Position in evidence.
+ggplot(data = da,
+       mapping = aes(x = tensao, y = ppc, color = posi)) +
+    facet_grid(facets = prof ~ solo) +
+    geom_point() +
+    scale_x_log10() +
+    scale_y_log10() +
+    geom_line(data = pred,
+              mapping = aes(x = 10^logtensao,
+                            y = 10^fit,
+                            color = posi)) +
+    geom_smooth(data = pred,
+                mapping = aes(x = 10^logtensao,
+                              y = 10^fit,
+                              ymin = 10^lwr,
+                              ymax = 10^upr),
+                stat = "identity",
+                show.legend = FALSE) +
+    geom_text(data = grid,
+              mapping = aes(x = xpos,
+                            y = ypos,
+                            label = label,
+                            hjust = hjust,
+                            vjust = vjust),
+              show.legend = FALSE,
+              parse = TRUE) +
+    labs(x = axis_text$tensao,
+         y = axis_text$pcc,
+         color = axis_text$posi)
+```
+
+The above graphics displays the estimated quadratic curve fitted (solid
+line) in each combination of soil, position and depth to describe log of
+preconsolidation pressure as a function of log matric tension. The
+shaded region wrapping the estimated curve is the confidence band for
+the fitted conditional mean. The equations inside each cell plot are in
+log-log scale. By visualizing the curves, we notice that the predicted
+value for each soil differ at most part of the matric tension
+domain. The difference is greater in the interrow position than in row,
+as stated by the R test previous applied. The difference is the same in
+all depth at the same position level, since there wasn't 3rd degree
+interaction involving soil, position and depth.
 
 ## Session information
 
