@@ -1,7 +1,7 @@
 Package: EACS
 Title: Estatística Aplicada à Ciência do Solo
-Version: 0.0-7
-Date: 2014-04-06
+Version: 0.0-8
+Date: 2019-07-19
 Authors@R: as.person(c(
     "Walmes Marques Zeviani <walmes@ufpr.br> [cre,aut]",
     "Milson Evaldo Serafim <milson.serafim@cas.ifmt.edu.br> [ctb]",
