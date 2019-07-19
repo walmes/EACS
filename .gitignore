@@ -23,6 +23,7 @@ Meta/
 !inst/doc/*.html
 vignettes/*.html
 vignettes/*.pdf
+vignettes/*.R
 !vignettes/_before_body.html
 !vignettes/_after_body.html
 !vignettes/_MathJax.html
