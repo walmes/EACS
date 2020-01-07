@@ -1,0 +1,403 @@
+---
+title: "Modelagem da curva de retenção de água de latossolos com diferente mineralogia"
+author: >
+  [Walmes Marques Zeviani](http://lattes.cnpq.br/4410617539281650) &
+  [Carla Eloize Carducci](http://lattes.cnpq.br/3585988593213083)
+date: '`r format(Sys.Date(), format = "%d de %B de %Y")`'
+vignette: >
+  %\VignetteIndexEntry{Modelagem da curva de retenção de água de latossolos com diferente mineralogia}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+source("config/setup.R")
+```
+
+## Exploratory data analysis
+
+```{r, eval = FALSE, include = FALSE}
+devtools::load_all()
+```
+```{r, results = "hide", message = FALSE, error = FALSE, warning = FALSE}
+#-----------------------------------------------------------------------
+# Load packages.
+
+rm(list = objects())
+
+library(EACS)
+library(lmerTest)
+library(lme4)
+library(car)
+library(emmeans)
+library(tidyverse)
+```
+
+```{r}
+# Dataset.
+da <- as_tibble(cafe_pedotrans)
+str(da)
+
+# Recode factor levels.
+levels(da$posi) <- c("Interrow", "Row")
+s <- c(KH = "Kaolinitic Haplustox", GA = "Gibbsitic Acrustox")
+levels(da$solo) <- names(s)
+levels(da$prof)
+
+# Recode levels.
+da$trt <- with(da, interaction(solo, posi, as.integer(prof), sep = "·"))
+
+# Numeric summary.
+summary(da)
+
+# Count of experimental points.
+ftable(tensao ~ solo + posi + prof, data = da)
+
+# Creates variables in the log scale.
+da$logtensao <- log10(da$tensao)
+da$logppc <- log10(da$ppc)
+
+# Text to be used as axis label.
+axis_text <- list(
+    pcc = expression(Log[10] ~ (sigma * "p, kPa") - "Preconsolidation pressure"),
+    tensao = expression(Log[10] ~ (Psi * "m, kPa") - "Matric tension"),
+    thetai = expression("Water content" ~ (cm^{3} ~ cm^{-3})),
+    posi = "Position",
+    solo = "Soil",
+    prof = "Depth")
+
+# Experimental units profile in each experimental point.
+ggplot(data = da,
+       mapping = aes(x = tensao, y = thetai, color = rep, group = rep)) +
+    facet_wrap(facets = ~trt) +
+    geom_point(show.legend = FALSE) +
+    geom_line(show.legend = FALSE) +
+    scale_x_log10() +
+    labs(x = axis_text$tensao,
+         y = axis_text$thetai)
+
+# Mean profile in each experimental point. The curve is the second order
+# polynomial model fitted to the sample data only to check if it
+# captures properly the trend in data.
+ggplot(data = da,
+       mapping = aes(x = tensao, y = thetai)) +
+    facet_wrap(facets = ~trt) +
+    geom_point() +
+    stat_summary(geom = "line", fun.y = "mean") +
+    scale_x_log10() +
+    labs(x = axis_text$tensao,
+         y = axis_text$thetai)
+
+# Differnce in position mean profile conditional to other factors.
+ggplot(data = da,
+       mapping = aes(x = tensao, y = thetai, color = posi)) +
+    facet_grid(facets = prof ~ solo) +
+    geom_point() +
+    stat_summary(geom = "line", fun.y = "mean") +
+    scale_x_log10() +
+    labs(x = axis_text$tensao,
+         y = axis_text$thetai,
+         color = axis_text$posi)
+
+# Differnce in position mean profile conditional to other factors.
+ggplot(data = filter(da, tensao < 3000),
+       mapping = aes(x = tensao, y = thetai, color = posi)) +
+    facet_grid(facets = prof ~ solo) +
+    geom_point() +
+    geom_smooth(method = "lm",
+                formula = y ~ poly(x, degree = 2),
+                se = FALSE) +
+    scale_x_log10() +
+    labs(x = axis_text$tensao,
+         y = axis_text$thetai,
+         color = axis_text$posi)
+
+# Differnce in soil mean profile conditional to other factors.
+ggplot(data = da,
+       mapping = aes(x = tensao, y = thetai, color = solo)) +
+    facet_grid(facets = prof ~ posi) +
+    geom_point() +
+    stat_summary(geom = "line", fun.y = "mean") +
+    scale_x_log10() +
+    labs(x = axis_text$tensao,
+         y = axis_text$thetai,
+         color = axis_text$solo)
+```
+
+## Water retention curve
+
+The values of water content were measured only on 5 values of matric
+tension. Thus, it is difficult to fit the water retention curve with so
+few tensions. On another hand, we want just test the hypothesis of
+equality between curves for row and interrow. To do so, we can just
+employ an empirical model (e.g. a polynomial) instead of the traditional
+Van Genhuchten and test such hypothesis of equality by the comparisons
+of nested models. We must to fit these models addressing the correct
+structure of the experimental design.
+
+Based on exploratory data analysis, the effect of log of matric tension
+(tension below 3000 kPa) on soil water content (response variable) can
+be properly described by a second order polynomial. Water content was
+modelled as a function of soil type, sampling position, soil depth and
+log of matric tension. All interactions (until the 4th degree) were
+declared. The effect of experimental unit was accounted by random effets
+terms in intercept, slope and curvature of the second order linear mixed
+effects model. Likelihood ratio tests were performed to check the
+relevance random effects terms and Wald F tests were performed check the
+relevance of fixed effect terms, so those not relevant were dropped
+getting a simpler model.
+
+The exploratory data analysis showed that the second order polynomial
+model is suitable to describe the relation between water content and
+matric tension for tension values below 3000. For the sake of simplicity
+and parsimony, the higher tension value, 3000 kPa, were not used to
+compare curves. Including this higher tension would demand a higher
+order degree model that is less tractable turning the analysis more
+difficult to follow.
+
+```{r}
+# Random intercept, slope and curvature for random effects.
+# Interaction until the 4th degree.
+m0 <- lmer(thetai ~ solo * posi * prof * (logtensao + I(logtensao^2)) +
+               (1 + logtensao + I(logtensao^2) | ue),
+           data = subset(da, tensao < 3000))
+
+# Variance of the random effects.
+VarCorr(m0)
+
+# Test for the fixed effects terms.
+anova(m0)
+
+# Fitting a smaller model with relevant terms.
+m1 <- update(m0, . ~ posi + (solo + prof) *
+                     (logtensao + I(logtensao^2)) +
+                     solo:posi +
+                     solo:posi:logtensao +
+                     (1 | ue))
+anova(m0, m1)
+
+# Test for the fixed effects terms.
+anova(m1)
+```
+
+```{r}
+# Estimated marginal means with covariate set at 1. The corresponding
+# matrix will be used to get que equation of each experimental
+# condition.
+emm <- emmeans(m1,
+               specs = ~solo + posi + prof,
+               at = list(logtensao = 1))
+
+# Get experimental points and matrix to calculate marginal means.
+grid <- attr(emm, "grid")
+L <- attr(emm, "linfct")
+t(unname(L))
+
+# Fixed effects estimates.
+b <- fixef(m1)
+
+# Zero order terms (intercept).
+ord0 <- names(b) %>%
+    # grep(pattern = "logtensao", value = TRUE, invert = TRUE)
+    grepl(pattern = "logtensao") %>% `!`()
+
+# First order terms (slope).
+ord1 <- names(b) %>%
+    # grep(pattern = "logtensao$", value = TRUE, invert = FALSE)
+    grepl(pattern = "logtensao$")
+
+# Second order terms (curvatures).
+ord2 <- names(b) %>%
+    # grep(pattern = "I\\(logtensao\\^2\\)$", value = TRUE, invert = FALSE)
+    grepl(pattern = "I\\(logtensao\\^2\\)$")
+
+# Checking: all row sum must be 1.
+rowSums(cbind(ord0, ord1, ord2))
+
+# Get the equation coefficients: b0 + b1 * x + b2 * x^2.
+grid$b0 <- c(L %*% (b * ord0))
+grid$b1 <- c(L %*% (b * ord1))
+grid$b2 <- c(L %*% (b * ord2))
+
+grid <- grid %>%
+    mutate(label = sprintf("'%0.2f' %s '%0.3f' * x %s '%0.4f' * x^2",
+                           b0,
+                           ifelse(b1 >= 0, "+", "-"),
+                           abs(b1),
+                           ifelse(b2 >= 0, "+", "-"),
+                           abs(b2)))
+
+# Table of equation coefficients for each experimental point.
+grid
+
+# Checking: are the equation curves correct? Compare with `predict()`.
+grid_curves <- grid %>%
+    group_by(posi, solo, prof) %>%
+    do({
+        logtensao <- seq(0.5, 3.5, length = 31)
+        fit <- .$b0 + .$b1 * logtensao + .$b2 * logtensao^2
+        data.frame(logtensao, fit)
+    })
+# grid_curves
+```
+
+```{r}
+# Conditions to get estimated values.
+pred <- with(da,
+             expand.grid(solo = levels(solo),
+                         posi = levels(posi),
+                         prof = levels(prof),
+                         logtensao = seq(0.5, 3.5, length = 31),
+                         KEEP.OUT.ATTRS = FALSE))
+
+# Model matrix for prediction.
+X <- model.matrix(formula(terms(m1))[-2], data = pred)
+
+# Checking: length and names.
+stopifnot(ncol(X) == length(fixef(m1)))
+stopifnot(all(colnames(X) == names(fixef(m1))))
+
+# Predicted value.
+pred$fit <- X %*% fixef(m1)
+
+# Standard error of predicted values.
+pred$se <- sqrt(diag(X %*% tcrossprod(vcov(m1), X)))
+
+# Quantile of t distribution.
+qtl <- qt(p = 0.975, df = df.residual(m1))
+
+# Confidence limits for predicted value.
+pred$lwr <- pred$fit - qtl * pred$se
+pred$upr <- pred$fit + qtl * pred$se
+
+# Adds the equation to annotate on graphics.
+grid <- grid %>%
+    mutate(xpos = 2.5,
+           ypos = ifelse(solo == "GA", 0.26, 0.23) - 0.01,
+           hjust = c(0),
+           vjust = c(0))
+
+# Fitted curves with confidence bands and observed data.
+# Soil in evidence.
+ggplot(data = filter(da, tensao < 3000),
+       mapping = aes(x = tensao, y = thetai, color = solo)) +
+    facet_grid(facets = prof ~ posi) +
+    geom_point() +
+    scale_x_log10() +
+    # geom_line(data = pred,
+    #           mapping = aes(x = 10^logtensao,
+    #                         y = fit,
+    #                         color = solo)) +
+    geom_smooth(data = pred,
+                mapping = aes(x = 10^logtensao,
+                              y = fit,
+                              ymin = lwr,
+                              ymax = upr),
+                stat = "identity",
+                show.legend = FALSE) +
+    geom_text(data = grid,
+              mapping = aes(x = xpos,
+                            y = ypos,
+                            label = label,
+                            hjust = hjust,
+                            vjust = vjust),
+              show.legend = FALSE,
+              parse = TRUE) +
+    # geom_line(data = grid_curves,
+    #           mapping = aes(x = 10^logtensao,
+    #                         y = fit,
+    #                         group = solo),
+    #           linetype = 2,
+    #           color = "black") +
+    labs(x = axis_text$tensao,
+         y = axis_text$thetai,
+         color = axis_text$solo)
+
+grid <- grid %>%
+    mutate(xpos = 2.5,
+           ypos = ifelse(posi == "Interrow", 0.26, 0.23) - 0.01)
+
+# Fitted curves with confidence bands and observed data.
+# Position in evidence.
+ggplot(data = filter(da, tensao < 3000),
+       mapping = aes(x = tensao, y = thetai, color = posi)) +
+    facet_grid(facets = prof ~ solo) +
+    geom_point() +
+    scale_x_log10() +
+    geom_line(data = pred,
+              mapping = aes(x = 10^logtensao,
+                            y = fit,
+                            color = posi)) +
+    geom_smooth(data = pred,
+                mapping = aes(x = 10^logtensao,
+                              y = fit,
+                              ymin = lwr,
+                              ymax = upr),
+                stat = "identity",
+                show.legend = FALSE) +
+    geom_text(data = grid,
+              mapping = aes(x = xpos,
+                            y = ypos,
+                            label = label,
+                            hjust = hjust,
+                            vjust = vjust),
+              show.legend = FALSE,
+              parse = TRUE) +
+    # geom_line(data = grid_curves,
+    #           mapping = aes(x = 10^logtensao,
+    #                         y = fit,
+    #                         group = posi),
+    #           linetype = 2,
+    #           color = "black") +
+    labs(x = axis_text$tensao,
+         y = axis_text$thetai,
+         color = axis_text$posi)
+```
+
+```{r}
+# To compare curves with Wald F test statistic.
+compare_curves <- function(index, levels = NULL) {
+    J <- L[index, , drop = FALSE]
+    K <- wzRfun::apc(J, lev = levels)
+    f_test <- apply(K[, , drop = FALSE],
+                    MARGIN = 1,
+                    FUN = function(Ki) {
+                        U <- rbind(Ki %*% diag(ord0),
+                                   Ki %*% diag(ord1),
+                                   Ki %*% diag(ord2))
+                        f_test <-
+                            linearHypothesis(model = m1,
+                                             hypothesis.matrix = U,
+                                             test = "F")
+                        tail(f_test[, c("F", "Pr(>F)")], n = 1)
+                    })
+    f_test <- do.call(what = rbind, args = f_test)
+    cbind(contrast = rownames(f_test), f_test)
+}
+
+# Tests of soil curves are equal in each posi:prof combination.
+grid %>%
+    mutate(row = 1:n()) %>%
+    group_by(posi, prof) %>%
+    do({
+        compare_curves(.$row, .$solo)
+    }) %>%
+    as.data.frame()
+
+# Tests of posi curves are equal in each soil:prof combination.
+grid %>%
+    mutate(row = 1:n()) %>%
+    group_by(solo, prof) %>%
+    do({
+        compare_curves(.$row, .$posi)
+    }) %>%
+    as.data.frame()
+```
+
+## Session information
+
+```{r, echo = FALSE, results = "hold"}
+cat(format(Sys.time(),
+           format = "Atualizado em %d de %B de %Y.\n\n"))
+sessionInfo()
+```
