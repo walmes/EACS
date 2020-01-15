@@ -31,12 +31,46 @@ library(lme4)
 library(emmeans)
 library(car)
 library(tidyverse)
-```
 
+# To compare curves with Wald F test statistic.
+compare_curves <- function(index,
+                           levels = NULL,
+                           L = L,
+                           ords = list(ord0, ord1)) {
+    J <- L[index, , drop = FALSE]
+    K <- wzRfun::apc(J, lev = levels)
+    f_test <- apply(K[, , drop = FALSE],
+                    MARGIN = 1,
+                    FUN = function(Ki) {
+                        U <- lapply(ords,
+                                    function(ord) {
+                                        Ki %*% diag(ord)
+                                    })
+                        U <- do.call(rbind, U)
+                        f_test <-
+                            linearHypothesis(model = m1,
+                                             hypothesis.matrix = U,
+                                             test = "F")
+                        tail(f_test[, c("F", "Pr(>F)")], n = 1)
+                    })
+    f_test <- do.call(what = rbind, args = f_test)
+    cbind(contrast = rownames(f_test), f_test)
+}
+```
+```{r, include = FALSE}
+devtools::load_all()
+```
 ```{r}
 # Dataset.
 da <- as_tibble(cafe_pedotrans)
 str(da)
+
+# Creates variables to represent different experimental units sizes.
+da <- da %>%
+    mutate(ue = NULL,
+           ue1 = interaction(solo, rep),
+           ue2 = interaction(solo, rep, posi),
+           ue3 = interaction(solo, rep, posi, prof))
 
 # Recode factor levels.
 levels(da$posi) <- c("Interrow", "Row")
@@ -134,28 +168,11 @@ simpler model.
 ```{r}
 # Random intercept.
 m0 <- lmer(logppc ~ solo * posi * prof * (logtensao + I(logtensao^2)) +
-               (1 | ue), data = da)
+               (1 | ue1) + (1 | ue2) + (1 | ue3),
+           data = da)
 
 # Variance of the random effects.
 VarCorr(m0)
-
-# Random intercept and slope.
-m1 <- lmer(logppc ~ solo * posi * prof * (logtensao + I(logtensao^2)) +
-               (1 + logtensao | ue), data = da)
-
-# Variance of the random effects.
-VarCorr(m1)
-
-# Random intercept, slope and curvature.
-m2 <- lmer(logppc ~ solo * posi * prof * (logtensao + I(logtensao^2)) +
-               (1 + logtensao + I(logtensao^2) | ue), data = da)
-
-# Variance of the random effects.
-VarCorr(m2)
-
-# Test of the extra parameters: variance of slope and/or curvature.
-anova(m0, m1, m2)
-anova(m0, m2)
 
 # Test for the fixed effect terms of the model.
 anova(m0)
@@ -166,12 +183,13 @@ anova(m0)
 # No significant 2 degree with posi.
 
 # Fitting a smaller model with relevant terms.
-m3 <- update(m0, . ~ (solo + posi + prof) *
-                     (logtensao + I(logtensao^2)) +
-                     solo:posi +
-                     (1 | ue))
-anova(m0, m3)
-anova(m3)
+m1 <- update(m0,
+             . ~ (solo + posi + prof) *
+                 (logtensao + I(logtensao^2)) +
+                 solo:posi +
+                 (1 | ue1) + (1 | ue2) + (1 | ue3))
+anova(m0, m1)
+anova(m1)
 ```
 
 The model with random effets in the intercept were not inferior, by the
@@ -190,7 +208,7 @@ effect, the same for depth and position.
 
 ```{r}
 # Estimated marginal means with covariate set at 1.
-emm <- emmeans(m3,
+emm <- emmeans(m1,
                specs = ~solo + posi + prof,
                at = list(logtensao = 1))
 
@@ -199,21 +217,18 @@ grid <- attr(emm, "grid")
 L <- attr(emm, "linfct")
 
 # Fixed effects estimates.
-b <- fixef(m3)
+b <- fixef(m1)
 
 # Zero order terms (intercept).
 ord0 <- names(b) %>%
-    # grep(pattern = "logtensao", value = TRUE, invert = TRUE)
     grepl(pattern = "logtensao") %>% `!`()
 
 # First order terms (slope).
 ord1 <- names(b) %>%
-    # grep(pattern = "logtensao$", value = TRUE, invert = FALSE)
     grepl(pattern = "logtensao$")
 
 # Second order terms (curvatures).
 ord2 <- names(b) %>%
-    # grep(pattern = "I\\(logtensao\\^2\\)$", value = TRUE, invert = FALSE)
     grepl(pattern = "I\\(logtensao\\^2\\)$")
 
 # Get the equation coefficients: b0 + b1 * x + b2 * x^2.
@@ -245,101 +260,6 @@ pressure, $x$ is the log 10 of matric tension and $\beta_0$, $\beta_1$
 and $\beta_2$ are intercept, slope and curvature parameter of the second
 order polynomial.
 
-```{r, include = FALSE, eval = FALSE}
-# # To get the standard error of each estimate.
-# L %*% diag(ord0)
-# L %*% diag(ord1)
-# L %*% diag(ord2)
-
-# # Intervalo de confiança.
-# confint(multcomp::glht(m3, linfct = L %*% diag(ord0)),
-#         calpha = multcomp::univariate_calpha())
-
-# # Teste de a equação foi calculada correto.
-# grid[1, ]
-# ggplot(data = pred,
-#        mapping = aes(x = logtensao, y = fit, color = solo)) +
-#     facet_grid(facets = prof ~ posi) +
-#     geom_line() +
-#     geom_smooth(stat = "identity",
-#                 mapping = aes(ymin = lwr, ymax = upr),
-#                 show.legend = FALSE) +
-#     stat_function(fun = function(x) cbind(1, x, x^2) %*% unlist(grid[1, 5:7]))
-```
-
-```{r}
-# To compare curves with Wald F test statistic.
-compare_curves <- function(index, levels = NULL) {
-    J <- L[index, , drop = FALSE]
-    K <- wzRfun::apc(J, lev = levels)
-    f_test <- apply(K[, , drop = FALSE],
-                    MARGIN = 1,
-                    FUN = function(Ki) {
-                        U <- rbind(Ki %*% diag(ord0),
-                                   Ki %*% diag(ord1),
-                                   Ki %*% diag(ord2))
-                        f_test <-
-                            linearHypothesis(model = m3,
-                                             hypothesis.matrix = U,
-                                             test = "F")
-                        tail(f_test[, c("F", "Pr(>F)")], n = 1)
-                    })
-    f_test <- do.call(what = rbind, args = f_test)
-    cbind(contrast = rownames(f_test), f_test)
-}
-
-# Tests of soil curves are equal in each posi:prof combination.
-grid %>%
-    mutate(row = 1:n()) %>%
-    group_by(posi, prof) %>%
-    do({
-        compare_curves(.$row, .$solo)
-    }) %>%
-    as.data.frame()
-
-# Tests of posi curves are equal in each soil:prof combination.
-grid %>%
-    mutate(row = 1:n()) %>%
-    group_by(solo, prof) %>%
-    do({
-        compare_curves(.$row, .$posi)
-    }) %>%
-    as.data.frame()
-
-# grid %>%
-#     mutate(row = 1:n()) %>%
-#     group_by(solo, posi) %>%
-#     do({
-#         compare_curves(.$row, as.integer(.$prof))
-#     }) %>%
-#     as.data.frame()
-```
-
-Wald F test were applied to test with two curves are equal. The null
-hypothesis states that all three parameters ($\beta_0$, $\beta_1$,
-$\beta_2$) are simultaneous equal for a pair of curves
-$$
-  H_0:
-  \begin{bmatrix} \beta_0 \\ \beta_1 \\ \beta_2 \end{bmatrix} =
-  \begin{bmatrix} \beta_0' \\ \beta_1' \\ \beta_2' \end{bmatrix}.
-$$
-
-The tables above shows the F statistics and associate p-value to test
-the equality of two curves using the Wald test. Curves from soils were
-compared for each position and depth combination (6 conditions). Because
-there wasn't 3rd order interaction, the F statistic is the same for all
-depth at the same position. The greater difference, as showed by the
-curves on the next graphics, is between soil curves at interrow
-position.
-
-The same test were applied to test equality of curves between position
-for each soil and depth combination (6 conditions). Because there wasn't
-3rd order interaction, the F statistic is the same for all depth at the
-same soil. The greater difference, as showed by the
-curves on the next graphics, is between position curves at GA
-soil. Despite the overlapping of confidence bands between position in
-the KH soil, according two the F test, these curves are not equal at 5%.
-
 ```{r}
 # Conditions to get estimated values.
 pred <- with(da,
@@ -350,20 +270,20 @@ pred <- with(da,
                          KEEP.OUT.ATTRS = FALSE))
 
 # Model matrix for prediction.
-X <- model.matrix(formula(terms(m3))[-2], data = pred)
+X <- model.matrix(formula(terms(m1))[-2], data = pred)
 
 # Checks.
-stopifnot(ncol(X) == length(fixef(m3)))
-stopifnot(all(colnames(X) == names(fixef(m3))))
+stopifnot(ncol(X) == length(fixef(m1)))
+stopifnot(all(colnames(X) == names(fixef(m1))))
 
 # Predicted value.
-pred$fit <- X %*% fixef(m3)
+pred$fit <- X %*% fixef(m1)
 
 # Standard error of predicted values.
-pred$se <- sqrt(diag(X %*% tcrossprod(vcov(m3), X)))
+pred$se <- sqrt(diag(X %*% tcrossprod(vcov(m1), X)))
 
 # Quantile of t distribution.
-qtl <- qt(p = 0.975, df = df.residual(m3))
+qtl <- qt(p = 0.975, df = df.residual(m1))
 
 # Confidence limits for predicted value.
 pred$lwr <- pred$fit - qtl * pred$se
@@ -454,6 +374,51 @@ domain. The difference is greater in the interrow position than in row,
 as stated by the R test previous applied. The difference is the same in
 all depth at the same position level, since there wasn't 3rd degree
 interaction involving soil, position and depth.
+
+```{r}
+# Tests of soil curves are equal in each posi:prof combination.
+grid %>%
+    mutate(row = 1:n()) %>%
+    group_by(posi, prof) %>%
+    do({
+        compare_curves(.$row, .$solo, L, list(ord0, ord1, ord2))
+    }) %>%
+    as.data.frame()
+
+# Tests of posi curves are equal in each soil:prof combination.
+grid %>%
+    mutate(row = 1:n()) %>%
+    group_by(solo, prof) %>%
+    do({
+        compare_curves(.$row, .$posi, L, list(ord0, ord1, ord2))
+    }) %>%
+    as.data.frame()
+```
+
+Wald F test were applied to test with two curves are equal. The null
+hypothesis states that all three parameters ($\beta_0$, $\beta_1$,
+$\beta_2$) are simultaneous equal for a pair of curves
+$$
+  H_0:
+  \begin{bmatrix} \beta_0 \\ \beta_1 \\ \beta_2 \end{bmatrix} =
+  \begin{bmatrix} \beta_0' \\ \beta_1' \\ \beta_2' \end{bmatrix}.
+$$
+
+The tables above shows the F statistics and associate p-value to test
+the equality of two curves using the Wald test. Curves from soils were
+compared for each position and depth combination (6 conditions). Because
+there wasn't 3rd order interaction, the F statistic is the same for all
+depth at the same position. The greater difference, as showed by the
+curves on the next graphics, is between soil curves at interrow
+position.
+
+The same test were applied to test equality of curves between position
+for each soil and depth combination (6 conditions). Because there wasn't
+3rd order interaction, the F statistic is the same for all depth at the
+same soil. The greater difference, as showed by the
+curves on the next graphics, is between position curves at GA
+soil. Despite the overlapping of confidence bands between position in
+the KH soil, according two the F test, these curves are not equal at 5%.
 
 ## Session information
 

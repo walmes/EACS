@@ -31,6 +31,41 @@ library(lme4)
 library(car)
 library(emmeans)
 library(tidyverse)
+
+# Text to be used as axis label.
+axis_text <- list(
+    pcc = expression(Log[10] ~ (sigma * "p, kPa") - "Preconsolidation pressure"),
+    tensao = expression(Log[10] ~ (Psi * "m, kPa") - "Matric tension"),
+    thetai = expression("Water content" ~ (cm^{3} ~ cm^{-3})),
+    pr = expression("Penetration resistance" ~ (MPa)),
+    posi = "Position",
+    solo = "Soil",
+    prof = "Depth")
+
+# To compare curves with Wald F test statistic.
+compare_curves <- function(index,
+                           levels = NULL,
+                           L = L,
+                           ords = list(ord0, ord1)) {
+    J <- L[index, , drop = FALSE]
+    K <- wzRfun::apc(J, lev = levels)
+    f_test <- apply(K[, , drop = FALSE],
+                    MARGIN = 1,
+                    FUN = function(Ki) {
+                        U <- lapply(ords,
+                                    function(ord) {
+                                        Ki %*% diag(ord)
+                                    })
+                        U <- do.call(rbind, U)
+                        f_test <-
+                            linearHypothesis(model = m1,
+                                             hypothesis.matrix = U,
+                                             test = "F")
+                        tail(f_test[, c("F", "Pr(>F)")], n = 1)
+                    })
+    f_test <- do.call(what = rbind, args = f_test)
+    cbind(contrast = rownames(f_test), f_test)
+}
 ```
 
 ```{r}
@@ -56,15 +91,6 @@ ftable(tensao ~ solo + posi + prof, data = da)
 # Creates variables in the log scale.
 da$logtensao <- log10(da$tensao)
 da$logppc <- log10(da$ppc)
-
-# Text to be used as axis label.
-axis_text <- list(
-    pcc = expression(Log[10] ~ (sigma * "p, kPa") - "Preconsolidation pressure"),
-    tensao = expression(Log[10] ~ (Psi * "m, kPa") - "Matric tension"),
-    thetai = expression("Water content" ~ (cm^{3} ~ cm^{-3})),
-    posi = "Position",
-    solo = "Soil",
-    prof = "Depth")
 
 # Experimental units profile in each experimental point.
 ggplot(data = da,
@@ -355,32 +381,12 @@ ggplot(data = filter(da, tensao < 3000),
 ```
 
 ```{r}
-# To compare curves with Wald F test statistic.
-compare_curves <- function(index, levels = NULL) {
-    J <- L[index, , drop = FALSE]
-    K <- wzRfun::apc(J, lev = levels)
-    f_test <- apply(K[, , drop = FALSE],
-                    MARGIN = 1,
-                    FUN = function(Ki) {
-                        U <- rbind(Ki %*% diag(ord0),
-                                   Ki %*% diag(ord1),
-                                   Ki %*% diag(ord2))
-                        f_test <-
-                            linearHypothesis(model = m1,
-                                             hypothesis.matrix = U,
-                                             test = "F")
-                        tail(f_test[, c("F", "Pr(>F)")], n = 1)
-                    })
-    f_test <- do.call(what = rbind, args = f_test)
-    cbind(contrast = rownames(f_test), f_test)
-}
-
 # Tests of soil curves are equal in each posi:prof combination.
 grid %>%
     mutate(row = 1:n()) %>%
     group_by(posi, prof) %>%
     do({
-        compare_curves(.$row, .$solo)
+        compare_curves(.$row, .$solo, L, list(ord0, ord1, ord2))
     }) %>%
     as.data.frame()
 
@@ -389,7 +395,7 @@ grid %>%
     mutate(row = 1:n()) %>%
     group_by(solo, prof) %>%
     do({
-        compare_curves(.$row, .$posi)
+        compare_curves(.$row, .$posi, L, list(ord0, ord1, ord2))
     }) %>%
     as.data.frame()
 ```
