@@ -37,7 +37,7 @@ options(width = 80)
 # browseURL("https://github.com/walmes/wzRfun")
 
 pkg <- c("lattice", "latticeExtra", "grid", "gridExtra", "reshape",
-         "plyr", "doBy", "multcomp", "MASS", "nlme", "wzRfun")
+         "plyr", "doBy", "multcomp", "MASS", "nlme", "wzRfun", "EACS")
 sapply(pkg, library, character.only = TRUE, logical.return = TRUE)
 ```
 

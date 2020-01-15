@@ -13,6 +13,10 @@ dados documentados e relatórios que exibem a análise dos dados.  Veja na
 seção [Uso do Pacote](#uso-do-pacote) como acessar o conteúdo do pacote
 e na seção [Instalação](#instalacao) como instalar.
 
+A documentação online do pacote está disponível no endereço:
+<http://leg.ufpr.br/~walmes/pacotes/EACS>. O código fonte está público
+no GitHub: <https://github.com/walmes/EACS>.
+
 ## Instalação
 
 O pacote pode ser instalado diretamente do repositório em que está
@@ -25,7 +29,7 @@ uma sessão R.
 library(devtools)
 
 # Instala do GitHub (estável)
-install_github("walmes/EACS")
+install_github(repo =  "walmes/EACS", ref = "master")
 ```
 
 Caso não consiga instalar o pacote, tente fazer a partir dos aquivos
@@ -36,6 +40,9 @@ nome dos arquivos.
 
 ```{r, eval = TRUE, echo = FALSE, results = "asis"}
 # setwd("./docs")
+invisible(file.copy(from = list.files(pattern = "EACS_"),
+                    to = "./docs",
+                    overwrite = TRUE))
 fls <- dir(path = ".",
            pattern = "*.(zip|tar\\.gz)$",
            full.names = TRUE)
@@ -67,16 +74,17 @@ pacotes que são dependências para o EACS. Eles são listados no arquivo
 
 ```{r, echo = FALSE, results = "asis"}
 # setwd("./docs")
-fls <- dir(path = ".",
-           pattern = "manual.pdf$",
-           full.names = TRUE)[1]
-if (length(fls) > 0) {
+fls <- list.files(path = "./EACS.Rcheck",
+                  "EACS-manual.pdf",
+                  full.names = TRUE)
+if (length(fls)) {
+    invisible(file.copy(fls, to = "./docs", overwrite = TRUE))
     txt <- sprintf(paste(
         "## Manual em PDF\n\n",
         "O manual em PDF do pacote está disponível para",
-        "baixar: [`%s`](%s)."),
+        "baixar: [`%s`](./%s)."),
         basename(fls),
-        fls)
+        basename(fls))
     cat(txt, "\n")
 }
 ```
@@ -109,9 +117,9 @@ citation("EACS")
 
 As análises e dados no pacote `EACS` foram feitos para serem de livre
 acesso.  No entanto, todo e qualquer uso dos dados, científico ou não,
-que gere publicações tais como, mas não se limitando: artigos, trabalhos
-em congressos, materias de blog e material didático devem ter o
-consentimento dos seus proprietários. Entendemos que os dados gerados
+que gere publicações tais como, mas não se limitando a, artigos,
+trabalhos em congressos, materias de blog e material didático devem ter
+o consentimento dos seus proprietários. Entendemos que os dados gerados
 pelas pesquisas com financiamentos governamentais devem ser públicos,
 mas o pesquisador responsável pela pesquisa tem precedência sobre o uso
 dos dados em respeito à sua dedicação.
@@ -126,4 +134,4 @@ para gerar os resultados que serão apresentados nas publicações.
 
 <!------------------------------------------- -->
 [DESCRIPTION]: https://github.com/walmes/EACS/blob/master/DESCRIPTION
-[Walmes Zeviani]: https://www.researchgate.net/profile/Walmes_Zeviani2
+[Walmes Zeviani]: http://leg.ufpr.br/~walmes

@@ -1,15 +1,24 @@
+dist: bionic
+language: r
+r:
+  - release
+
 before_install:
   - sudo apt-get install r-cran-tkrplot bwidget
-  - export DISPLAY=:99.0
-  - sh -e /etc/init.d/xvfb start
 
-language: r
-cache: packages
-cran: http://cran-r.c3sl.ufpr.br/
-warnings_are_errors: false
+services:
+  - xvfb
+
+repos:
+  CRAN: https://cloud.r-project.org
+
 r_packages:
   - devtools
   - roxygen2
   - knitr
   - rmarkdown
-  - rpanel
+
+cache: packages
+warnings_are_errors: false
+r_check_args: "--no-vignettes"
+r_build_args: "--as-cran --no-build-vignettes"

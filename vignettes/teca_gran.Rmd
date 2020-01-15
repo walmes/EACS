@@ -13,6 +13,14 @@ vignette: >
 source("config/setup.R")
 ```
 
+ATENÇÃO: o código dessa vinheta não é mais avaliado para reduzir tempo
+de compilação do pacote.  Portanto, ao usar esse código esteja ciente
+de que ele pode estar defasado.
+
+```{r}
+opts_chunk$set(eval = FALSE)
+```
+
 ## Análise Exploratória
 
 ```{r, results = "hide", message = FALSE, error = FALSE, warning = FALSE}
@@ -26,7 +34,7 @@ library(corrplot)
 library(EACS)
 ```
 ```{r, include = FALSE}
-devtools::load_all()
+# devtools::load_all()
 ```
 ```{r}
 #-----------------------------------------------------------------------
@@ -117,7 +125,7 @@ my_stats <- function(x) {
 }
 
 resum <- do.call(rbind, lapply(db_prod[, -1], FUN = my_stats))
-kable(resum, digits = 2)
+knitr::kable(resum, digits = 2)
 ```
 
 O conjunto de dados obtido até aqui `db_prod` contém as variáveis
@@ -257,6 +265,8 @@ validação cruzada.
 # str(getModelInfo(model = "leapForward")[[1]])
 # help(rpart, h = "html")
 
+library(leaps)
+
 # Best subset regression.
 set.seed(123)
 fit_bsr <- train(y = y,
@@ -275,8 +285,6 @@ c("Traço médio" = plot(fit_bsr),
 
 # Resultado do modelo final.
 summary(fit_bsr$finalModel)
-
-library(leaps)
 
 # Ajustando com k = 1 até 4.
 b0 <- regsubsets(prod ~ . - loc,

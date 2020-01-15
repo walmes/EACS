@@ -1,7 +1,7 @@
 Package: EACS
 Title: Estatística Aplicada à Ciência do Solo
-Version: 0.0-6
-Date: 2018-10-29
+Version: 0.0-8
+Date: 2019-07-19
 Authors@R: as.person(c(
     "Walmes Marques Zeviani <walmes@ufpr.br> [cre,aut]",
     "Milson Evaldo Serafim <milson.serafim@cas.ifmt.edu.br> [ctb]",
@@ -16,7 +16,7 @@ Description: Pacote que documenta conjuntos de dados de Projetos de
     como molde ou inspiração para problemas que sejam semelhantes.
 License: GPL-3
 URL:
-    http://gitlab.c3sl.ufpr.br/walmes/EACS,
+    http://leg.ufpr.br/~walmes/pacotes/EACS,
     https://github.com/walmes/EACS
 BugReports:
     https://github.com/walmes/EACS/issues
@@ -28,28 +28,30 @@ Depends:
 Suggests:
     lattice,
     latticeExtra,
-    grid,
-    gridExtra,
-    MASS,
-    nlme,
-    splines,
-    car,
-    candisc,
-    caret,
-    leaps,
-    glmnet,
-    rpart,
-    corrplot,
-    nFactors,
-    psych,
-    doBy,
-    multcomp,
-    reshape,
-    reshape2,
     plyr,
-    dplyr,
+    reshape2,
+    nlme,
     captioner,
-    knitr
+    multcomp,
+    doBy,
+    rpart,
+    nFactors,
+    car,
+    splines,
+    gridExtra,
+    rpanel,
+    psych,
+    dplyr,
+    reshape,
+    leaps,
+    knitr,
+    grid,
+    corrplot,
+    caret,
+    candisc,
+    tidyverse,
+    quantreg,
+    devtools
 VignetteBuilder: knitr
-RoxygenNote: 6.1.0
+RoxygenNote: 6.0.1
 Remotes: walmes/wzRfun

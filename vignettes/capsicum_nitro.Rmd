@@ -95,7 +95,7 @@ combineLimits(
                data = cn$planta))) +
     layer(panel.smoother(x, y,
                          method = "lm",
-                         form = y ~ poly(x, degree = 2), ...))
+                         form = y ~ poly(x, degree = 2)))
 
 #--------------------------------------------
 # Variáveis medidas nos frutos.
@@ -106,7 +106,7 @@ xyplot(diamf + compf ~ log2(dose + 1) | genab,
        data = cn$fruto) +
     glayer(panel.smoother(x, y,
                           method = "lm",
-                          form = y ~ poly(x, degree = 2), ...))
+                          form = y ~ poly(x, degree = 2)))
 
 #--------------------------------------------
 # Teores de substâncias determinados nos frutos.
@@ -121,7 +121,7 @@ combineLimits(
                as.table = TRUE))) +
     layer(panel.smoother(x, y,
                          method = "lm",
-                         form = y ~ poly(x, degree = 2), ...))
+                         form = y ~ poly(x, degree = 2)))
 ```
 
 # Análise do crescimento
@@ -155,7 +155,7 @@ xyplot(alt ~ ldose | genab,
        data = da) +
     layer(panel.smoother(x, y,
                          method = "lm",
-                         form = y ~ poly(x, degree = 2), ...))
+                         form = y ~ poly(x, degree = 2)))
 ```
 
 A análise exploratória dos dados, enriquecida com o ajuste de modelos
@@ -279,7 +279,7 @@ xyplot(flores ~ ldose | genab,
        data = cn$planta) +
     layer(panel.smoother(x, y,
                          method = "lm",
-                         form = y ~ poly(x, degree = 2), ...))
+                         form = y ~ poly(x, degree = 2)))
 
 # Declara modelo fatorial com dose expresso por polinômio de grau 2.
 m0 <- lm(flores ~ genab * poly(ldose, degree = 2),
@@ -322,7 +322,7 @@ xyplot(matur ~ ldose | genab,
        data = cn$planta) +
     layer(panel.smoother(x, y,
                          method = "lm",
-                         form = y ~ poly(x, degree = 2), ...))
+                         form = y ~ poly(x, degree = 2)))
 
 # Declara modelo fatorial com dose expresso por polinômio de grau 2.
 m0 <- lm(matur ~ genab * poly(ldose, degree = 2),
@@ -365,7 +365,7 @@ xyplot(nfrut ~ ldose | genab,
        data = cn$planta) +
     layer(panel.smoother(x, y,
                          method = "lm",
-                         form = y ~ poly(x, degree = 2), ...))
+                         form = y ~ poly(x, degree = 2)))
 
 # Declara modelo fatorial com dose expresso por polinômio de grau 2.
 m0 <- glm(nfrut ~ genab * poly(ldose, degree = 2),
@@ -441,7 +441,7 @@ xyplot(log10(mff) ~ ldose | genab,
        data = cn$planta) +
     layer(panel.smoother(x, y,
                          method = "lm",
-                         form = y ~ poly(x, degree = 2), ...))
+                         form = y ~ poly(x, degree = 2)))
 
 # Declara modelo fatorial com dose expresso por polinômio de grau 2.
 m0 <- lm(log10(mff) ~ genab * poly(ldose, degree = 2),
@@ -484,7 +484,7 @@ xyplot(log10(msf) ~ ldose | genab,
        data = cn$planta) +
     layer(panel.smoother(x, y,
                          method = "lm",
-                         form = y ~ poly(x, degree = 2), ...))
+                         form = y ~ poly(x, degree = 2)))
 
 # Declara modelo fatorial com dose expresso por polinômio de grau 2.
 m0 <- lm(log10(msf) ~ genab * poly(ldose, degree = 2),
@@ -527,7 +527,7 @@ xyplot(diamc ~ ldose | genab,
        data = cn$planta) +
     layer(panel.smoother(x, y,
                          method = "lm",
-                         form = y ~ poly(x, degree = 2), ...))
+                         form = y ~ poly(x, degree = 2)))
 
 # Declara modelo fatorial com dose expresso por polinômio de grau 2.
 m0 <- lm(diamc ~ genab * poly(ldose, degree = 2),
@@ -655,7 +655,7 @@ xyplot(diamf + compf ~ ldose | genab,
        data = dc) +
     glayer(panel.smoother(x, y,
                          method = "lm",
-                         form = y ~ poly(x, degree = 2), ...))
+                         form = y ~ poly(x, degree = 2)))
 ```
 
 ## Comprimento dos frutos
@@ -805,7 +805,7 @@ xyplot(log10(ddph) ~ ldose | genab,
        data = dd) +
     layer(panel.smoother(x, y,
                          method = "lm",
-                         form = y ~ poly(x, degree = 2), ...))
+                         form = y ~ poly(x, degree = 2)))
 
 # Declara modelo fatorial com dose expresso por polinômio de grau 2.
 m0 <- lm(log10(ddph) ~ genab * poly(ldose, degree = 2),
@@ -848,7 +848,7 @@ xyplot(lico ~ ldose | genab,
        data = dd) +
     layer(panel.smoother(x, y,
                          method = "lm",
-                         form = y ~ poly(x, degree = 2), ...))
+                         form = y ~ poly(x, degree = 2)))
 
 # Declara modelo fatorial com dose expresso por polinômio de grau 2.
 m0 <- lm(lico ~ genab * poly(ldose, degree = 2),
@@ -891,7 +891,7 @@ xyplot(bcaro ~ ldose | genab,
        data = dd) +
     layer(panel.smoother(x, y,
                          method = "lm",
-                         form = y ~ poly(x, degree = 2), ...))
+                         form = y ~ poly(x, degree = 2)))
 
 # Declara modelo fatorial com dose expresso por polinômio de grau 2.
 m0 <- lm(bcaro ~ genab * poly(ldose, degree = 2),
@@ -934,7 +934,7 @@ xyplot(polifen ~ ldose | genab,
        data = dd) +
     layer(panel.smoother(x, y,
                          method = "lm",
-                         form = y ~ poly(x, degree = 2), ...))
+                         form = y ~ poly(x, degree = 2)))
 
 # Declara modelo fatorial com dose expresso por polinômio de grau 2.
 m0 <- lm(polifen ~ genab * poly(ldose, degree = 2),
@@ -977,7 +977,7 @@ xyplot(flavon ~ ldose | genab,
        data = dd) +
     layer(panel.smoother(x, y,
                          method = "lm",
-                         form = y ~ poly(x, degree = 2), ...))
+                         form = y ~ poly(x, degree = 2)))
 
 # Declara modelo fatorial com dose expresso por polinômio de grau 2.
 m0 <- lm(flavon ~ genab * poly(ldose, degree = 2),
@@ -1020,7 +1020,7 @@ xyplot(antoc ~ ldose | genab,
        data = dd) +
     layer(panel.smoother(x, y,
                          method = "lm",
-                         form = y ~ poly(x, degree = 2), ...))
+                         form = y ~ poly(x, degree = 2)))
 
 # Declara modelo fatorial com dose expresso por polinômio de grau 2.
 m0 <- lm(antoc ~ genab * poly(ldose, degree = 2),

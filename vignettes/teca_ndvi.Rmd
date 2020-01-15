@@ -1,0 +1,169 @@
+---
+title: "Análise do NDVI e a relação com a produtividade de Teca"
+author: >
+  [Walmes M. Zeviani](http://lattes.cnpq.br/4410617539281650) &
+  [Milson E. Serafim](http://lattes.cnpq.br/8676820051946774)
+vignette: >
+  %\VignetteIndexEntry{Análise do NDVI e a relação com a produtividade de Teca}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+source("config/setup.R")
+```
+
+## Análise Exploratória
+
+```{r, eval = FALSE, include = FALSE}
+devtools::load_all()
+```
+```{r, results = "hide", message = FALSE, error = FALSE, warning = FALSE}
+#-----------------------------------------------------------------------
+# Carrega os pacotes necessários.
+
+library(EACS)
+library(tidyverse)
+```
+
+```{r}
+# Conversão para `tibble`.
+teca_ndvi <- as_tibble(teca_ndvi)
+
+# Criação da variável de tipo data.
+teca_ndvi <- teca_ndvi %>%
+    mutate(data = parse_date(mes, format = "%Y%m"))
+
+# Exibição separada por local.
+ggplot(data = teca_ndvi,
+       mapping = aes(x = data,
+                     y = ndvi,
+                     group = 1)) +
+    facet_wrap(facets = ~loc, ncol = 10) +
+    geom_point() +
+    geom_line() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+    xlab("Mêses (2015 - 2016)") +
+    ylab("Índice de vegetação (NDVI)")
+
+# Exibição para ver a tendência coletiva.
+ggplot(data = teca_ndvi,
+       mapping = aes(x = data,
+                     y = ndvi,
+                     group = loc)) +
+    geom_point() +
+    geom_line() +
+    stat_summary(mapping = aes(group = 1),
+                 geom = "line",
+                 fun.y = "mean",
+                 size = 2,
+                 color = "purple") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+    xlab("Mêses (2015 - 2016)") +
+    ylab("Índice de vegetação (NDVI)")
+```
+
+## Teste da aditividade
+
+```{r}
+# Modelo aditivo.
+m0 <- lm(ndvi ~ factor(loc) + factor(mes), data = teca_ndvi)
+anova(m0)
+
+# Verificação com o teste da não aditividade de Tukey.
+with(teca_ndvi, {
+    agricolae::nonadditivity(y = ndvi,
+                             factor1 = factor(loc),
+                             factor2 = factor(mes),
+                             df = df.residual(m0),
+                             MSerror = deviance(m0)/df.residual(m0))
+})
+```
+
+## Regressão da produtividade pelo NDVI
+
+```{r}
+# Médias de NDVI pra cada local.
+teca_ndvim <- teca_ndvi %>%
+    group_by(loc) %>%
+    summarise(ndvi = mean(ndvi))
+
+# Junção com valores de produção.
+tb <- inner_join(teca_ndvim, teca_coords, by = "loc")
+tb
+
+# Relação de volume com IMA.
+ggplot(data = tb,
+       mapping = aes(x = ima, y = vol)) +
+    geom_point() +
+    geom_smooth(method = "lm", color = "purple")
+
+# Relação de volume com NDVI.
+ggplot(data = tb,
+       mapping = aes(x = ndvi, y = vol)) +
+    geom_point() +
+    geom_smooth(method = "lm", color = "purple")
+
+# Regressão de volume por NDVI.
+m0 <- lm(vol ~ ndvi, data = tb)
+summary(m0)
+
+# Diagnóstico.
+par(mfrow = c(2, 2))
+plot(m0)
+layout(1)
+```
+
+## Relação do NDVI com variáveis de solo
+
+```{r}
+# Variáveis de solo.
+teca_soil <- full_join(teca_qui, teca_crapar)
+glimpse(teca_soil)
+
+# Determinar valores médio a longo das 3 camadas.
+teca_soil <- full_join(teca_qui, teca_crapar) %>%
+    group_by(loc) %>%
+    summarise_at(.vars = vars(ph:cad),
+                 .funs = "mean")
+
+# Junta com valores de NDVI.
+teca_soil <- inner_join(teca_soil, teca_ndvim)
+glimpse(teca_soil)
+
+# Empilha os valores das variáveis de solo.
+tb <- teca_soil %>%
+    gather(key = "variable", value = "valor", ph:cad)
+
+# Detemrina a média de NDVI para exibir no gráfico.
+m <- mean(teca_soil$ndvi)
+
+# Todas as variáveis.
+ggplot(data = tb,
+       mapping = aes(x = valor, y = ndvi)) +
+    facet_wrap(facets = ~variable, scales = "free_x") +
+    geom_point() +
+    geom_smooth(method = "lm", se = TRUE) +
+    geom_hline(yintercept = m, linetype = 2, color = "red")
+
+# Seleciona as variáveis com maior efeito.
+tb_sel <- tb %>%
+    filter(variable %in% c("acc", "are", "arg", "ctc", "mo", "ca", "cad"))
+
+# Conjunto selecionado.
+ggplot(data = tb_sel,
+       mapping = aes(x = valor, y = ndvi)) +
+    facet_wrap(facets = ~variable, scales = "free_x") +
+    geom_point() +
+    geom_smooth(method = "lm", se = TRUE) +
+    geom_hline(yintercept = m, linetype = 2, color = "red")
+```
+
+## Informações da Sessão
+
+```{r, echo = FALSE, results = "hold"}
+cat(format(Sys.time(),
+           format = "Atualizado em %d de %B de %Y.\n\n"))
+sessionInfo()
+```
+<!-- . -->

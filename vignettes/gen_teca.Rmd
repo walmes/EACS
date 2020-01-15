@@ -30,6 +30,7 @@ div:not(.tocify) > ul li ul li, ol li ul li {
 
 ```{r setup, include = FALSE}
 source("config/setup.R")
+detach("package:ggplot2")
 ```
 
 # Descrição e Análise Exploratória
