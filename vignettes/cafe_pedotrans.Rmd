@@ -14,11 +14,14 @@ vignette: >
 source("config/setup.R")
 ```
 
+# Preconsolidation curve
+
 ## Exploratory data analysis
 
 ```{r, eval = FALSE, include = FALSE}
 devtools::load_all()
 ```
+
 ```{r, results = "hide", message = FALSE, error = FALSE, warning = FALSE}
 #-----------------------------------------------------------------------
 # Load packages.
@@ -56,10 +59,22 @@ compare_curves <- function(index,
     f_test <- do.call(what = rbind, args = f_test)
     cbind(contrast = rownames(f_test), f_test)
 }
+
+# Text to be used as axis label.
+axis_text <- list(
+    posi = "Position",
+    solo = "Soil",
+    prof = "Depth (cm)",
+    tensao = expression(Log[10] ~ (Psi * "m, kPa") - "Matric tension"),
+    thetai = expression("Water content" ~ (cm^{3} ~ cm^{-3})),
+    pcc = expression(Log[10] ~ (sigma * "p, kPa") - "Preconsolidation pressure"),
+    pr = expression("Penetration resistance" ~ (MPa)),
+    ds = expression("Bulk density" ~ (g ~ cm^{-3})),
+    macro = expression("Macroporosity" ~ (cm^3 ~ cm^{-3})),
+    micro = expression("Microporosity" ~ (cm^3 ~ cm^{-3})),
+    total = expression("Total porosity" ~ (cm^3 ~ cm^{-3})))
 ```
-```{r, include = FALSE}
-devtools::load_all()
-```
+
 ```{r}
 # Dataset.
 da <- as_tibble(cafe_pedotrans)
@@ -90,14 +105,6 @@ ftable(tensao ~ solo + posi + prof, data = da)
 # Creates variables in the log scale.
 da$logtensao <- log10(da$tensao)
 da$logppc <- log10(da$ppc)
-
-# Text to be used as axis label.
-axis_text <- list(
-    pcc = expression(Log[10] ~ (sigma * "p, kPa") - "Preconsolidation pressure"),
-    tensao = expression(Log[10] ~ (Psi * "m, kPa") - "Matric tension"),
-    posi = "Position",
-    solo = "Soil",
-    prof = "Depth")
 
 # Experimental units profile in each experimental point.
 ggplot(data = da,
@@ -151,22 +158,53 @@ ggplot(data = da,
          color = axis_text$solo)
 ```
 
-## Linear mixed model
+## Model specification and fitting
 
 Based on exploratory data analysis, the effect of log of matric tension
 on log of preconsolidation pressure (response variable) can be properly
-described by a second order polynomial. Log of preconsolidation pressure
-was modelled as a function of soil type, sampling position, soil depth
-and log of matric tension. All interactions (until the 4th degree) were
-declared. The effect of experimental unit was accounted by random effets
-terms in intercept, slope and curvature of the linear mixed effects
-model. Likelihood ratio tests were performed to check the relevance
-random effects terms and Wald F tests were performed check the relevance
-of fixed effect terms, so those not relevant were abandoned getting a
-simpler model.
+described by a second order polynomial in each experimental condition
+(combination of soil, position and depth levels). So, log of
+preconsolidation pressure was modelled as a function of soil type,
+sampling position, soil depth and log of matric tension. All
+interactions (until those of 4th way) were included in the model. The
+effect of different sizes experimental units was accounted by random
+effets terms at intercept level. Likelihood ratio tests were performed
+to check the relevance random effects terms and Wald F tests were
+performed check the relevance of fixed effect terms, so those not
+relevant terms were abandoned getting a simpler model. The complete
+model is
+
+$$
+\begin{align*}
+y_{ijklm} &= \mu + S_i + P_j + D_k + (\beta_1 T_l + \beta_2 T^2_l) + \\
+ &\quad (SP)_{ij} + \cdots + (SPD)_{ijk} + \cdots + (\beta_{1ijk} T_l + \beta_{2ijk} T_l^2) + \\
+ &\quad e_{im} + e_{ijm} + e_{ijkm} + e_{ijklm}\\
+ e_{im} &\sim \text{Normal}(0, \sigma^2_a) \qquad [\text{6 whole plots}]\\
+ e_{ijm} &\sim \text{Normal}(0, \sigma^2_b) \qquad [\text{12 sub plots}]\\
+ e_{ijkm} &\sim \text{Normal}(0, \sigma^2_c) \qquad [\text{36 sub sub plots}]\\
+ e_{ijklm} &\sim \text{Normal}(0, \sigma^2) \qquad [\text{180 data points}]\\
+\end{align*}
+$$
+where
+
+  * $y_{ijklm}$ is the response at the $ijklm$ experimental condition.
+  * $\mu$ is a constant that belongs to all experimental condition.
+  * $S_i$ accounts for the soil effect.
+  * $P_j$ accounts for the sampling position effect.
+  * $D_k$ accounts for the soil depth effect.
+  * $\beta_1$ and $\beta_2$ accounts for the linear em quadratic effect
+    of matric tension.
+  * All two and three way interaction of the above terms are included.
+  * $e_{im}$ accounts for the experimental error at whole plots,
+    $e_{ijm}$ at sub plots, $e_{ijlm}$ at sub sub plots and $e_{ijklm}$
+    at data point level.
+
+This model were fitted by restricted maximum likelihood (REML). Non
+relevant termos were abandoned to get a simpler model to inspect the
+research hypothesis.
 
 ```{r}
-# Random intercept.
+# 4th degree interaction fixed effects and random effects at intercept.
 m0 <- lmer(logppc ~ solo * posi * prof * (logtensao + I(logtensao^2)) +
                (1 | ue1) + (1 | ue2) + (1 | ue3),
            data = da)
@@ -176,6 +214,9 @@ VarCorr(m0)
 
 # Test for the fixed effect terms of the model.
 anova(m0)
+
+# Model summary.
+# summary(m0)
 
 # No significant 4 degree interaction.
 # No significant 3 degree interaction.
@@ -192,19 +233,12 @@ anova(m0, m1)
 anova(m1)
 ```
 
-The model with random effets in the intercept were not inferior, by the
-likelihood ratio test, to those more complex that included random
-effects for slope and curvature. So, the selected model has random
-effects of experimental units on the intercept only.
-
 From this model, by Wald F tests, there weren't 4th degree signficant
-interactions neither 3rd degree. There were 2nd degree signficant
-interactions involving soil or position at 10%, and involving depth at
-less than 1%. All two way interactions were kept except those involving
-depth and soil or depth and position. So, depth and soil have additive
-effect, the same for depth and position.
+interactions neither 3rd degree. All two way interactions were kept
+except those involving depth and soil or depth and position. So, depth
+and soil had only additive effect, the same for depth and position.
 
-## Curve comparison
+## Curve comparisons
 
 ```{r}
 # Estimated marginal means with covariate set at 1.
@@ -246,19 +280,20 @@ grid <- grid %>%
 
 
 # Table of equation coefficients for each experimental point.
-grid
+grid %>%
+    select(solo, posi, prof, label)
 ```
 
 The above table has the estimated curve coefficients for each
-experimental point resulted of combining soil, position and depth
-levels. The fitted curve has equation
+experimental point resulted of combining soil, position and depth levels
+(12 equations at all). These fitted curves has equation in the form of
 $$
   y = \beta_0 + \beta_1 x + \beta_2 x^2
 $$
 where $y$ is the (conditional mean of) log 10 of preconsolidation
 pressure, $x$ is the log 10 of matric tension and $\beta_0$, $\beta_1$
-and $\beta_2$ are intercept, slope and curvature parameter of the second
-order polynomial.
+and $\beta_2$ are intercept, slope and curvature parameters of the
+second order polynomial.
 
 ```{r}
 # Conditions to get estimated values.
@@ -368,12 +403,12 @@ line) in each combination of soil, position and depth to describe log of
 preconsolidation pressure as a function of log matric tension. The
 shaded region wrapping the estimated curve is the confidence band for
 the fitted conditional mean. The equations inside each cell plot are in
-log-log scale. By visualizing the curves, we notice that the predicted
-value for each soil differ at most part of the matric tension
-domain. The difference is greater in the interrow position than in row,
-as stated by the R test previous applied. The difference is the same in
-all depth at the same position level, since there wasn't 3rd degree
-interaction involving soil, position and depth.
+log-log.
+
+By visualizing the curves, it can be noticed that curves are more
+dissimilar between soils at interrow than in row position. Also, curves
+are more dissimilar between sampling positions for GA soil than for
+KH.
 
 ```{r}
 # Tests of soil curves are equal in each posi:prof combination.
@@ -396,31 +431,1178 @@ grid %>%
 ```
 
 Wald F test were applied to test with two curves are equal. The null
-hypothesis states that all three parameters ($\beta_0$, $\beta_1$,
-$\beta_2$) are simultaneous equal for a pair of curves
+hypothesis states that all three curve parameters ($\beta_0$, $\beta_1$,
+$\beta_2$) are simultaneous equal for a pair of curves $a$ and $b$
 $$
   H_0:
-  \begin{bmatrix} \beta_0 \\ \beta_1 \\ \beta_2 \end{bmatrix} =
-  \begin{bmatrix} \beta_0' \\ \beta_1' \\ \beta_2' \end{bmatrix}.
+  \begin{bmatrix} \beta_{0a} \\ \beta_{1a} \\ \beta_{2a} \end{bmatrix} =
+  \begin{bmatrix} \beta_{0b} \\ \beta_{1b} \\ \beta_{2b} \end{bmatrix}.
 $$
 
 The tables above shows the F statistics and associate p-value to test
 the equality of two curves using the Wald test. Curves from soils were
-compared for each position and depth combination (6 conditions). Because
-there wasn't 3rd order interaction, the F statistic is the same for all
-depth at the same position. The greater difference, as showed by the
-curves on the next graphics, is between soil curves at interrow
-position.
+compared for each position and depth combination (6 conditions). The F
+statistic is the same for all depth at the same position to compare
+soils because soil and depth had only additive effect. The greater
+difference, as showed by the graphics, were between soil curves at
+interrow position (p < 0.01) than row position (p < 0.05).
 
 The same test were applied to test equality of curves between position
-for each soil and depth combination (6 conditions). Because there wasn't
-3rd order interaction, the F statistic is the same for all depth at the
-same soil. The greater difference, as showed by the
-curves on the next graphics, is between position curves at GA
-soil. Despite the overlapping of confidence bands between position in
-the KH soil, according two the F test, these curves are not equal at 5%.
+for each soil and depth combination (6 conditions). The F statistic is
+the same for all depth at the same soil to compare positions because
+position and depth had only additive effect. The greater difference, as
+indicated by the graphics, were between position curves at GA soil (p <
+0.01). As suggested by overlapping of confidence bands between positions
+in the KH soil, according two the F test, these curves are not different
+at 5% but at 10% (p < 0.10).
 
-## Session information
+# Resistance and Water Content
+
+## Resistance to penetration
+
+```{r, include = FALSE}
+txt <- "
+solo	posi	pr	tensao	thetai
+KH	interrrow	0,183	6	0,413140462349601
+KH	interrrow	0,430	6	0,402379535990482
+KH	interrrow	0,633	6	0,413611940298507
+KH	interrrow	1,44634482758621	33	0,39975898334794
+KH	interrrow	0,524053050397878	33	0,401574803149606
+KH	interrrow	0,517814323607427	33	0,403754661180404
+KH	interrrow	0,913583554376658	100	0,367959207873829
+KH	interrrow	0,851456233421751	100	0,34668071654373
+KH	interrrow	0,793877984084881	100	0,376058594644083
+KH	interrrow	1,17807957559682	1500	0,340524703688907
+KH	interrrow	0,777241379310345	1500	0,320927062031356
+KH	interrrow	1,18028912466844	1500	0,331813701330705
+KH	interrrow	1,06071352785146	3000	0,12070643860381
+KH	interrrow	2,01484880636605	3000	0,116750613457316
+KH	interrrow	2,001	3000	0,123170998034505
+KH	row	0,438790450928382	6	0,40567612687813
+KH	row	0,154928381962865	6	0,385090609555189
+KH	row	0,183002652519894	6	0,37938224944611
+KH	row	0,266185676392573	33	0,38792505204719
+KH	row	0,48142175066313	33	0,365764631843927
+KH	row	0,519893899204244	33	0,366102070187092
+KH	row	0,398238726790451	100	0,331074977416441
+KH	row	0,741368700265252	100	0,323778764634639
+KH	row	0,284901856763926	100	0,327021026511689
+KH	row	0,518854111405836	1500	0,323902737421624
+KH	row	0,830010610079576	1500	0,277932607043324
+KH	row	0,831960212201591	1500	0,30627661035572
+KH	row	0,935809018567639	3000	0,113823973956517
+KH	row	0,950366047745358	3000	0,129732868757259
+KH	row	0,964923076923077	3000	0,149307059333045
+GA	interrrow	0,265145888594164	6	0,506420909502946
+GA	interrrow	0,166366047745358	6	0,480743293870823
+GA	interrrow	0,549007957559682	6	0,464537642683083
+GA	interrrow	0,438790450928382	33	0,437879533891351
+GA	interrrow	0,608405835543767	33	0,402911960810995
+GA	interrrow	0,270344827586207	33	0,380581728799672
+GA	interrrow	0,62595225464191	100	0,407889033376679
+GA	interrrow	0,551087533156499	100	0,412394291754757
+GA	interrrow	0,794527851458886	100	0,349671175083757
+GA	interrrow	1,16664190981432	1500	0,310809009729442
+GA	interrrow	1,19159681697613	1500	0,308911973756151
+GA	interrrow	1,51809018567639	1500	0,303158418303904
+GA	interrrow	2,27180636604775	3000	0,084278992526986
+GA	interrrow	2,20279045092838	3000	0,111649279682066
+GA	interrrow	2,43362334217507	3000	0,125170574370426
+GA	row	0,187161803713528	6	0,434439409443064
+GA	row	0,581111405835544	6	0,455758055995774
+GA	row	0,272424403183024	6	0,450909090909091
+GA	row	0,308816976127321	33	0,372555107109593
+GA	row	0,32337400530504	33	0,368315699170718
+GA	row	0,456466843501326	33	0,36293827875978
+GA	row	0,242270557029178	100	0,385232002466471
+GA	row	0,251628647214854	100	0,372961755114142
+GA	row	0,46062599469496	100	0,376149425287356
+GA	row	1,18535809018568	1500	0,3105249745158
+GA	row	1,61908	1500	0,294623655913979
+GA	row	2,05280106100796	1500	0,31086189516129
+GA	row	1,45986206896552	3000	0,422524449877751
+GA	row	1,45986206896552	3000	0,107049228080396
+GA	row	0,671053050397878	3000	0,200737693289828"
+da <- read.table(textConnection(txt),
+                 header = TRUE,
+                 sep = "\t",
+                 dec = ",")
+str(da)
+
+# Recode factor levels.
+levels(da$posi) <- c("Interrow", "Row")
+s <- c(KH = "Kaolinitic Haplustox", GA = "Gibbsitic Acrustox")
+levels(da$solo) <- names(s)
+
+# Recode levels.
+da$trt <- with(da, interaction(solo, posi, sep = "·"))
+da$logtensao <- log10(da$tensao)
+da$rept <- 1:3
+
+da <- da %>%
+    mutate(ue1 = interaction(solo, rept),
+           ue2 = interaction(solo, rept, posi))
+str(da)
+```
+
+```{r}
+# Data structure.
+str(da)
+
+# Cell frequency.
+ftable(xtabs(~solo + posi + tensao, data = da))
+```
+
+```{r}
+# Differnce in position mean profile conditional to other factors.
+ggplot(data = da,
+       mapping = aes(x = tensao, y = pr, color = posi)) +
+    facet_grid(facets = ~solo) +
+    geom_point() +
+    stat_summary(geom = "line", fun.y = "mean") +
+    scale_x_log10() +
+    labs(x = axis_text$tensao,
+         y = axis_text$pr,
+         color = axis_text$posi)
+
+# Differnce in position mean profile conditional to other factors.
+ggplot(data = filter(da, tensao < 3000),
+       mapping = aes(x = tensao, y = pr, color = posi)) +
+    facet_grid(facets = ~solo) +
+    geom_point() +
+    geom_smooth(method = "lm",
+                formula = y ~ poly(x, degree = 2),
+                se = FALSE) +
+    scale_x_log10() +
+    labs(x = axis_text$tensao,
+         y = axis_text$pr,
+         color = axis_text$posi)
+
+# Differnce in soil mean profile conditional to other factors.
+ggplot(data = da,
+       mapping = aes(x = tensao, y = pr, color = solo)) +
+    facet_grid(facets = ~posi) +
+    geom_point() +
+    stat_summary(geom = "line", fun.y = "mean") +
+    scale_x_log10() +
+    labs(x = axis_text$tensao,
+         y = axis_text$pr,
+         color = axis_text$solo)
+```
+
+Linear mixed effects model were used to model soil resistance to
+penetration as function of experimental factors: soil, position and
+matric tension. As suggested by exploratory data analysis, the effect of
+matric tension (at log 10 scale) on penetration resistance can be
+properly described by a second order degree polynomial in the range of
+tension from 6 to 1500 kPa.
+
+The statistical model is
+$$
+\begin{align*}
+  y_{ijkl} &= \mu + S_i + P_j + \beta_1 T_k + \beta_2 T_k^2 + \\
+   &\qquad (SP)_{ij} + (\beta_{1i} T_k + \beta_{2i} T_k^2) +
+     (\beta_{1j} T_k + \beta_{2j} T_k^2) + \\
+   &\qquad (\beta_{1ij} T_k + \beta_{2ij} T_k^2) + \\
+   &\qquad e_{il} + e_{ijl} + e_{ijkl} \\
+ e_{il} &\sim \text{Normal}(0, \sigma^2_a) \qquad [\text{6 whole plots}]\\
+ e_{ijl} &\sim \text{Normal}(0, \sigma^2_b) \qquad [\text{12 sub plots}]\\
+ e_{ijkl} &\sim \text{Normal}(0, \sigma^2) \qquad [\text{48 data points}]\\
+\end{align*}
+$$
+
+  * $y_{ijkl}$ is response observed at the experimental condition $ijkl$.
+  * $\mu$ is a constant that belongs to all observations.
+  * $S_i$ is the effect of soil $i = 1, 2$.
+  * $P_j$ is the effect of position $j = 1, 2$.
+  * $\beta_1$ and $\beta_2$ are the first and second order effect of
+    log 10 matric tension.
+  * The following terms are two and three way interactions among soil,
+    position and matric tension.
+  * $e_{il}$ is the experimental error at experimental unit $il$,
+    $e_{ijl}$ is the experimental error at experimental unit $ijl$ and
+    $e_{ijkl}$ is the experimental error at sample unit $ijkl$.
+
+This model were estimated by restricted maximum likelihood (REML).
+
+```{r}
+# Random intercept, slope and curvature for random effects.
+# Interaction until the 4th degree.
+m0 <- lmer(pr ~ solo * posi * (logtensao + I(logtensao^2)) +
+               (1 | ue1) + (1 | ue2),
+           data = subset(da, tensao < 3000))
+
+# Variance of the random effects.
+VarCorr(m0)
+
+# Test for the fixed effects terms.
+anova(m0)
+
+# Model summary.
+# summary(m0)
+
+# Fitting a smaller model with relevant terms.
+m1 <- update(m0,
+             . ~ (posi + solo) *
+                 (logtensao + I(logtensao^2)) +
+                 # posi:solo +
+                 (1 | ue1) + (1 | ue2))
+anova(m0, m1)
+
+# Test for the fixed effects terms.
+anova(m1)
+```
+
+All three way interactions were dropped beacause were not relevant to
+the model. Also, the two way interaction between soil and position were
+not relevant and, then, dropped. In summary, soil and position had only
+additive effect, but they had interaction with first and second order
+polynomial terms for tension effect.
+
+```{r}
+# Estimated marginal means with covariate set at 1. The corresponding
+# matrix will be used to get que equation of each experimental
+# condition.
+emm <- emmeans(m1,
+               specs = ~solo + posi,
+               at = list(logtensao = 1))
+
+# Get experimental points and matrix to calculate marginal means.
+grid <- attr(emm, "grid")
+L <- attr(emm, "linfct")
+
+# Fixed effects estimates.
+b <- fixef(m1)
+
+# Zero order terms (intercept).
+ord0 <- names(b) %>%
+    grepl(pattern = "logtensao") %>% `!`()
+
+# First order terms (slope).
+ord1 <- names(b) %>%
+    grepl(pattern = "logtensao$")
+
+# Second order terms (curvatures).
+ord2 <- names(b) %>%
+    grepl(pattern = "I\\(logtensao\\^2\\)$")
+
+# Checking: all row sum must be 1.
+# rowSums(cbind(ord0, ord1, ord2))
+
+# Get the equation coefficients: b0 + b1 * x + b2 * x^2.
+grid$b0 <- c(L %*% (b * ord0))
+grid$b1 <- c(L %*% (b * ord1))
+grid$b2 <- c(L %*% (b * ord2))
+
+# Equations.
+grid <- grid %>%
+    mutate(label = sprintf("'%0.2f' %s '%0.3f' * x %s '%0.4f' * x^2",
+                           b0,
+                           ifelse(b1 >= 0, "+", "-"),
+                           abs(b1),
+                           ifelse(b2 >= 0, "+", "-"),
+                           abs(b2)))
+
+# Table of equation coefficients for each experimental point.
+grid %>%
+    select(solo, posi, label)
+
+# Checking: are the equation curves correct? Compare with `predict()`.
+grid_curves <- grid %>%
+    group_by(posi, solo) %>%
+    do({
+        logtensao <- seq(0.5, 3.5, length = 31)
+        fit <- .$b0 + .$b1 * logtensao + .$b2 * logtensao^2
+        data.frame(logtensao, fit)
+    })
+# grid_curves
+```
+
+```{r}
+# Conditions to get estimated values.
+pred <- with(da,
+             expand.grid(solo = levels(solo),
+                         posi = levels(posi),
+                         logtensao = seq(0.5, 3.5, length = 31),
+                         KEEP.OUT.ATTRS = FALSE))
+
+# Model matrix for prediction.
+X <- model.matrix(formula(terms(m1))[-2], data = pred)
+
+# Checking: length and names.
+stopifnot(ncol(X) == length(fixef(m1)))
+stopifnot(all(colnames(X) == names(fixef(m1))))
+
+# Predicted value.
+pred$fit <- X %*% fixef(m1)
+
+# Standard error of predicted values.
+pred$se <- sqrt(diag(X %*% tcrossprod(vcov(m1), X)))
+
+# Quantile of t distribution.
+qtl <- qt(p = 0.975, df = df.residual(m1))
+
+# Confidence limits for predicted value.
+pred$lwr <- pred$fit - qtl * pred$se
+pred$upr <- pred$fit + qtl * pred$se
+
+# Adds the equation to annotate on graphics.
+grid <- grid %>%
+    mutate(xpos = 2.5,
+           ypos = ifelse(solo == "GA", 2.10, 2.02) - 0.1,
+           hjust = c(0),
+           vjust = c(0))
+
+# Fitted curves with confidence bands and observed data.
+# Soil in evidence.
+ggplot(data = filter(da, tensao < 3000),
+       mapping = aes(x = tensao, y = pr, color = solo)) +
+    facet_grid(facets = ~posi) +
+    geom_point() +
+    scale_x_log10() +
+    # geom_line(data = pred,
+    #           mapping = aes(x = 10^logtensao,
+    #                         y = fit,
+    #                         color = solo)) +
+    geom_smooth(data = pred,
+                mapping = aes(x = 10^logtensao,
+                              y = fit,
+                              ymin = lwr,
+                              ymax = upr),
+                stat = "identity",
+                show.legend = FALSE) +
+    geom_text(data = grid,
+              mapping = aes(x = xpos,
+                            y = ypos,
+                            label = label,
+                            hjust = hjust,
+                            vjust = vjust),
+              show.legend = FALSE,
+              parse = TRUE) +
+    # geom_line(data = grid_curves,
+    #           mapping = aes(x = 10^logtensao,
+    #                         y = fit,
+    #                         group = solo),
+    #           linetype = 2,
+    #           color = "black") +
+    labs(x = axis_text$tensao,
+         y = axis_text$pr,
+         color = axis_text$solo)
+
+grid <- grid %>%
+    mutate(xpos = 2.5,
+           ypos = ifelse(posi == "Interrow", 2.10, 1.88))
+
+# Fitted curves with confidence bands and observed data.
+# Position in evidence.
+gg1 <-
+ggplot(data = filter(da, tensao < 3000),
+       mapping = aes(x = tensao, y = pr, color = posi)) +
+    facet_grid(facets = ~solo) +
+    geom_point() +
+    scale_x_log10() +
+    geom_line(data = pred,
+              mapping = aes(x = 10^logtensao,
+                            y = fit,
+                            color = posi)) +
+    geom_smooth(data = pred,
+                mapping = aes(x = 10^logtensao,
+                              y = fit,
+                              ymin = lwr,
+                              ymax = upr),
+                stat = "identity",
+                show.legend = FALSE) +
+    geom_text(data = grid,
+              mapping = aes(x = xpos,
+                            y = ypos,
+                            label = label,
+                            hjust = hjust,
+                            vjust = vjust),
+              show.legend = FALSE,
+              parse = TRUE) +
+    # geom_line(data = grid_curves,
+    #           mapping = aes(x = 10^logtensao,
+    #                         y = fit,
+    #                         group = posi),
+    #           linetype = 2,
+    #           color = "black") +
+    labs(x = axis_text$tensao,
+         y = axis_text$pr,
+         color = axis_text$posi)
+gg1
+```
+
+```{r}
+# Tests of soil curves are equal in each posi:prof combination.
+grid %>%
+    mutate(row = 1:n()) %>%
+    group_by(posi) %>%
+    do({
+        compare_curves(.$row, .$solo, L, list(ord0, ord1, ord2))
+    }) %>%
+    as.data.frame()
+
+# Tests of posi curves are equal in each soil:prof combination.
+grid %>%
+    mutate(row = 1:n()) %>%
+    group_by(solo) %>%
+    do({
+        compare_curves(.$row, .$posi, L, list(ord0, ord1, ord2))
+    }) %>%
+    as.data.frame()
+```
+
+According to Wald F test to compare curve parameters, the null
+hypothesis of curve equality between soils in each soil were rejected (p
+< 0.01). The result of the hypothesis test were the same for both
+position because soil and position did not interact. So, the difference
+between curves due to soil don't depend of sampling position.
+
+According to Wald F test to compare curve parameters, there isn't
+enought evidence at 5% to reject the null hypothesis of curve equality
+between sampling position (p < 0.10). The result of the hypothesis test
+were the same for both soils because soil and position did not
+interact. So, the difference between curves due to sampling position
+don't depend of soil.
+
+## Water content
+
+```{r}
+# Differnce in position mean profile conditional to other factors.
+ggplot(data = da,
+       mapping = aes(x = tensao, y = thetai, color = posi)) +
+    facet_grid(facets = ~solo) +
+    geom_point() +
+    stat_summary(geom = "line", fun.y = "mean") +
+    scale_x_log10() +
+    labs(x = axis_text$tensao,
+         y = axis_text$thetai,
+         color = axis_text$posi)
+
+# Differnce in position mean profile conditional to other factors.
+ggplot(data = filter(da, tensao < 3000),
+       mapping = aes(x = tensao, y = thetai, color = posi)) +
+    facet_grid(facets = ~solo) +
+    geom_point() +
+    geom_smooth(method = "lm",
+                formula = y ~ poly(x, degree = 2),
+                se = FALSE) +
+    scale_x_log10() +
+    labs(x = axis_text$tensao,
+         y = axis_text$thetai,
+         color = axis_text$posi)
+
+# Differnce in soil mean profile conditional to other factors.
+ggplot(data = da,
+       mapping = aes(x = tensao, y = thetai, color = solo)) +
+    facet_grid(facets = ~posi) +
+    geom_point() +
+    stat_summary(geom = "line", fun.y = "mean") +
+    scale_x_log10() +
+    labs(x = axis_text$tensao,
+         y = axis_text$thetai,
+         color = axis_text$solo)
+```
+
+Linear mixed effects model were used to model water content as function
+of experimental factors: soil, position and matric tension. As suggested
+by exploratory data analysis, the effect of matric tension (at log 10
+scale) on soil water content can be properly described by a second
+order degree polynomial in the range of tension from 6 to 1500 kPa.
+
+The statistical model is the same applied to resistance to penetration,
+$$
+\begin{align*}
+  y_{ijkl} &= \mu + S_i + P_j + \beta_1 T_k + \beta_2 T_k^2 + \\
+   &\qquad (SP)_{ij} + (\beta_{1i} T_k + \beta_{2i} T_k^2) +
+     (\beta_{1j} T_k + \beta_{2j} T_k^2) + \\
+   &\qquad (\beta_{1ij} T_k + \beta_{2ij} T_k^2) + \\
+   &\qquad e_{il} + e_{ijl} + e_{ijkl} \\
+ e_{il} &\sim \text{Normal}(0, \sigma^2_a) \qquad [\text{6 whole plots}]\\
+ e_{ijl} &\sim \text{Normal}(0, \sigma^2_b) \qquad [\text{12 sub plots}]\\
+ e_{ijkl} &\sim \text{Normal}(0, \sigma^2) \qquad [\text{48 data points}]\\
+\end{align*}
+$$
+
+  * $y_{ijkl}$ is response observed at the experimental condition
+    $ijkl$.
+  * $\mu$ is a constant that belongs to all observations.
+  * $S_i$ is the effect of soil $i = 1, 2$.
+  * $P_j$ is the effect of position $j = 1, 2$.
+  * $\beta_1$ and $\beta_2$ are the first and second order effect of
+    log 10 matric tension.
+  * The following terms are two and three way interactions among soil,
+    position and matric tension.
+  * $e_{il}$ is the experimental error at experimental unit $il$,
+    $e_{ijl}$ is the experimental error at experimental unit $ijl$ and
+    $e_{ijkl}$ is the experimental error at sample unit $ijkl$.
+
+This model were estimated by restricted maximum likelihood (REML).
+
+```{r}
+# Random intercept, slope and curvature for random effects.
+# Interaction until the 4th degree.
+m0 <- lmer(thetai ~ solo * posi * (logtensao + I(logtensao^2)) +
+               (1 | ue1) + (1 | ue2),
+           data = subset(da, tensao < 3000))
+
+# Variance of the random effects.
+VarCorr(m0)
+
+# Test for the fixed effects terms.
+anova(m0)
+
+# Model summary.
+# summary(m0)
+
+# Fitting a smaller model with relevant terms.
+m1 <- update(m0, . ~ posi + solo * logtensao +
+                     (1 | ue1) + (1 | ue2))
+anova(m0, m1)
+
+# Test for the fixed effects terms.
+anova(m1)
+```
+
+According F test, all interactions were not relevant except soil with
+the linear effect of tension. So, the final model has all main effect of
+soil, position and (linear) tension, and also the soil and (linear)
+tension interaction.
+
+```{r}
+# Estimated marginal means with covariate set at 1. The corresponding
+# matrix will be used to get que equation of each experimental
+# condition.
+emm <- emmeans(m1,
+               specs = ~solo + posi,
+               at = list(logtensao = 1))
+
+# Get experimental points and matrix to calculate marginal means.
+grid <- attr(emm, "grid")
+L <- attr(emm, "linfct")
+
+# Fixed effects estimates.
+b <- fixef(m1)
+
+# Zero order terms (intercept).
+ord0 <- names(b) %>%
+    # grep(pattern = "logtensao", value = TRUE, invert = TRUE)
+    grepl(pattern = "logtensao") %>% `!`()
+
+# First order terms (slope).
+ord1 <- names(b) %>%
+    # grep(pattern = "logtensao$", value = TRUE, invert = FALSE)
+    grepl(pattern = "logtensao$")
+
+# Checking: all row sum must be 1.
+# rowSums(cbind(ord0, ord1))
+
+# Get the equation coefficients: b0 + b1 * x.
+grid$b0 <- c(L %*% (b * ord0))
+grid$b1 <- c(L %*% (b * ord1))
+
+grid <- grid %>%
+    mutate(label = sprintf("'%0.2f' %s '%0.3f' * x",
+                           b0,
+                           ifelse(b1 >= 0, "+", "-"),
+                           abs(b1)))
+
+# Table of equation coefficients for each experimental point.
+grid %>%
+    select(solo, posi, label)
+
+# Checking: are the equation curves correct? Compare with `predict()`.
+grid_curves <- grid %>%
+    group_by(posi, solo) %>%
+    do({
+        logtensao <- seq(0.5, 3.5, length = 31)
+        fit <- .$b0 + .$b1 * logtensao
+        data.frame(logtensao, fit)
+    })
+# grid_curves
+```
+
+```{r}
+# Conditions to get estimated values.
+pred <- with(da,
+             expand.grid(solo = levels(solo),
+                         posi = levels(posi),
+                         logtensao = seq(0.5, 3.5, length = 31),
+                         KEEP.OUT.ATTRS = FALSE))
+
+# Model matrix for prediction.
+X <- model.matrix(formula(terms(m1))[-2], data = pred)
+
+# Checking: length and names.
+stopifnot(ncol(X) == length(fixef(m1)))
+stopifnot(all(colnames(X) == names(fixef(m1))))
+
+# Predicted value.
+pred$fit <- X %*% fixef(m1)
+
+# Standard error of predicted values.
+pred$se <- sqrt(diag(X %*% tcrossprod(vcov(m1), X)))
+
+# Quantile of t distribution.
+qtl <- qt(p = 0.975, df = df.residual(m1))
+
+# Confidence limits for predicted value.
+pred$lwr <- pred$fit - qtl * pred$se
+pred$upr <- pred$fit + qtl * pred$se
+
+# Adds the equation to annotate on graphics.
+grid <- grid %>%
+    mutate(xpos = 2.5,
+           ypos = ifelse(solo == "GA", 0.29, 0.30) + 0,
+           hjust = c(0),
+           vjust = c(0))
+
+# Fitted curves with confidence bands and observed data.
+# Soil in evidence.
+ggplot(data = filter(da, tensao < 3000),
+       mapping = aes(x = tensao, y = thetai, color = solo)) +
+    facet_grid(facets = ~posi) +
+    geom_point() +
+    scale_x_log10() +
+    # geom_line(data = pred,
+    #           mapping = aes(x = 10^logtensao,
+    #                         y = fit,
+    #                         color = solo)) +
+    geom_smooth(data = pred,
+                mapping = aes(x = 10^logtensao,
+                              y = fit,
+                              ymin = lwr,
+                              ymax = upr),
+                stat = "identity",
+                show.legend = FALSE) +
+    geom_text(data = grid,
+              mapping = aes(x = xpos,
+                            y = ypos,
+                            label = label,
+                            hjust = hjust,
+                            vjust = vjust),
+              show.legend = FALSE,
+              parse = TRUE) +
+    # geom_line(data = grid_curves,
+    #           mapping = aes(x = 10^logtensao,
+    #                         y = fit,
+    #                         group = solo),
+    #           linetype = 2,
+    #           color = "black") +
+    labs(x = axis_text$tensao,
+         y = axis_text$thetai,
+         color = axis_text$solo)
+
+grid <- grid %>%
+    mutate(xpos = 2.5,
+           ypos = ifelse(posi == "Interrow", 0.28, 0.30))
+
+# Fitted curves with confidence bands and observed data.
+# Position in evidence.
+gg2 <-
+ggplot(data = filter(da, tensao < 3000),
+       mapping = aes(x = tensao, y = thetai, color = posi)) +
+    facet_grid(facets = ~solo) +
+    geom_point() +
+    scale_x_log10() +
+    geom_line(data = pred,
+              mapping = aes(x = 10^logtensao,
+                            y = fit,
+                            color = posi)) +
+    geom_smooth(data = pred,
+                mapping = aes(x = 10^logtensao,
+                              y = fit,
+                              ymin = lwr,
+                              ymax = upr),
+                stat = "identity",
+                show.legend = FALSE) +
+    geom_text(data = grid,
+              mapping = aes(x = xpos,
+                            y = ypos,
+                            label = label,
+                            hjust = hjust,
+                            vjust = vjust),
+              show.legend = FALSE,
+              parse = TRUE) +
+    # geom_line(data = grid_curves,
+    #           mapping = aes(x = 10^logtensao,
+    #                         y = fit,
+    #                         group = posi),
+    #           linetype = 2,
+    #           color = "black") +
+    labs(x = axis_text$tensao,
+         y = axis_text$thetai,
+         color = axis_text$posi)
+gg2
+```
+
+```{r}
+# Tests of soil curves are equal in each posi:prof combination.
+grid %>%
+    mutate(row = 1:n()) %>%
+    group_by(posi) %>%
+    do({
+        compare_curves(.$row, .$solo, L, list(ord0, ord1))
+    }) %>%
+    as.data.frame()
+
+# Tests of posi curves are equal in each soil:prof combination.
+grid %>%
+    mutate(row = 1:n()) %>%
+    group_by(solo) %>%
+    do({
+        compare_curves(.$row, .$posi, L, list(ord0, ord1))
+    }) %>%
+    as.data.frame()
+```
+
+By Wald F test, the null hypothesis of equality between soil curves at
+each position were rejected (p < 0.01). The test statistic is the same
+for each position because soil and position do not interact. The null
+hypothesis of equality between position curves at each soil were also
+rejected (p < 0.01). The test statistic is the same for each soil
+because soil and position do not interact.
+
+## Combining the results
+
+```{r}
+gridExtra::grid.arrange(gg1, gg2, ncol = 1)
+```
+
+# Porosity and bulk density
+
+```{r, include = FALSE}
+txt <- "
+solo	prof	posi	rep	total	micro	macro	ds
+GA	0-5	row	1	0,66	0,37	0,29	0,84
+GA	0-5	row	2	0,63	0,43	0,19	0,82
+GA	0-5	row	3	0,66	0,39	0,28	0,99
+GA	0-5	row	4	0,68	0,37	0,31	0,84
+GA	0-5	row	5	0,66	0,43	0,23	0,95
+GA	0-5	row	6	0,66	0,39	0,28	0,99
+GA	0-5	row	7	0,68	0,37	0,31	0,83
+GA	0-5	row	8	0,67	0,43	0,24	0,92
+GA	0-5	row	9	0,65	0,39	0,26	0,91
+GA	0-5	row	10	0,61	0,37	0,24	0,86
+GA	0-5	row	11	0,66	0,43	0,23	0,95
+GA	0-5	row	12	0,61	0,39	0,22	0,86
+GA	0-5	interrow	1	0,67	0,42	0,25	0,85
+GA	0-5	interrow	2	0,68	0,39	0,29	0,99
+GA	0-5	interrow	3	0,61	0,46	0,16	0,87
+GA	0-5	interrow	4	0,70	0,42	0,27	0,8
+GA	0-5	interrow	5	0,64	0,39	0,25	0,86
+GA	0-5	interrow	6	0,64	0,46	0,18	0,89
+GA	0-5	interrow	7	0,66	0,42	0,24	0,78
+GA	0-5	interrow	8	0,63	0,39	0,24	0,91
+GA	0-5	interrow	9	0,61	0,46	0,16	0,91
+GA	0-5	interrow	10	0,63	0,42	0,21	0,89
+GA	0-5	interrow	11	0,65	0,39	0,26	1,05
+GA	0-5	interrow	12	0,60	0,46	0,14	0,98
+GA	10-15	row	1	0,67	0,38	0,28	0,85
+GA	10-15	row	2	0,61	0,43	0,18	0,93
+GA	10-15	row	3	0,66	0,40	0,26	0,91
+GA	10-15	row	4	0,68	0,38	0,29	0,81
+GA	10-15	row	5	0,66	0,43	0,23	0,87
+GA	10-15	row	6	0,66	0,40	0,26	0,86
+GA	10-15	row	7	0,68	0,38	0,30	0,82
+GA	10-15	row	8	0,66	0,43	0,23	0,88
+GA	10-15	row	9	0,67	0,40	0,27	0,87
+GA	10-15	row	10	0,67	0,38	0,29	0,92
+GA	10-15	row	11	0,66	0,43	0,23	0,87
+GA	10-15	row	12	0,68	0,40	0,28	0,37
+GA	10-15	interrow	1	0,68	0,37	0,32	0,86
+GA	10-15	interrow	2	0,63	0,40	0,23	0,94
+GA	10-15	interrow	3	0,61	0,47	0,15	0,99
+GA	10-15	interrow	4	0,65	0,37	0,29	0,93
+GA	10-15	interrow	5	0,59	0,40	0,19	1,03
+GA	10-15	interrow	6	0,62	0,47	0,15	0,91
+GA	10-15	interrow	7	0,64	0,37	0,27	0,87
+GA	10-15	interrow	8	0,60	0,40	0,20	0,89
+GA	10-15	interrow	9	0,65	0,47	0,18	0,94
+GA	10-15	interrow	10	0,64	0,37	0,27	0,81
+GA	10-15	interrow	11	0,60	0,40	0,20	0,84
+GA	10-15	interrow	12	0,64	0,47	0,17	0,89
+GA	20-25	row	1	0,68	0,37	0,32	0,82
+GA	20-25	row	2	0,66	0,39	0,27	0,87
+GA	20-25	row	3	0,65	0,39	0,26	0,84
+GA	20-25	row	4	0,64	0,37	0,27	0,88
+GA	20-25	row	5	0,66	0,39	0,27	0,89
+GA	20-25	row	6	0,63	0,39	0,24	0,84
+GA	20-25	row	7	0,65	0,37	0,28	0,94
+GA	20-25	row	8	0,65	0,39	0,26	0,9
+GA	20-25	row	9	0,67	0,39	0,28	1
+GA	20-25	row	10	0,62	0,37	0,25	0,93
+GA	20-25	row	11	0,66	0,39	0,27	1
+GA	20-25	row	12	0,67	0,39	0,29	0,93
+GA	20-25	interrow	1	0,67	0,39	0,29	0,84
+GA	20-25	interrow	2	0,64	0,42	0,23	0,95
+GA	20-25	interrow	3	0,64	0,46	0,19	0,98
+GA	20-25	interrow	4	0,67	0,39	0,28	0,99
+GA	20-25	interrow	5	0,64	0,42	0,22	0,87
+GA	20-25	interrow	6	0,64	0,46	0,19	0,99
+GA	20-25	interrow	7	0,66	0,39	0,27	0,83
+GA	20-25	interrow	8	0,65	0,42	0,24	0,86
+GA	20-25	interrow	9	0,63	0,46	0,18	0,81
+GA	20-25	interrow	10	0,67	0,39	0,29	0,96
+GA	20-25	interrow	11	0,63	0,42	0,21	0,86
+GA	20-25	interrow	12	0,62	0,46	0,16	0,83
+KH	0-5	row	1	0,63	0,39	0,24	0,9
+KH	0-5	row	2	0,65	0,35	0,30	0,99
+KH	0-5	row	3	0,64	0,36	0,28	0,95
+KH	0-5	row	4	0,66	0,39	0,27	0,87
+KH	0-5	row	5	0,63	0,35	0,28	1,06
+KH	0-5	row	6	0,57	0,36	0,21	0,91
+KH	0-5	row	7	0,68	0,39	0,29	0,86
+KH	0-5	row	8	0,64	0,35	0,29	0,92
+KH	0-5	row	9	0,64	0,36	0,28	0,84
+KH	0-5	row	10	0,69	0,39	0,30	0,82
+KH	0-5	row	11	0,63	0,35	0,28	0,85
+KH	0-5	row	12	0,65	0,36	0,29	0,87
+KH	0-5	interrow	1	0,64	0,38	0,26	0,84
+KH	0-5	interrow	2	0,59	0,42	0,16	0,86
+KH	0-5	interrow	3	0,59	0,43	0,15	0,92
+KH	0-5	interrow	4	0,55	0,38	0,17	0,89
+KH	0-5	interrow	5	0,61	0,42	0,18	0,86
+KH	0-5	interrow	6	0,61	0,43	0,18	0,83
+KH	0-5	interrow	7	0,59	0,38	0,21	0,92
+KH	0-5	interrow	8	0,63	0,42	0,21	1,05
+KH	0-5	interrow	9	0,57	0,43	0,13	1,05
+KH	0-5	interrow	10	0,64	0,38	0,25	1,12
+KH	0-5	interrow	11	0,64	0,42	0,22	0,98
+KH	0-5	interrow	12	0,61	0,43	0,17	1
+KH	10-15	row	1	0,66	0,38	0,28	1,01
+KH	10-15	row	2	0,67	0,35	0,32	0,98
+KH	10-15	row	3	0,64	0,37	0,27	1,13
+KH	10-15	row	4	0,64	0,38	0,27	0,97
+KH	10-15	row	5	0,65	0,35	0,30	0,92
+KH	10-15	row	6	0,62	0,37	0,25	0,95
+KH	10-15	row	7	0,68	0,38	0,30	0,91
+KH	10-15	row	8	0,62	0,35	0,27	0,87
+KH	10-15	row	9	0,65	0,37	0,28	0,95
+KH	10-15	row	10	0,64	0,38	0,26	0,99
+KH	10-15	row	11	0,64	0,35	0,29	0,93
+KH	10-15	row	12	0,65	0,37	0,27	1,15
+KH	10-15	interrow	1	0,56	0,45	0,11	1,14
+KH	10-15	interrow	2	0,62	0,38	0,23	1
+KH	10-15	interrow	3	0,61	0,39	0,22	0,99
+KH	10-15	interrow	4	0,57	0,45	0,12	1,1
+KH	10-15	interrow	5	0,63	0,38	0,24	0,95
+KH	10-15	interrow	6	0,60	0,39	0,20	1,03
+KH	10-15	interrow	7	0,56	0,45	0,10	0,95
+KH	10-15	interrow	8	0,62	0,38	0,23	1,04
+KH	10-15	interrow	9	0,62	0,39	0,23	1,09
+KH	10-15	interrow	10	0,57	0,45	0,12	0,9
+KH	10-15	interrow	11	0,65	0,38	0,26	0,98
+KH	10-15	interrow	12	0,60	0,39	0,21	1,13
+KH	20-25	row	1	0,63	0,40	0,23	0,95
+KH	20-25	row	2	0,65	0,38	0,27	0,92
+KH	20-25	row	3	0,56	0,42	0,14	1,01
+KH	20-25	row	4	0,64	0,40	0,25	0,95
+KH	20-25	row	5	0,59	0,38	0,21	1,08
+KH	20-25	row	6	0,63	0,42	0,21	0,97
+KH	20-25	row	7	0,63	0,40	0,23	1,05
+KH	20-25	row	8	0,64	0,38	0,26	0,94
+KH	20-25	row	9	0,64	0,42	0,22	1,1
+KH	20-25	row	10	0,63	0,40	0,24	1,13
+KH	20-25	row	11	0,65	0,38	0,27	0,97
+KH	20-25	row	12	0,66	0,42	0,24	0,97
+KH	20-25	interrow	1	0,60	0,43	0,17	1,01
+KH	20-25	interrow	2	0,59	0,42	0,17	1,03
+KH	20-25	interrow	3	0,56	0,41	0,14	1,18
+KH	20-25	interrow	4	0,63	0,43	0,20	0,84
+KH	20-25	interrow	5	0,59	0,42	0,17	0,95
+KH	20-25	interrow	6	0,57	0,41	0,16	0,95
+KH	20-25	interrow	7	0,60	0,43	0,17	0,86
+KH	20-25	interrow	8	0,60	0,42	0,18	1,02
+KH	20-25	interrow	9	0,54	0,41	0,12	0,92
+KH	20-25	interrow	10	0,60	0,43	0,17	0,98
+KH	20-25	interrow	11	0,58	0,42	0,15	0,95
+KH	20-25	interrow	12	0,56	0,41	0,15	0,95"
+da <- read.table(textConnection(txt),
+                 header = TRUE,
+                 sep = "\t",
+                 dec = ",")
+
+# Recode factor levels.
+levels(da$posi) <- c("Interrow", "Row")
+s <- c(KH = "Kaolinitic Haplustox", GA = "Gibbsitic Acrustox")
+levels(da$solo) <- names(s)
+
+# Recode levels.
+da$rept <- factor(rep(1:3, times = 4))
+str(da)
+
+da <- da %>%
+    group_by(solo, posi, prof, rept) %>%
+    summarise_at(vars(total, macro, micro, ds), "mean") %>%
+    ungroup()
+
+da$trt <- with(da, interaction(solo, posi, prof, sep = "·"))
+
+da <- da %>%
+    mutate(ue1 = interaction(solo, rept),
+           ue2 = interaction(solo, rept, posi))
+str(da)
+```
+
+```{r}
+# Data structure.
+str(da)
+
+# Frequency of cell combination.
+ftable(xtabs(~solo + posi + prof, data = da))
+
+db <- da %>%
+    gather(key = "variable", value = "value", total, macro, micro, ds)
+
+ggplot(data = db,
+       mapping = aes(x = prof, y = value, color = posi, group = posi)) +
+    facet_grid(facets = variable ~ solo, scale = "free_y") +
+    geom_jitter(width = 0.1, height = 0) +
+    stat_summary(geom = "line", fun.y = "mean")
+
+# To keep results.
+tb_results <- list()
+```
+
+# Density and porosity
+
+## Soil density
+
+Linear mixed effects model were used to model the responses:
+
+  * Soil density,
+  * Total porosity,
+  * Macroporosity and
+  * Microporosity,
+
+as function of experimental factors: soil, position and depth.
+
+The statistical model assumes a split split plot experimental design,
+$$
+\begin{align*}
+  y_{ijkl} &= \mu + S_i + P_j + D_k + \\
+   &\qquad (SP)_{ij} + (SD)_{ik} + (PD)_{jk} + (SPD)_{ijk} + \\
+   &\qquad e_{il} + e_{ijl} + e_{ijkl} \\
+ e_{il} &\sim \text{Normal}(0, \sigma^2_a) \qquad [\text{6 whole plots}]\\
+ e_{ijl} &\sim \text{Normal}(0, \sigma^2_b) \qquad [\text{12 sub plots}]\\
+ e_{ijkl} &\sim \text{Normal}(0, \sigma^2) \qquad [\text{36 data points}]\\
+\end{align*}
+$$
+
+  * $y_{ijkl}$ is response observed at the experimental condition
+    $ijkl$.
+  * $\mu$ is a constant that belongs to all observations.
+  * $S_i$ is the effect of soil $i = 1, 2$.
+  * $P_j$ is the effect of position $j = 1, 2$.
+  * $D_k$ is the effect of depth $k = 1, 2, 3$.
+  * The following terms are two and three way interactions among soil,
+    position and depth.
+  * $e_{il}$ is the experimental error at experimental unit $il$,
+    $e_{ijl}$ is the experimental error at experimental unit $ijl$ and
+    $e_{ijkl}$ is the experimental error at sample unit $ijkl$.
+
+This model were estimated by restricted maximum likelihood (REML).
+
+```{r}
+m0 <- lmer(ds ~ solo * posi * prof + (1 | ue1) + (1 | ue2),
+           data = da)
+
+VarCorr(m0)
+
+# summary(m0)
+anova(m0)
+
+m1 <- update(m0,
+             . ~ (solo + posi + prof)^2 - solo:posi +
+                 (1 | ue1) + (1 | ue2),
+             data = da)
+anova(m0, m1)
+
+anova(m1)
+
+emm <- emmeans(m1, ~prof | solo)
+as.data.frame(emm)
+
+results <- multcomp::cld(emm)
+results
+
+results <- results %>%
+    as.data.frame() %>%
+    mutate(cld = c("a", "a", "a", "b", "a", "a"))
+
+gg1 <-
+ggplot(data = results,
+       mapping = aes(x = prof,
+                     y = emmean,
+                     ymin = lower.CL,
+                     ymax = upper.CL)) +
+    facet_wrap(facets = ~solo) +
+    geom_point() +
+    geom_errorbar(width = 0.1) +
+    geom_text(mapping = aes(label = sprintf("%0.2f %s",
+                                            emmean,
+                                            cld)),
+              angle = 90, vjust = -0.5) +
+    labs(x = axis_text$prof,
+         y = axis_text$ds)
+
+tb_results$ds <- results
+```
+
+## Total porosity
+
+```{r}
+m0 <- lmer(total ~ solo * posi * prof + (1 | ue1) + (1 | ue2),
+           data = da)
+
+VarCorr(m0)
+anova(m0)
+
+m1 <- update(m0,
+             . ~ solo + posi +
+                 (1 | ue1) + (1 | ue2),
+             data = da)
+anova(m0, m1)
+
+anova(m1)
+
+emm <- emmeans(m1, ~posi | solo)
+as.data.frame(emm)
+
+results <- multcomp::cld(emm)
+results
+
+results <- results %>%
+    as.data.frame() %>%
+    mutate(cld = c("b", "a", "b", "a"))
+
+gg2 <-
+ggplot(data = results,
+       mapping = aes(x = posi,
+                     y = emmean,
+                     ymin = lower.CL,
+                     ymax = upper.CL)) +
+    facet_wrap(facets = ~solo) +
+    geom_point() +
+    geom_errorbar(width = 0.1) +
+    geom_text(mapping = aes(label = sprintf("%0.2f %s",
+                                            emmean,
+                                            cld)),
+              angle = 90, vjust = -0.5) +
+    labs(x = axis_text$posi,
+         y = axis_text$total)
+
+tb_results$total <- results
+```
+
+## Macro porosity
+
+```{r}
+m0 <- lmer(macro ~ solo * posi * prof + (1 | ue1) + (1 | ue2),
+           data = da)
+
+VarCorr(m0)
+anova(m0)
+
+m1 <- update(m0,
+             . ~ posi +
+                 (1 | ue1) + (1 | ue2),
+             data = da)
+anova(m0, m1)
+
+anova(m1)
+
+emm <- emmeans(m1, ~posi)
+as.data.frame(emm)
+
+results <- multcomp::cld(emm)
+results
+
+results <- results %>%
+    as.data.frame() %>%
+    mutate(cld = c("b", "a"))
+
+gg3 <-
+ggplot(data = results,
+       mapping = aes(x = posi,
+                     y = emmean,
+                     ymin = lower.CL,
+                     ymax = upper.CL)) +
+    geom_point() +
+    geom_errorbar(width = 0.1) +
+    geom_text(mapping = aes(label = sprintf("%0.2f %s",
+                                            emmean,
+                                            cld)),
+              angle = 90, vjust = -0.5) +
+    labs(x = axis_text$posi,
+         y = axis_text$macro)
+
+tb_results$macro <- results
+```
+
+## Micro porosity
+
+```{r}
+m0 <- lmer(micro ~ solo * posi * prof + (1 | ue1) + (1 | ue2),
+           data = da)
+
+VarCorr(m0)
+anova(m0)
+
+m1 <- update(m0,
+             . ~ posi +
+                 (1 | ue1) + (1 | ue2),
+             data = da)
+anova(m0, m1)
+
+anova(m1)
+
+emm <- emmeans(m1, ~posi)
+as.data.frame(emm)
+
+results <- multcomp::cld(emm)
+results
+
+results <- results %>%
+    as.data.frame() %>%
+    mutate(cld = c("b", "a"))
+
+gg4 <-
+ggplot(data = results,
+       mapping = aes(x = posi,
+                     y = emmean,
+                     ymin = lower.CL,
+                     ymax = upper.CL)) +
+    geom_point() +
+    geom_errorbar(width = 0.1) +
+    geom_text(mapping = aes(label = sprintf("%0.2f %s",
+                                            emmean,
+                                            cld)),
+              angle = 90, vjust = -0.5) +
+    labs(x = axis_text$posi,
+         y = axis_text$micro)
+
+tb_results$micro <- results
+```
+
+## Combining results
+
+```{r}
+tb_results %>%
+    map(select, -.group, -df)
+
+# tb <- tb_results %>%
+#     bind_rows()
+# tb
+
+gridExtra::grid.arrange(grobs = list(gg1, gg2, gg3, gg4),
+                        layout_matrix = rbind(c(1, 1),
+                                              c(2, 2),
+                                              c(3, 4)))
+```
+
+# Session information
 
 ```{r, echo = FALSE, results = "hold"}
 cat(format(Sys.time(),
