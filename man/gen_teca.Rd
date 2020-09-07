@@ -4,7 +4,8 @@
 \alias{gen_teca}
 \title{Desenvolvimento de mudas de teca em resposta a doses de
     C\enc{á}{a}lcio}
-\format{Um \code{data.frame} com 5800 observações e 7 variáveis, em
+\format{
+Um \code{data.frame} com 5800 observações e 7 variáveis, em
      que
 
 \describe{
@@ -30,7 +31,8 @@
 \item{\code{msr}}{Massa seca de raízes (g) das mudas ao final
     do experimento.}
 
-}}
+}
+}
 \source{
 Serafim, Milson Evaldo (Orientador), Valteir Siani (TCC
     Engenharia florestal) (2016). Resposta de genótipos de teca em

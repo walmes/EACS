@@ -4,7 +4,8 @@
 \alias{teca_ndvi}
 \title{\enc{Í}{I}ndice de vegeta\enc{çã}{ca}o mensal para os
     s\enc{í}{i}tios de Teca}
-\format{Um \code{data.frame} com 300 observações e 3 variáveis, em
+\format{
+Um \code{data.frame} com 300 observações e 3 variáveis, em
     que
 
 \describe{
@@ -23,7 +24,8 @@
 Para mais informações, consulte a documentação das demais tabelas:
 \code{\link{teca_arv}}, \code{\link{teca_coords}},
 \code{\link{teca_qui}}, \code{\link{teca_cra}},
-\code{\link{teca_crapar}}, \code{\link{teca_gran}}.}
+\code{\link{teca_crapar}}, \code{\link{teca_gran}}.
+}
 \source{
 Milson Evaldo Serafim.
 }

@@ -3,7 +3,8 @@
 \name{teca_coords}
 \alias{teca_coords}
 \title{Coordenadas dos s\enc{í}{i}tios de Teca}
-\format{Um \code{data.frame} com 50 observações e 5 variáveis, em que
+\format{
+Um \code{data.frame} com 50 observações e 5 variáveis, em que
 
 \describe{
 
@@ -25,7 +26,8 @@
 Para mais informações, consulte a documentação das demais tabelas:
 \code{\link{teca_arv}}, \code{\link{teca_ndvi}},
 \code{\link{teca_qui}}, \code{\link{teca_cra}},
-\code{\link{teca_crapar}}, \code{\link{teca_gran}}.}
+\code{\link{teca_crapar}}, \code{\link{teca_gran}}.
+}
 \source{
 Milson Evaldo Serafim.
 }

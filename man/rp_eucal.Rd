@@ -4,7 +4,8 @@
 \alias{rp_eucal}
 \title{Densidade, Porosidade e Resist\enc{ê}{e}ncia \enc{à}{a}
     Penetra\enc{çã}{ca}o do Solo para Manejos da Cultura do Eucalipto}
-\format{Um \code{data.frame} com 216 observações e 7 variáveis, em
+\format{
+Um \code{data.frame} com 216 observações e 7 variáveis, em
     que
 
 \describe{
@@ -52,7 +53,8 @@
     submetida à hidratação para determinação das umidades (em 0 e 6
     kPa) e depois foi feita determinação da resistência à penetração
     que deforma a amostra. Por fim, foi feita a determinação da
-    densidade do solo que não querer amostra indeformada.}
+    densidade do solo que não querer amostra indeformada.
+}
 \source{
 Elyson Thiago de Souza Florentim (bolsista FAPEMAT), Helen
     Caroline R. Correa (voluntária), Milson Evaldo Serafim

@@ -4,7 +4,8 @@
 \alias{teca_cra}
 \title{Vari\enc{á}{a}veis F\enc{í}{i}sico-H\enc{í}{i}dricas do Solo
     em S\enc{í}{i}tio Cultivados com Teca}
-\format{Um \code{data.frame} com 1650 observações e 9 variáveis, em
+\format{
+Um \code{data.frame} com 1650 observações e 9 variáveis, em
     que
 
 \describe{
@@ -24,7 +25,8 @@
 
 \item{\code{ds}}{Densidade do solo (Mg m\eqn{-3}).}
 
-}}
+}
+}
 \description{
 Valores de variáveis físico-hídricas de 3 camadas do
     solo em 50 sítios cultivados com teca (\emph{Tectona grandis}) e

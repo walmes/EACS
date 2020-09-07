@@ -4,7 +4,8 @@
 \alias{pedotrans}
 \title{Compressibilidade e pedotransfer\enc{ê}{e}ncia de 10
     latossolos}
-\format{O objeto \code{pedotrans} é uma lista de três tabelas.  O
+\format{
+O objeto \code{pedotrans} é uma lista de três tabelas.  O
     elemento \code{pedotrans$tex} é um \code{data.frame} com 30
     observações e 6 variáveis, descrevendo variáveis texturais do
     solo, em que
@@ -86,7 +87,8 @@ O elemento \code{pedotrans$qui} é um \code{data.frame} com 10
 \item{\code{dp}}{Variável resposta que é a densidade de partícula do
     solo, kg m\eqn{^{-3}}.}
 
-}}
+}
+}
 \source{
 Josué Gomes (\email{josuegd@gmail.com}), Eduardo da Costa
     Severiano (\email{eduardo.severiano@ifgoiano.edu.br}) e Carla

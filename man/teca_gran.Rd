@@ -3,7 +3,8 @@
 \name{teca_gran}
 \alias{teca_gran}
 \title{Fracionamento da Areia do Solo em S\enc{í}{i}tios de Teca}
-\format{Um \code{data.frame} com 150 observações e 8 variáveis, em
+\format{
+Um \code{data.frame} com 150 observações e 8 variáveis, em
     que
 
 \describe{
@@ -27,7 +28,8 @@
 \item{\code{are}}{Areia total como a soma das frações fina, média e
     grossa, g kg\eqn{^{-1}}.}
 
-}}
+}
+}
 \source{
 Everton Oliveira Soares (TCC em Engenharia Florestal:
     Quantificação das Frações Grosseiras do Solo e Produtividade da

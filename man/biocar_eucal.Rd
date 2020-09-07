@@ -5,7 +5,8 @@
 \alias{biocar_eucal_cra}
 \title{Desenvolvimento de Mudas de Eucalipto em Resposta \enc{à}{a}
     Doses de P e Biocarv\enc{ã}{a}o}
-\format{\code{biocar_eucal} é um \code{data.frame} com 90 observações
+\format{
+\code{biocar_eucal} é um \code{data.frame} com 90 observações
     e 20 variáveis, em que
 
 \describe{
@@ -87,7 +88,8 @@
 \item{\code{umid}}{Umidade do solo, m\eqn{^{3}} m\eqn{^{-3}} no
     equilíbrio com a tensão matricial aplicada.}
 
-}}
+}
+}
 \source{
 Milson Evaldo Serafim (orientador,
     \email{milson.serafim@cas.ifmt.edu.br}), Janaina Carvalho de

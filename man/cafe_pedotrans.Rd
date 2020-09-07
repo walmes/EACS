@@ -4,7 +4,8 @@
 \alias{cafe_pedotrans}
 \title{Modelagem da capacidade de suporte de carga de latossolos com
     diferente mineralogia}
-\format{A \code{data.frame} with 180 observations and 12 variables,
+\format{
+A \code{data.frame} with 180 observations and 12 variables,
     in which
 
 \describe{
@@ -43,7 +44,8 @@
     posição, profundidade e repetição para indicar cada curva
     presente no experimento.}
 
-}}
+}
+}
 \source{
 Carla Eloize Carducci, \email{elocarducci@gmail.com},
     \url{http://buscatextual.cnpq.br/buscatextual/visualizacv.do?id=K4713341P8};

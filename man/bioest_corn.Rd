@@ -4,7 +4,8 @@
 \alias{bioest_corn}
 \title{Desempenho agron\enc{ô}{o}mico de plantas de milho tratadas
     com bioestimulantes}
-\format{Um \code{data.frame} com 40 observações e 8 variáveis, em que
+\format{
+Um \code{data.frame} com 40 observações e 8 variáveis, em que
 
 \describe{
 
@@ -38,7 +39,8 @@
 \item{\code{m1k}}{Variável resposta métrica que é o peso de 1000
     grãos, expresso em gramas.}
 
-}}
+}
+}
 \source{
 Tárik Cazeiro El Kadri (\email{tarik-kadri@hotmail.com},
     aluno de mestrado, Programa de Pós Graduação em Produção Vegetal,

@@ -4,7 +4,8 @@
 \alias{teca_crapar}
 \title{Estimativas dos Par\enc{â}{a}metros da Curva de
     Reten\enc{çã}{ca}o de \enc{Á}{A}gua do Solo}
-\format{Um \code{data.frame} com 141 observações e 14 variáveis, em
+\format{
+Um \code{data.frame} com 141 observações e 14 variáveis, em
     que
 
 \describe{
@@ -42,7 +43,8 @@
     entre a umidade na inflexão (\code{Ui}) e umidade residual
     (\code{Ur}).}
 
-}}
+}
+}
 \description{
 Estimativas dos parâmetros da curva de retenção de água
     do solo para os 50 sítios cultivados com teca e 3 camadas do

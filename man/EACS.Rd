@@ -3,7 +3,6 @@
 \docType{package}
 \name{EACS}
 \alias{EACS}
-\alias{EACS-package}
 \title{Estat\enc{í}{i}stica Aplicada \enc{à}{a} Ci\enc{ê}{e}ncia do
     Solo}
 \description{

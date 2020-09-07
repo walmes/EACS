@@ -4,7 +4,8 @@
 \alias{np_carobinha}
 \title{Efeito da \enc{É}{E}poca de Colheita e Aduba\enc{çã}{ca}o
     Nitro-Fosfatada na Carobinha}
-\format{Um \code{data.frame} com 72 observações e 7 variáveis, em que
+\format{
+Um \code{data.frame} com 72 observações e 7 variáveis, em que
 
 \describe{
 
@@ -26,7 +27,8 @@
 
 \item{\code{Kfolh}}{Teor de potássio nas folhas, TODO grandeza.}
 
-}}
+}
+}
 \description{
 Resultados de um experimento realizado para estudar o
     efeito da época de colheita e níveis de adubação nitro-fosfatada

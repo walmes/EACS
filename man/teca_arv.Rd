@@ -4,7 +4,8 @@
 \alias{teca_arv}
 \title{Vari\enc{á}{a}veis de Dendrom\enc{é}{e}tricas em
     \enc{Á}{A}rvores de Teca}
-\format{Um \code{data.frame} com 50 observações e 5 variáveis, em que
+\format{
+Um \code{data.frame} com 50 observações e 5 variáveis, em que
 
 \describe{
 
@@ -21,7 +22,8 @@
     variável é só uma padronização do \code{vol} para a unidade de
     área de um hectare.}
 
-}}
+}
+}
 \description{
 Váriaveis dendrométricas de teca em 50 sítios de
     cultivo.

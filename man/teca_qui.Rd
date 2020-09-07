@@ -4,7 +4,8 @@
 \alias{teca_qui}
 \title{Vari\enc{á}{a}veis Qu\enc{í}{i}micas do Solo para o Estudo
     com Teca (\emph{Tectona grandis})}
-\format{Um \code{data.frame} com 150 observações e 17 variáveis, em
+\format{
+Um \code{data.frame} com 150 observações e 17 variáveis, em
     que
 
 \describe{
@@ -58,7 +59,8 @@
 \item{\code{acc}}{Teor de areia mais cascalho mais calhas (g
     kg\eqn{^{-1}}) da amostra de solo.}
 
-}}
+}
+}
 \source{
 Milson Evaldo Serafim.
 }

@@ -4,7 +4,8 @@
 \alias{maracuja}
 \title{Cinza de cana em substrato de "terra de barranco" para
     produ\enc{çã}{ca}o de mudas de maracujazeiro}
-\format{Uma lista com dois elementos sendo \code{final} os dados
+\format{
+Uma lista com dois elementos sendo \code{final} os dados
     obtidos ao final do experimento com a colheita das parcelas e
     \code{cresc} dados sobre o crescimento em altura das plantas.
 
@@ -54,7 +55,8 @@
 \item{\code{alt}}{Variável resposta altura das mudas de maracuja
      (cm).}
 
-}}
+}
+}
 \source{
 Milson Evaldo Serafim
     (\url{http://lattes.cnpq.br/8676820051946774}).

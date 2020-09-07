@@ -4,7 +4,8 @@
 \alias{capsicum_nitro}
 \title{Resposta de gen\enc{ó}{o}tipos de pimenta \enc{à}{a} doses de
     nitrog\enc{ê}{e}nio}
-\format{Uma lista com 4 \emph{data frames} totalizando 16 variáveis
+\format{
+Uma lista com 4 \emph{data frames} totalizando 16 variáveis
     que são descritas a seguir.  A tabela \code{cres} contém os dados
     para curva de crescimento em altura das plantas, \code{planta}
     contém registros de variáveis medidas ao nível de planta (valores
@@ -153,7 +154,8 @@
     florescimento também é uma variável resposta de interesse na
     comparação de genótipos, pois seu conhecimento permite conhecer o
     potencial de genótipos em contribuir com a precocidade da
-    produção nos programas de melhoramento.}
+    produção nos programas de melhoramento.
+}
 \source{
 Dados produzidos por Milson Evaldo Serafim (Orientador) e
     Paloma Braga (Bolsista de IC) em 2016.

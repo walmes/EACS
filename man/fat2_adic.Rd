@@ -4,7 +4,8 @@
 \alias{fat2_adic}
 \title{Experimento fatorial duplo com um tratamento adicional como
     testemunha}
-\format{Um \code{data.frame} com 36 observações e 4 variáveis, em que
+\format{
+Um \code{data.frame} com 36 observações e 4 variáveis, em que
 
 \describe{
 
@@ -23,7 +24,8 @@
 \item{\code{prod}}{Variável resposta do experimento, produção da
     cultura. Informações não divulgadas}
 
-}}
+}
+}
 \source{
 Dados cedidos por Fábio B. Ono
     (\email{fabioono@fundacaomt.com.br}) para propósitos
