@@ -140,8 +140,8 @@ cap <- fg_nums(name = "umids",
 # as duas.
 xyplot(umid0 + umid6 ~ cam | manejo,
        data = rp,
-       xlab = "Profundidade (m)",
-       ylab = expression("Conteúdo de água do solo" ~ (m^3 ~ m^{-3})),
+       xlab = "Soil depth (m)",
+       ylab = expression("Soil water content" ~ (m^3 ~ m^{-3})),
        type = c("p", "smooth"),
        auto.key = TRUE)
 ```
@@ -178,7 +178,7 @@ xy <- xyplot(umid0 + umid6 + dumid + dens + rp ~ cam | manejo,
              outer = TRUE,
              groups = bloc,
              data = rp,
-             xlab = "Profundidade (m)",
+             xlab = "Soil depth (m)",
              ylab = NULL,
              scales = list(y = list(relation = "free")),
              type = c("p", "smooth")) +
@@ -353,9 +353,9 @@ pred <- cbind(pred, icpred(model = m2, data = pred))
 
 xyplot(umid0 ~ cam | manejo,
        data = rp[-63, ],
-       ylab = expression("Conteúdo de água do solo à 0 kPa" ~
+       ylab = expression("Soil water content at 0 kPa" ~
                              (m^3 ~ m^{-3})),
-       xlab = "Profundidade (m)") +
+       xlab = "Soil depth (m)") +
     as.layer(xyplot(fit ~ cam | manejo,
                     data = pred,
                     type = "l",
@@ -447,9 +447,9 @@ pred <- cbind(pred, icpred(model = m2, data = pred))
 
 xyplot(umid6 ~ cam | manejo,
        data = rp[-63, ],
-       ylab = expression("Conteúdo de água do solo à 6 kPa" ~
+       ylab = expression("Soil water content at 6 kPa" ~
                              (m^3 ~ m^{-3})),
-       xlab = "Profundidade (m)") +
+       xlab = "Soil depth (m)") +
     as.layer(xyplot(fit ~ cam | manejo,
                     data = pred,
                     type = "l",
@@ -525,9 +525,9 @@ pred <- cbind(pred, icpred(model = m0, data = pred))
 
 xyplot(dumid ~ cam | manejo,
        data = rp,
-       ylab = expression("Conteúdo de água do solo - 0 a 6 kPa" ~
+       ylab = expression("Soil water content - 0 to 6 kPa" ~
                              (m^3 ~ m^{-3})),
-       xlab = "Profundidade (m)") +
+       xlab = "Soil depth (m)") +
     as.layer(xyplot(fit ~ cam | manejo,
                     data = pred,
                     type = "l",
@@ -601,8 +601,8 @@ pred <- cbind(pred, icpred(model = m0, data = pred))
 
 xyplot(dens ~ cam | manejo,
        data = rp,
-       ylab = expression("Densidade do solo" ~ (Mg ~ m^{-3})),
-       xlab = "Profundidade (m)") +
+       ylab = expression("Bulk density of soil" ~ (Mg ~ m^{-3})),
+       xlab = "Soil depth (m)") +
     as.layer(xyplot(fit ~ cam | manejo,
                     data = pred,
                     type = "l",
@@ -676,8 +676,8 @@ pred <- cbind(pred, icpred(model = m0, data = pred))
 
 xyplot(rp ~ cam | manejo,
        data = rp,
-       ylab = expression("Resistência à penetração" ~ (MPa)),
-       xlab = "Profundidade (m)") +
+       ylab = expression("Soi penetration resistance" ~ (MPa)),
+       xlab = "Soil depth (m)") +
     as.layer(xyplot(fit ~ cam | manejo,
                     data = pred,
                     type = "l",
